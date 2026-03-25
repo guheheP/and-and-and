@@ -11,6 +11,7 @@ function createWindow() {
     width: 240,
     height: 210,
     useContentSize: true,
+    icon: path.join(__dirname, 'assets', 'icon.png'),
     transparent: true,
     frame: false,
     alwaysOnTop: true,

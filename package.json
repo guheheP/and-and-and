@@ -18,19 +18,29 @@
     },
     "files": [
       "main.js",
-      "src/**/*"
+      "preload.js",
+      "src/**/*",
+      "assets/**/*"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "assets/icon.png"
     },
     "mac": {
       "target": "dmg"
     }
   },
-  "keywords": ["idle", "game", "farming", "electron"],
+  "keywords": [
+    "idle",
+    "game",
+    "farming",
+    "electron"
+  ],
   "license": "MIT",
   "devDependencies": {
     "electron": "^33.0.0",
-    "electron-builder": "^25.0.0"
+    "electron-builder": "^25.0.0",
+    "png-to-ico": "^3.0.1",
+    "rcedit": "^5.0.2"
   }
 }
