@@ -269,7 +269,9 @@ function initElectronHandlers(state) {
   const blurPoints = document.getElementById('blur-points');
 
   window.electronAPI.onWindowBlur(() => {
-    if (blurStats && state) {
+    document.body.classList.add('window-blurred');
+    // 背景透過時のみ地面にステータス表示（通常時はタイトルバーが見えるので不要）
+    if (blurStats && state && document.body.classList.contains('bg-transparent')) {
       blurLevel.textContent = state.level;
       blurPoints.textContent = state.points >= 1000 ? (state.points / 1000).toFixed(1) + 'K' : state.points;
       blurStats.hidden = false;
@@ -277,6 +279,7 @@ function initElectronHandlers(state) {
   });
 
   window.electronAPI.onWindowFocus(() => {
+    document.body.classList.remove('window-blurred');
     if (blurStats) blurStats.hidden = true;
   });
 

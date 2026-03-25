@@ -203,16 +203,19 @@ body {
 .blur-stats {
   position: absolute;
   bottom: 8px;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  justify-content: center;
   gap: 4px;
   font-size: 10px;
   z-index: 5;
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 2px 8px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
 }
 
 .blur-stats:not([hidden]) {
@@ -509,6 +512,22 @@ body.bg-transparent {
   background: rgba(74, 63, 101, 0.7);
   backdrop-filter: blur(4px);
   border-radius: 0 0 6px 6px;
+  transition: opacity 0.3s ease;
+}
+
+.bg-transparent .title-bar {
+  transition: opacity 0.3s ease;
+}
+
+.bg-transparent .window-frame {
+  border-color: transparent;
+}
+
+/* 背景透過 + 非アクティブ時のみ UI 非表示 */
+.bg-transparent.window-blurred .title-bar,
+.bg-transparent.window-blurred .toolbar {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* 透過モード時にテキストの視認性を確保 */
