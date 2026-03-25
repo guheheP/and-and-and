@@ -23,7 +23,10 @@
       <!-- タイトルバー -->
       <div class="title-bar">
         <div class="title-bar__stats">
-          <span class="stat stat--level">Lv.<span id="hud-level">1</span></span>
+          <span class="stat stat--level">
+            <span class="stat-text">Lv.<span id="hud-level">1</span></span>
+            <div id="hud-exp-fill" class="player-exp-fill"></div>
+          </span>
           <span class="stat stat--points"><span id="hud-points">0</span>pt</span>
         </div>
         <div class="title-bar__controls">
@@ -57,10 +60,16 @@
 
         <!-- 収穫エフェクト -->
         <div id="harvest-effect" class="harvest-effect" hidden></div>
+        
+        <!-- レベルアップエフェクト -->
+        <div id="levelup-effect" class="levelup-effect" hidden>LEVEL UP!</div>
 
         <!-- 非アクティブ時ステータス表示 -->
         <div id="blur-stats" class="blur-stats" hidden>
-          <span class="stat stat--level">Lv.<span id="blur-level">1</span></span>
+          <span class="stat stat--level">
+            <span class="stat-text">Lv.<span id="blur-level">1</span></span>
+            <div id="blur-exp-fill" class="player-exp-fill"></div>
+          </span>
           <span class="stat stat--points"><span id="blur-points">0</span>pt</span>
         </div>
       </div>
@@ -111,6 +120,52 @@
         <div class="prestige-footer">
           <button id="btn-prestige-exec" class="btn btn--danger">プレステージ実行</button>
           <button id="btn-prestige-close" class="btn btn--ghost">閉じる</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- プレステージ確認モーダル -->
+    <div id="prestige-confirm-modal" class="modal" hidden>
+      <div class="modal__content">
+        <div class="modal__title">⭐ プレステージ確認</div>
+        <div style="text-align: center; margin: 15px 0; line-height: 1.5; font-size: 11px;">
+          プレステージを実行しますか？<br><br>
+          <span style="color:var(--c-accent); font-size: 13px; font-weight: bold;">💎 獲得通貨: +<span id="prestige-confirm-earn">0</span></span><br><br>
+          <span style="color:#a098b0; font-size:9px;">⚠️ レベル・ポイント・種がリセットされます<br>（強化内容は保持されます）</span>
+        </div>
+        <div class="modal__actions">
+          <button id="btn-prestige-confirm-yes" class="btn btn--primary">実行する</button>
+          <button id="btn-prestige-confirm-no" class="btn btn--ghost">キャンセル</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- バージョン＆設定モーダル -->
+    <div id="version-modal" class="modal" hidden>
+      <div class="modal__content">
+        <div class="modal__title">ℹ バージョン情報</div>
+        <div style="text-align: center; margin: 20px 0;">
+          <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">No のーえん No Life</div>
+          <div style="color: #bbbbbb;">Version 0.1.0</div>
+        </div>
+        <div class="modal__actions" style="flex-direction: column; gap: 10px;">
+          <button id="btn-open-reset" class="btn btn--danger" style="width: 100%;">セーブデータを削除</button>
+          <button id="btn-version-close" class="btn btn--ghost" style="width: 100%;">閉じる</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 確認モーダル -->
+    <div id="confirm-modal" class="modal" hidden>
+      <div class="modal__content">
+        <div class="modal__title">⚠️ 警告</div>
+        <div style="text-align: center; margin: 20px 0; line-height: 1.5;">
+          本当にセーブデータを<br>完全に削除しますか？<br>
+          <span style="color:#ff6060; font-size:0.8em;">(この操作は取り消せません)</span>
+        </div>
+        <div class="modal__actions">
+          <button id="btn-confirm-yes" class="btn btn--danger">削除する</button>
+          <button id="btn-confirm-no" class="btn btn--ghost">キャンセル</button>
         </div>
       </div>
     </div>

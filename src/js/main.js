@@ -10,8 +10,9 @@ import {
   showHarvestEffect,
   showHarvestParticles,
   triggerWorkAnimation,
+  showLevelUpEffect,
 } from './renderer.js';
-import { initUI } from './ui-controller.js';
+import { initUI, buildCatalog } from './ui-controller.js';
 import { CROP_MASTER } from './master-data.js';
 import { getGachaPool } from './progression.js';
 import {
@@ -64,6 +65,12 @@ function init() {
     onFieldUpdate: (fieldState) => {
       updateField(fieldState);
       updateHUD(state);
+      
+      // カタログが開いていればリアルタイム反映
+      const catalogModal = document.getElementById('catalog-modal');
+      if (catalogModal && !catalogModal.hidden) {
+        buildCatalog();
+      }
     },
     onPlant: (cropId) => {
       triggerWorkAnimation();
@@ -72,9 +79,16 @@ function init() {
       triggerWorkAnimation();
       showHarvestEffect(points);
       showHarvestParticles(cropId);
+      
+      // カタログが開いていればリアルタイム反映
+      const catalogModal = document.getElementById('catalog-modal');
+      if (catalogModal && !catalogModal.hidden) {
+        buildCatalog();
+      }
     },
     onLevelUp: (newLevel) => {
       updateHUD(state);
+      showLevelUpEffect();
       console.log(`🎉 レベルアップ！ Lv.${newLevel}`);
     },
   });
@@ -84,8 +98,36 @@ function init() {
 
   // 8. ウィンドウを閉じる前にセーブ
   window.addEventListener('beforeunload', () => {
-    saveState(state);
+    if (!window.skipSaveOnUnload) {
+      saveState(state);
+    }
   });
+
+  // 9. ブラウザ用デバッグモード（特定コマンド入力）
+  if (!window.electronAPI) {
+    let keyBuffer = '';
+    window.addEventListener('keydown', (e) => {
+      // コマンド入力バッファ
+      keyBuffer += e.key;
+      if (keyBuffer.length > 20) keyBuffer = keyBuffer.slice(-20);
+
+      // コマンド判定
+      if (keyBuffer.endsWith('100debug')) {
+        window.DEBUG_SPEED_MULTIPLIER = 100;
+        alert('【デバッグモード】100倍速を有効化しました');
+        keyBuffer = '';
+      } else if (keyBuffer.endsWith('10debug')) {
+        window.DEBUG_SPEED_MULTIPLIER = 10;
+        alert('【デバッグモード】10倍速を有効化しました');
+        keyBuffer = '';
+      } else if (keyBuffer.endsWith('1debug')) {
+        window.DEBUG_SPEED_MULTIPLIER = 1;
+        alert('【デバッグモード】等速に戻しました');
+        keyBuffer = '';
+      }
+    });
+    console.log('ブラウザ版デバッグコマンドが利用可能です。「10debug」や「100debug」とタイプしてください。');
+  }
 
   console.log('🌱 Idle Farm 起動完了');
 }
@@ -294,11 +336,6 @@ function initElectronHandlers(state) {
   }
   if (btnClose) {
     btnClose.addEventListener('click', () => window.electronAPI.close());
-  }
-  if (btnVersion) {
-    btnVersion.addEventListener('click', () => {
-      alert('No のーえん No Life\nVersion 0.1.0');
-    });
   }
 }
 

@@ -128,7 +128,7 @@ function updateGrowth(state, currentTime) {
   if (!crop) return;
 
   const elapsed = Date.now() - state.fieldState.plantedAt;
-  const growthMult = getGrowthMultiplier();
+  const growthMult = getGrowthMultiplier() * (window.DEBUG_SPEED_MULTIPLIER || 1);
   const prestigeGrowth = getUpgradeEffect('growthSpeed', getUpgradeLevel(state, 'growthSpeed'));
   const effectiveGrowTime = crop.growTimeMs * prestigeGrowth / growthMult;
   state.fieldState.progress = Math.min(elapsed / effectiveGrowTime, 1.0);

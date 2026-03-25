@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IdleFarm - Balance Simulator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background: #f0f0f0; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+        .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .control-group { margin-bottom: 15px; }
+        .control-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="number"], select { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { background: #4CAF50; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-size: 16px; width: 100%; margin-bottom: 10px; }
+        button:hover { background: #45a049; }
+        button.danger { background: #f44336; }
+        button.danger:hover { background: #d32f2f; }
+        .stat-box { background: #e9ecef; padding: 10px; border-radius: 4px; margin-bottom: 10px; font-family: monospace; }
+        .stat-label { font-size: 12px; color: #666; }
+        .stat-value { font-size: 20px; font-weight: bold; color: #000; }
+        .chart-container { position: relative; height: 300px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+    <script>
+        // MOCK localStorage to protect real save data from the simulator!
+        const mockStorage = {};
+        Object.defineProperty(window, 'localStorage', {
+            value: {
+                getItem: (key) => mockStorage[key] || null,
+                setItem: (key, val) => { mockStorage[key] = String(val); },
+                removeItem: (key) => { delete mockStorage[key]; },
+                clear: () => { for (let k in mockStorage) delete mockStorage[k]; }
+            },
+            configurable: true
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- Controls Sidebar -->
+        <div class="panel">
+            <h2>Simulator Controls</h2>
+            
+            <div class="control-group">
+                <label>Simulate Duration</label>
+                <select id="sim-duration">
+                    <option value="3600">1 Hour</option>
+                    <option value="21600">6 Hours</option>
+                    <option value="86400">1 Day</option>
+                    <option value="604800">1 Week</option>
+                    <option value="2592000">1 Month</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label><input type="checkbox" id="auto-prestige" checked> Auto Prestige</label>
+            </div>
+            <div class="control-group">
+                <label>Prestige Target Level</label>
+                <input type="number" id="prestige-threshold" value="50" min="50" step="10">
+            </div>
+
+            <button id="btn-run">Run Simulation</button>
+            <button id="btn-reset" class="danger">Reset State</button>
+
+            <hr style="margin: 20px 0; border-top: 1px solid #ddd;">
+            
+            <h3>Current State</h3>
+            <div class="stat-box">
+                <div class="stat-label">Time Passed</div>
+                <div class="stat-value" id="val-time">0h 0m</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Level</div>
+                <div class="stat-value" id="val-level">1</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Points</div>
+                <div class="stat-value" id="val-points">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Prestige Count</div>
+                <div class="stat-value" id="val-prestige">0</div>
+            </div>
+            <div class="stat-box" style="background: #e3f2fd;">
+                <div class="stat-label">Total Currency Earned</div>
+                <div class="stat-value" id="val-currency">0</div>
+                <div class="stat-label" id="val-currency-hr" style="color: #2196F3;">(0.00 / hr)</div>
+            </div>
+            
+            <div class="control-group" style="margin-top: 15px;">
+                <label>Upgrades</label>
+                <div id="val-upgrades" style="font-size: 12px; white-space: pre-wrap; background: #eee; padding: 5px;">None</div>
+            </div>
+        </div>
+
+        <!-- Charts and Log Panel -->
+        <div class="panel">
+            <h2>Results</h2>
+            <div class="chart-container">
+                <canvas id="levelChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="pointsChart"></canvas>
+            </div>
+
+            <h3>Milestone Logs</h3>
+            <div style="max-height: 250px; overflow-y: auto;">
+                <table id="log-table">
+                    <thead>
+                        <tr>
+                            <th width="20%">Virtual Time</th>
+                            <th width="15%">Level</th>
+                            <th width="40%">Event</th>
+                            <th width="25%">Points</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-tbody">
+                        <!-- Logs injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/simulator-gui.js"></script>
+</body>
+</html>

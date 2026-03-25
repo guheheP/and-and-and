@@ -14,29 +14,29 @@ export const CROP_MASTER = {
     isDefault: true,
     cssClass: 'crop--tomato',
   },
-  potato: {
-    id: 'potato',
-    name: 'ジャガイモ',
-    growTimeMs: 15000,
-    basePoint: 50,
-    rarity: 2,
-    isDefault: false,
-    cssClass: 'crop--potato',
-  },
   carrot: {
     id: 'carrot',
     name: 'ニンジン',
     growTimeMs: 10000,
-    basePoint: 30,
+    basePoint: 30, // restored
     rarity: 1,
     isDefault: false,
     cssClass: 'crop--carrot',
+  },
+  potato: {
+    id: 'potato',
+    name: 'ジャガイモ',
+    growTimeMs: 15000,
+    basePoint: 50, // restored
+    rarity: 2,
+    isDefault: false,
+    cssClass: 'crop--potato',
   },
   strawberry: {
     id: 'strawberry',
     name: 'イチゴ',
     growTimeMs: 20000,
-    basePoint: 80,
+    basePoint: 80, // restored
     rarity: 3,
     isDefault: false,
     cssClass: 'crop--strawberry',
@@ -45,7 +45,7 @@ export const CROP_MASTER = {
     id: 'corn',
     name: 'トウモロコシ',
     growTimeMs: 25000,
-    basePoint: 100,
+    basePoint: 100, // restored
     rarity: 3,
     isDefault: false,
     cssClass: 'crop--corn',
@@ -54,28 +54,28 @@ export const CROP_MASTER = {
     id: 'pumpkin',
     name: 'カボチャ',
     growTimeMs: 40000,
-    basePoint: 200,
+    basePoint: 200, // restored
     rarity: 4,
     isDefault: false,
     cssClass: 'crop--pumpkin',
-  },
-  golden_apple: {
-    id: 'golden_apple',
-    name: '金のリンゴ',
-    growTimeMs: 60000,
-    basePoint: 500,
-    rarity: 5,
-    isDefault: false,
-    cssClass: 'crop--golden-apple',
   },
   watermelon: {
     id: 'watermelon',
     name: 'スイカ',
     growTimeMs: 45000,
-    basePoint: 250,
+    basePoint: 250, // restored
     rarity: 4,
     isDefault: false,
     cssClass: 'crop--watermelon',
+  },
+  golden_apple: {
+    id: 'golden_apple',
+    name: '金のリンゴ',
+    growTimeMs: 60000,
+    basePoint: 500, // restored
+    rarity: 5,
+    isDefault: false,
+    cssClass: 'crop--golden-apple',
   },
   tumbleweed: {
     id: 'tumbleweed',
@@ -119,16 +119,14 @@ export const CHARACTER_MASTER = {
 
 /**
  * レベルアップ閾値を指数関数で算出（無限レベル対応）
- * 式: 100 * 1.15^(level-1)
- * Lv.1=0, Lv.2=100, Lv.3=215, Lv.10≈1,535, Lv.50≈約90K, Lv.100≈約117M
+ * 式: 100 * 1.08^(level-1)
  * @param {number} level - 1-indexed
  * @returns {number}
  */
 export function getLevelThreshold(level) {
   if (level <= 1) return 0;
-  // 累計値 = 100 * (1.15^0 + 1.15^1 + ... + 1.15^(level-2))
-  //         = 100 * (1.15^(level-1) - 1) / (1.15 - 1)
-  return Math.floor(100 * (Math.pow(1.15, level - 1) - 1) / 0.15);
+  // インフレ率を 1.15 から 1.08 に緩和
+  return Math.floor(100 * (Math.pow(1.08, level - 1) - 1) / 0.08);
 }
 
 /**
@@ -136,13 +134,10 @@ export function getLevelThreshold(level) {
  * @type {Object.<number, string[]>}
  */
 export const LEVEL_UNLOCK_CROPS = {
-  1: ['tomato', 'carrot'],
-  3: ['potato'],
-  5: ['strawberry'],
-  7: ['corn'],
-  9: ['pumpkin'],
-  11: ['watermelon'],
-  13: ['golden_apple'],
+  1: ['tomato', 'carrot', 'potato', 'strawberry', 'corn'], // ガチャ用に序盤から5種解放
+  20: ['pumpkin'],
+  30: ['watermelon'],
+  40: ['golden_apple'],
 };
 
 /**
@@ -152,13 +147,13 @@ export const LEVEL_UNLOCK_CROPS = {
  */
 export const LEVEL_DEFAULT_CROP = [
   { level: 1,   cropId: 'tomato' },
-  { level: 100, cropId: 'carrot' },
-  { level: 150, cropId: 'potato' },
-  { level: 200, cropId: 'strawberry' },
-  { level: 250, cropId: 'corn' },
-  { level: 300, cropId: 'pumpkin' },
-  { level: 400, cropId: 'watermelon' },
-  { level: 500, cropId: 'golden_apple' },
+  { level: 40,  cropId: 'carrot' },
+  { level: 70,  cropId: 'potato' },
+  { level: 100, cropId: 'strawberry' },
+  { level: 130, cropId: 'corn' },
+  { level: 160, cropId: 'pumpkin' },
+  { level: 190, cropId: 'watermelon' },
+  { level: 220, cropId: 'golden_apple' },
 ];
 
 /**

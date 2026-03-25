@@ -1,6 +1,6 @@
 // renderer.js — DOM操作・描画更新
 
-import { CROP_MASTER, CHARACTER_MASTER } from './master-data.js';
+import { CROP_MASTER, CHARACTER_MASTER, getLevelThreshold } from './master-data.js';
 
 /** DOM要素のキャッシュ */
 const dom = {};
@@ -13,8 +13,12 @@ export function initRenderer() {
   dom.hudPoints = document.getElementById('hud-points');
   dom.farmer = document.getElementById('farmer');
   dom.crop = document.getElementById('crop');
+  dom.field = document.getElementById('field');
   dom.harvestEffect = document.getElementById('harvest-effect');
+  dom.levelupEffect = document.getElementById('levelup-effect');
   dom.stage = document.getElementById('stage');
+  dom.hudExpFill = document.getElementById('hud-exp-fill');
+  dom.blurExpFill = document.getElementById('blur-exp-fill');
 }
 
 /**
@@ -73,6 +77,17 @@ export function updateHUD(state) {
   if (dom.hudPoints) {
     dom.hudPoints.textContent = formatNumber(state.points);
   }
+  
+  // プレイヤー経験値バーの更新
+  if (dom.hudExpFill || dom.blurExpFill) {
+    const currentThreshold = getLevelThreshold(state.level);
+    const nextThreshold = getLevelThreshold(state.level + 1);
+    const progress = Math.max(0, Math.min(1, (state.totalEarnedPoints - currentThreshold) / (nextThreshold - currentThreshold)));
+    const percent = (progress * 100) + '%';
+    
+    if (dom.hudExpFill) dom.hudExpFill.style.width = percent;
+    if (dom.blurExpFill) dom.blurExpFill.style.width = percent;
+  }
 }
 
 /**
@@ -108,11 +123,28 @@ export function triggerWorkAnimation() {
 }
 
 /**
+ * レベルアップエフェクトを表示
+ */
+export function showLevelUpEffect() {
+  if (!dom.levelupEffect) return;
+  
+  dom.levelupEffect.hidden = false;
+  // 再トリガー
+  dom.levelupEffect.style.animation = 'none';
+  dom.levelupEffect.offsetHeight; // reflow
+  dom.levelupEffect.style.animation = '';
+  
+  setTimeout(() => {
+    dom.levelupEffect.hidden = true;
+  }, 1200);
+}
+
+/**
  * 収穫パーティクルエフェクト
  * @param {string} cropId
  */
 export function showHarvestParticles(cropId) {
-  if (!dom.stage) return;
+  if (!dom.field) return;
   const crop = CROP_MASTER[cropId];
   const color = crop ? getComputedCropColor(crop.cssClass) : '#ffd700';
 
@@ -120,11 +152,13 @@ export function showHarvestParticles(cropId) {
     const particle = document.createElement('div');
     particle.className = 'harvest-particle';
     particle.style.background = color;
-    particle.style.setProperty('--px', `${(Math.random() - 0.5) * 60}px`);
+    particle.style.setProperty('--px', `${(Math.random() - 0.5) * 50}px`);
     particle.style.setProperty('--py', `${-20 - Math.random() * 40}px`);
+    
+    // 畑を基準に発生させる
     particle.style.left = '50%';
-    particle.style.bottom = '30%';
-    dom.stage.appendChild(particle);
+    particle.style.bottom = '10px'; // crop is around bottom: 5px
+    dom.field.appendChild(particle);
 
     setTimeout(() => particle.remove(), 600);
   }

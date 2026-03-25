@@ -2,7 +2,7 @@
 
 import { rollGacha, rollGachaMulti, getGachaCost, isMultiGachaUnlocked } from './gacha.js';
 import { CHARACTER_MASTER, CROP_MASTER, LEVEL_UNLOCK_CROPS, LEVEL_DEFAULT_CROP } from './master-data.js';
-import { saveState, getCropLevel, getCropLevelMultiplier, executePrestige, purchaseUpgrade, getUpgradeLevel } from './game-state.js';
+import { saveState, getCropLevel, getCropLevelMultiplier, executePrestige, purchaseUpgrade, getUpgradeLevel, clearSave } from './game-state.js';
 import { updateCharacter, updateHUD } from './renderer.js';
 import { PRESTIGE_CONFIG, PRESTIGE_UPGRADES, getUpgradeCost, getUpgradeEffect } from './prestige-data.js';
 
@@ -169,21 +169,38 @@ export function initUI(state) {
     });
   }
 
+  const prestigeConfirmModal = document.getElementById('prestige-confirm-modal');
+  const btnPrestigeConfirmYes = document.getElementById('btn-prestige-confirm-yes');
+  const btnPrestigeConfirmNo = document.getElementById('btn-prestige-confirm-no');
+  const prestigeConfirmEarn = document.getElementById('prestige-confirm-earn');
+
   if (btnPrestigeExec) {
     btnPrestigeExec.addEventListener('click', () => {
       if (!gameState) return;
-      if (gameState.level < PRESTIGE_CONFIG.minLevel) {
-        alert(`Lv.${PRESTIGE_CONFIG.minLevel} 以上でプレステージ可能です（現在 Lv.${gameState.level}）`);
-        return;
-      }
-      const earned = PRESTIGE_CONFIG.getCurrency(gameState.level);
-      const confirmed = confirm(
-        `プレステージを実行しますか？\n\n獲得通貨: 💎 ${earned}\n\n⚠️ レベル・ポイント・種がリセットされます\n（強化は保持されます）`
-      );
-      if (confirmed) {
-        executePrestige(gameState);
-        location.reload();
-      }
+      if (gameState.level < PRESTIGE_CONFIG.minLevel) return; // disabled checked earlier
+
+      const earned = PRESTIGE_CONFIG.getCurrency(gameState);
+      if (prestigeConfirmEarn) prestigeConfirmEarn.textContent = earned;
+      
+      if (prestigeModal) prestigeModal.hidden = true;
+      if (prestigeConfirmModal) prestigeConfirmModal.hidden = false;
+      resizeForModal();
+    });
+  }
+
+  if (btnPrestigeConfirmYes) {
+    btnPrestigeConfirmYes.addEventListener('click', () => {
+      executePrestige(gameState);
+      // 自動セーブ回避用フラグ
+      window.skipSaveOnUnload = true;
+      location.reload();
+    });
+  }
+
+  if (btnPrestigeConfirmNo) {
+    btnPrestigeConfirmNo.addEventListener('click', () => {
+      if (prestigeConfirmModal) prestigeConfirmModal.hidden = true;
+      if (prestigeModal) prestigeModal.hidden = false;
     });
   }
 
@@ -202,6 +219,59 @@ export function initUI(state) {
       const isTransparent = document.body.classList.toggle('bg-transparent');
       btnBgToggle.classList.toggle('is-active', isTransparent);
       localStorage.setItem('idle-farm-bg-transparent', isTransparent);
+    });
+  }
+
+  // ============================================
+  //  バージョン＆設定モーダル
+  // ============================================
+  const btnVersion = document.getElementById('btn-version');
+  const versionModal = document.getElementById('version-modal');
+  const btnVersionClose = document.getElementById('btn-version-close');
+  const btnOpenReset = document.getElementById('btn-open-reset');
+
+  const confirmModal = document.getElementById('confirm-modal');
+  const btnConfirmYes = document.getElementById('btn-confirm-yes');
+  const btnConfirmNo = document.getElementById('btn-confirm-no');
+
+  if (btnVersion) {
+    btnVersion.addEventListener('click', () => {
+      if (versionModal) {
+        versionModal.hidden = false;
+        resizeForModal();
+      }
+    });
+  }
+
+  if (btnVersionClose) {
+    btnVersionClose.addEventListener('click', () => {
+      if (versionModal) {
+        versionModal.hidden = true;
+        restoreSize();
+      }
+    });
+  }
+
+  if (btnOpenReset) {
+    btnOpenReset.addEventListener('click', () => {
+      if (versionModal) versionModal.hidden = true;
+      if (confirmModal) confirmModal.hidden = false;
+      resizeForModal();
+    });
+  }
+
+  if (btnConfirmYes) {
+    btnConfirmYes.addEventListener('click', () => {
+      window.skipSaveOnUnload = true;
+      clearSave();
+      location.reload();
+    });
+  }
+
+  if (btnConfirmNo) {
+    btnConfirmNo.addEventListener('click', () => {
+      if (confirmModal) confirmModal.hidden = true;
+      if (versionModal) versionModal.hidden = false;
     });
   }
 }
@@ -285,7 +355,7 @@ function isCurrentDefault(cropId) {
   return false;
 }
 
-function buildCatalog() {
+export function buildCatalog() {
   const listEl = document.getElementById('catalog-list');
   if (!listEl || !gameState) return;
 
@@ -343,7 +413,7 @@ function buildPrestigeShop() {
     const canPrestige = gameState.level >= PRESTIGE_CONFIG.minLevel;
     btnExec.disabled = !canPrestige;
     if (canPrestige) {
-      const earn = PRESTIGE_CONFIG.getCurrency(gameState.level);
+      const earn = PRESTIGE_CONFIG.getCurrency(gameState);
       btnExec.textContent = `プレステージ (💎+${earn})`;
     } else {
       btnExec.textContent = `Lv.${PRESTIGE_CONFIG.minLevel}で解放`;

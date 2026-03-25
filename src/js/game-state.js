@@ -169,7 +169,7 @@ export function getCropLevelMultiplier(cropLevel) {
  * @returns {{ currency: number }} 獲得した通貨
  */
 export function executePrestige(state) {
-  const earned = PRESTIGE_CONFIG.getCurrency(state.level);
+  const earned = PRESTIGE_CONFIG.getCurrency(state);
 
   // プレステージ永続データを退避
   const prestigeCount = (state.prestigeCount || 0) + 1;

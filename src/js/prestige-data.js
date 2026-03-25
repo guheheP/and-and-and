@@ -4,8 +4,15 @@
  * プレステージ設定
  */
 export const PRESTIGE_CONFIG = {
-  minLevel: 50,                    // プレステージ可能最低レベル
-  getCurrency: (level) => level,   // 獲得通貨 = プレイヤーレベル
+  minLevel: 50,
+  // プレステージ周回数に応じて指数を少しずつ上げ、最高効率のポイントを後退させる
+  getCurrency: (state) => {
+    const level = Math.max(0, state.level - 40);
+    const count = state.prestigeCount || 0;
+    // 基礎指数1.5からスタートし、1周ごとに+0.05（最大2.5まで）
+    const exponent = Math.min(2.5, 1.5 + count * 0.05);
+    return Math.max(1, Math.floor(Math.pow(level, exponent)));
+  },
 };
 
 /**
@@ -29,11 +36,11 @@ export function getUpgradeEffect(upgradeId, level) {
 
   switch (upgradeId) {
     case 'growthSpeed':
-      // 成長時間の短縮率（1.0 → 0.2が下限）
-      return Math.max(1 - level * 0.04, 0.2);
+      // 1レベルごとに-4.5% (最大Lv20で90%短縮：10倍速)
+      return Math.max(1 - level * 0.045, 0.1);
     case 'basePoints':
-      // ポイント倍率
-      return 1 + level * 0.1;
+      // 1レベルごとに+50% (最大Lv20で11倍)
+      return 1 + level * 0.5;
     case 'luckyHarvest':
       // ラッキー発生確率（%）
       return level * 3;

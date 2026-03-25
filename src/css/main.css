@@ -155,9 +155,29 @@ body {
 }
 
 .stat--level {
+  position: relative;
   background: rgba(240, 192, 96, 0.2);
   color: var(--c-accent);
   border: 1px solid rgba(240, 192, 96, 0.3);
+  overflow: hidden;
+}
+
+.stat-text {
+  position: relative;
+  z-index: 2;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.player-exp-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--c-accent);
+  width: 0%;
+  transition: width 0.3s ease;
+  z-index: 1;
+  opacity: 0.8;
 }
 
 .stat--points {
@@ -310,6 +330,48 @@ body {
   100% {
     opacity: 0;
     transform: translate(-50%, -80%) scale(1);
+  }
+}
+
+/* レベルアップエフェクト */
+.levelup-effect {
+  position: absolute;
+  bottom: 60px;
+  left: 60px; /* farmer is left:40px but width is ~20px */
+  transform: translateX(-50%);
+  font-size: 14px;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow:
+    1px 1px 0 #000,
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    0 0 6px rgba(255, 215, 0, 0.8);
+  pointer-events: none;
+  z-index: 60;
+  animation: levelup-pop 1.2s ease-out forwards;
+}
+
+.levelup-effect[hidden] {
+  display: none;
+}
+
+@keyframes levelup-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.5);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -5px) scale(1.2);
+  }
+  30% {
+    transform: translate(-50%, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -30px) scale(1);
   }
 }
 
