@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Idle Farm — 常駐型インフレゲーム</title>
+  <title>No のーえん No Life</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -22,11 +22,14 @@
     <div class="window-frame">
       <!-- タイトルバー -->
       <div class="title-bar">
-        <span class="title-bar__icon"></span>
-        <span class="title-bar__text">No のーえん No Life</span>
         <div class="title-bar__stats">
           <span class="stat stat--level">Lv.<span id="hud-level">1</span></span>
           <span class="stat stat--points"><span id="hud-points">0</span>pt</span>
+        </div>
+        <div class="title-bar__controls">
+          <button class="title-bar__btn" id="btn-version" data-tooltip="バージョン情報">ℹ</button>
+          <button class="title-bar__btn" id="btn-minimize">─</button>
+          <button class="title-bar__btn title-bar__btn--close" id="btn-close">✕</button>
         </div>
       </div>
 
@@ -54,6 +57,12 @@
 
         <!-- 収穫エフェクト -->
         <div id="harvest-effect" class="harvest-effect" hidden></div>
+
+        <!-- 非アクティブ時ステータス表示 -->
+        <div id="blur-stats" class="blur-stats" hidden>
+          <span class="stat stat--level">Lv.<span id="blur-level">1</span></span>
+          <span class="stat stat--points"><span id="blur-points">0</span>pt</span>
+        </div>
       </div>
 
       <!-- ツールバー -->

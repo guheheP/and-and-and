@@ -80,7 +80,7 @@ function init() {
   });
 
   // 7. Electron ハンドラ初期化
-  initElectronHandlers();
+  initElectronHandlers(state);
 
   // 8. ウィンドウを閉じる前にセーブ
   window.addEventListener('beforeunload', () => {
@@ -252,26 +252,50 @@ function hideEventIndicator() {
 //  Electron ウィンドウ blur/focus
 // ============================================
 
-function initElectronHandlers() {
+function initElectronHandlers(state) {
   if (!window.electronAPI) return;
 
-  const titleBar = document.querySelector('.title-bar');
-  const toolbar = document.querySelector('.toolbar');
+  // Electron時はbody/app背景を透明に（ゲームUIはそのまま表示）
+  document.body.style.background = 'transparent';
+  const appEl = document.querySelector('.app');
+  if (appEl) {
+    appEl.style.margin = '0';
+    appEl.style.background = 'transparent';
+  }
+
+  // 非アクティブ時: 地面にステータス表示のみ（UIは消さない）
+  const blurStats = document.getElementById('blur-stats');
+  const blurLevel = document.getElementById('blur-level');
+  const blurPoints = document.getElementById('blur-points');
 
   window.electronAPI.onWindowBlur(() => {
-    if (titleBar) titleBar.style.opacity = '0';
-    if (toolbar) toolbar.style.opacity = '0';
-    // pointer-events を無効化してクリックスルー
-    if (titleBar) titleBar.style.pointerEvents = 'none';
-    if (toolbar) toolbar.style.pointerEvents = 'none';
+    if (blurStats && state) {
+      blurLevel.textContent = state.level;
+      blurPoints.textContent = state.points >= 1000 ? (state.points / 1000).toFixed(1) + 'K' : state.points;
+      blurStats.hidden = false;
+    }
   });
 
   window.electronAPI.onWindowFocus(() => {
-    if (titleBar) titleBar.style.opacity = '1';
-    if (toolbar) toolbar.style.opacity = '1';
-    if (titleBar) titleBar.style.pointerEvents = '';
-    if (toolbar) toolbar.style.pointerEvents = '';
+    if (blurStats) blurStats.hidden = true;
   });
+
+  // ウィンドウコントロールボタン
+  const btnMinimize = document.getElementById('btn-minimize');
+  const btnClose = document.getElementById('btn-close');
+  const btnVersion = document.getElementById('btn-version');
+
+  if (btnMinimize) {
+    btnMinimize.addEventListener('click', () => window.electronAPI.minimize());
+  }
+  if (btnClose) {
+    btnClose.addEventListener('click', () => window.electronAPI.close());
+  }
+  if (btnVersion) {
+    btnVersion.addEventListener('click', () => {
+      alert('No のーえん No Life\nVersion 0.1.0');
+    });
+  }
 }
 
 // DOMContentLoaded で初期化

@@ -65,8 +65,6 @@ body {
   -webkit-user-select: none;
   font-size: 12px;
   color: var(--c-text);
-  /* ブラウザでのデバッグ用背景色（Electronでは transparent） */
-  background: #1a1a2e;
 }
 
 /* ============================================
@@ -76,6 +74,9 @@ body {
   width: var(--app-width);
   margin: 20px auto;
   position: relative;
+  /* ブラウザ開発時の背景色（Electronではbodyが透過） */
+  background: #1a1a2e;
+  border-radius: 8px;
 }
 
 /* ============================================
@@ -96,37 +97,55 @@ body {
    ============================================ */
 .title-bar {
   background: var(--c-title-bg);
-  padding: 4px 8px;
+  padding: 4px 6px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: space-between;
   border-bottom: 1px solid rgba(0, 0, 0, 0.3);
-  height: 26px;
+  height: 24px;
   -webkit-app-region: drag;
   transition: opacity 0.3s ease;
 }
 
 .title-bar__stats {
+  display: flex;
+  gap: 4px;
+  font-size: 10px;
   -webkit-app-region: no-drag;
 }
 
-.title-bar__icon {
-  font-size: 12px;
-  line-height: 1;
-}
-
-.title-bar__text {
-  font-size: 11px;
-  color: var(--c-accent);
-  letter-spacing: 1px;
-  flex-shrink: 0;
-}
-
-.title-bar__stats {
+.title-bar__controls {
   display: flex;
-  gap: 6px;
-  margin-left: auto;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+
+.title-bar__btn {
+  background: transparent;
+  border: none;
+  color: var(--c-text-dim);
   font-size: 10px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s;
+  font-family: var(--font-retro);
+  line-height: 1;
+  position: relative;
+}
+
+.title-bar__btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--c-text);
+}
+
+.title-bar__btn--close:hover {
+  background: rgba(220, 60, 60, 0.6);
+  color: #fff;
 }
 
 .stat {
@@ -178,6 +197,26 @@ body {
   height: 42px;
   background: var(--c-ground);
   border-top: 2px solid var(--c-ground-dark);
+}
+
+/* 非アクティブ時ステータス表示 */
+.blur-stats {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  font-size: 10px;
+  z-index: 5;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.blur-stats:not([hidden]) {
+  opacity: 1;
 }
 
 .stage__ground::before {
