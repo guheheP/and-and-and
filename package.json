@@ -1,6 +1,6 @@
 {
   "name": "idle-farm",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "作業に寄生する常駐型インフレゲーム（農業テーマ）",
   "main": "main.js",
   "scripts": {
@@ -12,7 +12,7 @@
   },
   "build": {
     "appId": "com.idlefarm.app",
-    "productName": "IdleFarm",
+    "productName": "No Farming No life",
     "directories": {
       "output": "dist"
     },

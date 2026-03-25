@@ -28,6 +28,9 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
 
+  // フルスクリーンアプリや新規ウィンドウよりも更に手前に強制する
+  mainWindow.setAlwaysOnTop(true, 'screen-saver');
+
   // 非アクティブ時にUI非表示
   mainWindow.on('blur', () => {
     mainWindow.webContents.send('window-blur');
