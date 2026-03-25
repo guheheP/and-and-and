@@ -23,6 +23,22 @@ const CROP_COLORS = {
 /** @type {GameState|null} */
 let gameState = null;
 
+/** Electronウィンドウサイズ管理 */
+const NORMAL_SIZE = { w: 240, h: 210 };
+const MODAL_SIZE = { w: 240, h: 400 };
+
+function resizeForModal() {
+  if (window.electronAPI?.resize) {
+    window.electronAPI.resize(MODAL_SIZE.w, MODAL_SIZE.h);
+  }
+}
+
+function restoreSize() {
+  if (window.electronAPI?.resize) {
+    window.electronAPI.resize(NORMAL_SIZE.w, NORMAL_SIZE.h);
+  }
+}
+
 /**
  * UIコントローラーの初期化
  * @param {GameState} state
@@ -46,6 +62,7 @@ export function initUI(state) {
         gachaModal.hidden = false;
         if (gachaResult) gachaResult.textContent = '';
         updateGachaCostDisplay();
+        resizeForModal();
       }
     });
   }
@@ -91,7 +108,7 @@ export function initUI(state) {
 
   if (btnGachaClose) {
     btnGachaClose.addEventListener('click', () => {
-      if (gachaModal) gachaModal.hidden = true;
+      if (gachaModal) { gachaModal.hidden = true; restoreSize(); }
     });
   }
 
@@ -117,13 +134,14 @@ export function initUI(state) {
       if (catalogModal) {
         buildCatalog();
         catalogModal.hidden = false;
+        resizeForModal();
       }
     });
   }
 
   if (btnCatalogClose) {
     btnCatalogClose.addEventListener('click', () => {
-      if (catalogModal) catalogModal.hidden = true;
+      if (catalogModal) { catalogModal.hidden = true; restoreSize(); }
     });
   }
 
@@ -140,13 +158,14 @@ export function initUI(state) {
       if (prestigeModal) {
         buildPrestigeShop();
         prestigeModal.hidden = false;
+        resizeForModal();
       }
     });
   }
 
   if (btnPrestigeClose) {
     btnPrestigeClose.addEventListener('click', () => {
-      if (prestigeModal) prestigeModal.hidden = true;
+      if (prestigeModal) { prestigeModal.hidden = true; restoreSize(); }
     });
   }
 

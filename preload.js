@@ -8,5 +8,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onWindowFocus: (callback) => ipcRenderer.on('window-focus', callback),
   minimize: () => ipcRenderer.send('window-minimize'),
   close: () => ipcRenderer.send('window-close'),
+  resize: (width, height) => ipcRenderer.send('window-resize', width, height),
   isElectron: true,
 });

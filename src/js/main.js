@@ -233,7 +233,7 @@ function showEventIndicator(name) {
     indicator.className = 'weather-indicator';
     const titleBar = document.querySelector('.title-bar');
     if (titleBar) {
-      titleBar.insertBefore(indicator, titleBar.querySelector('.title-bar__stats'));
+      titleBar.insertBefore(indicator, titleBar.querySelector('.title-bar__controls'));
     }
   }
   indicator.textContent = name;
@@ -255,7 +255,8 @@ function hideEventIndicator() {
 function initElectronHandlers(state) {
   if (!window.electronAPI) return;
 
-  // Electron時はbody/app背景を透明に（ゲームUIはそのまま表示）
+  // Electron時はhtml/body/app背景を透明に
+  document.documentElement.style.background = 'transparent';
   document.body.style.background = 'transparent';
   const appEl = document.querySelector('.app');
   if (appEl) {

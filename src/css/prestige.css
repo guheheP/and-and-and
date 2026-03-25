@@ -3,7 +3,7 @@
    ============================================ */
 
 .modal__content--prestige {
-  max-height: 280px;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
 }

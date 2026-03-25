@@ -33,14 +33,14 @@
    ============================================ */
 .modal__content--catalog {
   width: 200px;
-  max-height: 280px;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
 }
 
 .catalog-list {
   overflow-y: auto;
-  max-height: 200px;
+  max-height: 60vh;
   display: flex;
   flex-direction: column;
   gap: 4px;

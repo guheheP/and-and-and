@@ -55,6 +55,10 @@ ipcMain.on('window-close', () => {
   if (mainWindow) mainWindow.close();
 });
 
+ipcMain.on('window-resize', (event, width, height) => {
+  if (mainWindow) mainWindow.setContentSize(width, height);
+});
+
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
