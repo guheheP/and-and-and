@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Idle Farm — 常駐型インフレゲーム</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/character.css">
+  <link rel="stylesheet" href="css/field.css">
+  <link rel="stylesheet" href="css/ui.css">
+  <link rel="stylesheet" href="css/weather.css">
+  <link rel="stylesheet" href="css/prestige.css">
+</head>
+
+<body>
+  <div id="app" class="app">
+    <!-- ウィンドウフレーム（レトロ風） -->
+    <div class="window-frame">
+      <!-- タイトルバー -->
+      <div class="title-bar">
+        <span class="title-bar__icon"></span>
+        <span class="title-bar__text">No のーえん No Life</span>
+        <div class="title-bar__stats">
+          <span class="stat stat--level">Lv.<span id="hud-level">1</span></span>
+          <span class="stat stat--points"><span id="hud-points">0</span>pt</span>
+        </div>
+      </div>
+
+      <!-- メインステージ -->
+      <div id="stage" class="stage">
+        <!-- 背景（空＋地面） -->
+        <div class="stage__sky"></div>
+        <div class="stage__ground"></div>
+
+        <!-- キャラクター -->
+        <div id="farmer" class="farmer farmer--man">
+          <div class="farmer__head"></div>
+          <div class="farmer__body"></div>
+          <div class="farmer__arm farmer__arm--left"></div>
+          <div class="farmer__arm farmer__arm--right"></div>
+          <div class="farmer__leg farmer__leg--left"></div>
+          <div class="farmer__leg farmer__leg--right"></div>
+        </div>
+
+        <!-- 畑 -->
+        <div id="field" class="field">
+          <div class="field__soil"></div>
+          <div id="crop" class="crop"></div>
+        </div>
+
+        <!-- 収穫エフェクト -->
+        <div id="harvest-effect" class="harvest-effect" hidden></div>
+      </div>
+
+      <!-- ツールバー -->
+      <div class="toolbar">
+        <button id="btn-gacha" class="toolbar__btn" data-tooltip="ガチャ">🌱</button>
+        <button id="btn-character" class="toolbar__btn" data-tooltip="キャラ変更">👤</button>
+        <button id="btn-inventory" class="toolbar__btn" data-tooltip="作物一覧">📖</button>
+        <button id="btn-prestige" class="toolbar__btn" data-tooltip="プレステージ">⭐</button>
+        <button id="btn-bg-toggle" class="toolbar__btn toolbar__btn--toggle" data-tooltip="背景切替">🌤️</button>
+      </div>
+    </div>
+
+    <!-- ガチャモーダル -->
+    <div id="gacha-modal" class="modal" hidden>
+      <div class="modal__content">
+        <div class="modal__title">🎰 ガチャ</div>
+        <div id="gacha-result" class="gacha-result"></div>
+        <div class="modal__actions">
+          <button id="btn-gacha-roll" class="btn btn--primary">回す (100pt)</button>
+          <button id="btn-gacha-multi" class="btn btn--primary" hidden>10連 (900pt)</button>
+          <button id="btn-gacha-close" class="btn btn--ghost">閉じる</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 作物カタログモーダル -->
+    <div id="catalog-modal" class="modal" hidden>
+      <div class="modal__content modal__content--catalog">
+        <div class="modal__title">📖 作物一覧</div>
+        <div id="catalog-list" class="catalog-list"></div>
+        <div class="modal__actions">
+          <button id="btn-catalog-close" class="btn btn--ghost">閉じる</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- プレステージモーダル -->
+    <div id="prestige-modal" class="modal" hidden>
+      <div class="modal__content modal__content--prestige">
+        <div class="modal__title">⭐ プレステージ</div>
+        <div class="prestige-info">
+          <span class="prestige-currency">💎 <span id="prestige-currency">0</span></span>
+          <span class="prestige-count">周回 <span id="prestige-count">0</span>回</span>
+        </div>
+        <div id="prestige-shop" class="prestige-shop"></div>
+        <div class="prestige-footer">
+          <button id="btn-prestige-exec" class="btn btn--danger">プレステージ実行</button>
+          <button id="btn-prestige-close" class="btn btn--ghost">閉じる</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+
+</html>

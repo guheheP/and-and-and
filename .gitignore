@@ -1,0 +1,41 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# Test
+coverage/
+.pytest_cache/
+.nyc_output/
+
+# AI tool generated (keep these out of version control)
+# Uncomment the following lines as needed:
+# .gemini/antigravity/    # Antigravity conversation data

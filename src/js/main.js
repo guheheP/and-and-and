@@ -1,0 +1,278 @@
+// main.js — エントリーポイント（初期化・各モジュール結合）
+
+import { loadState, saveState, addSeed, addPoints } from './game-state.js';
+import { startGameLoop } from './game-loop.js';
+import {
+  initRenderer,
+  updateCharacter,
+  updateField,
+  updateHUD,
+  showHarvestEffect,
+  showHarvestParticles,
+  triggerWorkAnimation,
+} from './renderer.js';
+import { initUI } from './ui-controller.js';
+import { CROP_MASTER } from './master-data.js';
+import { getGachaPool } from './progression.js';
+import {
+  initEventSystem,
+  setPointBoost,
+  startRainParticles,
+  stopAllParticles,
+  startSnowParticles,
+  startThunderFlashes,
+  spawnBirdDropping,
+  spawnCrossingSprite,
+  spawnTumbleweed,
+  spawnCumulonimbus,
+} from './event-system.js';
+
+/** すべてのイベントCSSクラス */
+const ALL_EVENT_CLASSES = [
+  'event--rain', 'event--heavy-rain', 'event--diamond-rain',
+  'event--snow', 'event--thunder', 'event--typhoon', 'event--cumulonimbus',
+  'event--tumbleweed', 'event--bird', 'event--stork',
+  'event--santa', 'event--john', 'event--dog', 'event--cat',
+];
+
+/**
+ * アプリケーション初期化
+ */
+function init() {
+  // 1. レンダラー初期化（DOM要素キャッシュ）
+  initRenderer();
+
+  // 2. ゲーム状態のロード
+  const state = loadState();
+
+  // 3. 初期描画
+  updateCharacter(state.currentCharId);
+  updateField(state.fieldState);
+  updateHUD(state);
+
+  // 4. UI初期化
+  initUI(state);
+
+  // 5. イベントシステム初期化
+  initEventSystem({
+    onEventStart: (event) => handleEventStart(state, event),
+    onEventEnd: (event) => handleEventEnd(state, event),
+  }, state);
+
+  // 6. ゲームループ開始（コールバック登録）
+  startGameLoop(state, {
+    onFieldUpdate: (fieldState) => {
+      updateField(fieldState);
+      updateHUD(state);
+    },
+    onPlant: (cropId) => {
+      triggerWorkAnimation();
+    },
+    onHarvest: (cropId, points) => {
+      triggerWorkAnimation();
+      showHarvestEffect(points);
+      showHarvestParticles(cropId);
+    },
+    onLevelUp: (newLevel) => {
+      updateHUD(state);
+      console.log(`🎉 レベルアップ！ Lv.${newLevel}`);
+    },
+  });
+
+  // 7. Electron ハンドラ初期化
+  initElectronHandlers();
+
+  // 8. ウィンドウを閉じる前にセーブ
+  window.addEventListener('beforeunload', () => {
+    saveState(state);
+  });
+
+  console.log('🌱 Idle Farm 起動完了');
+}
+
+// ============================================
+//  イベント処理ハンドラ
+// ============================================
+
+/**
+ * イベント開始時の処理
+ */
+function handleEventStart(state, event) {
+  const stage = document.getElementById('stage');
+  if (!stage) return;
+
+  // CSSクラス追加
+  if (event.cssClass) {
+    stage.classList.add(event.cssClass);
+  }
+
+  // インジケーター表示
+  showEventIndicator(event.name);
+
+  // ビジュアルエフェクト
+  switch (event.id) {
+    case 'rain':
+      startRainParticles();
+      break;
+    case 'heavy_rain':
+      startRainParticles('rgba(140, 180, 220, 0.8)', 35);
+      break;
+    case 'diamond_rain':
+      startRainParticles('rgba(180, 220, 255, 0.9)', 25);
+      break;
+    case 'snow':
+      startSnowParticles();
+      break;
+    case 'thunder':
+      startRainParticles('rgba(160, 180, 200, 0.6)', 50);
+      startThunderFlashes();
+      break;
+    case 'typhoon':
+      startRainParticles('rgba(150, 170, 190, 0.5)', 30);
+      break;
+    case 'cumulonimbus':
+      spawnCumulonimbus();
+      break;
+    case 'tumbleweed':
+      spawnTumbleweed();
+      break;
+    case 'bird_poop':
+      spawnBirdDropping();
+      break;
+    case 'stork':
+      spawnCrossingSprite('🦩', 4000);
+      break;
+    case 'santa':
+      spawnCrossingSprite('🎅', 4000);
+      break;
+    case 'john':
+      spawnCrossingSprite('🧑', 4000);
+      break;
+    case 'dog_visit':
+      // CSS ::after で犬が居座る
+      break;
+    case 'cat_visit':
+      // CSS ::after で猫が居座る
+      break;
+  }
+
+  // ゲーム効果の適用
+  applyEventEffect(state, event);
+
+  console.log(`🎲 イベント発生: ${event.name}`);
+}
+
+/**
+ * イベント終了時の処理
+ */
+function handleEventEnd(state, event) {
+  const stage = document.getElementById('stage');
+  if (!stage) return;
+
+  // 全CSSクラス除去
+  ALL_EVENT_CLASSES.forEach(cls => stage.classList.remove(cls));
+
+  // 全パーティクル停止
+  stopAllParticles();
+
+  // インジケーター非表示
+  hideEventIndicator();
+
+  saveState(state);
+}
+
+/**
+ * イベント効果を適用
+ */
+function applyEventEffect(state, event) {
+  switch (event.effectType) {
+    case 'pointBoost': {
+      // 鳥のフン: 次N回の収穫ポイントx倍
+      const { multiplier, harvestCount } = event.effectValue;
+      setPointBoost(multiplier, harvestCount);
+      break;
+    }
+    case 'giveSeeds': {
+      // コウノトリ: ランダムな種を20個
+      const pool = getGachaPool(state.level);
+      const count = event.effectValue.count;
+      for (let i = 0; i < count; i++) {
+        if (pool.length > 0) {
+          const crop = pool[Math.floor(Math.random() * pool.length)];
+          addSeed(state, crop.id);
+        }
+      }
+      saveState(state);
+      break;
+    }
+    case 'giveItem': {
+      // タンブルウィード or サンタ: 特定の種＋ポイント
+      const { cropId, count, bonusPointsPerLevel } = event.effectValue;
+      addSeed(state, cropId, count);
+      if (bonusPointsPerLevel) {
+        const bonus = state.level * bonusPointsPerLevel;
+        addPoints(state, bonus);
+        showHarvestEffect(bonus);
+      }
+      saveState(state);
+      break;
+    }
+    // growthBoost と visual は自動で処理される（getGrowthMultiplier経由）
+  }
+}
+
+// ============================================
+//  インジケーターUI
+// ============================================
+
+function showEventIndicator(name) {
+  let indicator = document.getElementById('weather-indicator');
+  if (!indicator) {
+    indicator = document.createElement('span');
+    indicator.id = 'weather-indicator';
+    indicator.className = 'weather-indicator';
+    const titleBar = document.querySelector('.title-bar');
+    if (titleBar) {
+      titleBar.insertBefore(indicator, titleBar.querySelector('.title-bar__stats'));
+    }
+  }
+  indicator.textContent = name;
+  indicator.style.display = '';
+}
+
+function hideEventIndicator() {
+  const indicator = document.getElementById('weather-indicator');
+  if (indicator) {
+    indicator.textContent = '';
+    indicator.style.display = 'none';
+  }
+}
+
+// ============================================
+//  Electron ウィンドウ blur/focus
+// ============================================
+
+function initElectronHandlers() {
+  if (!window.electronAPI) return;
+
+  const titleBar = document.querySelector('.title-bar');
+  const toolbar = document.querySelector('.toolbar');
+
+  window.electronAPI.onWindowBlur(() => {
+    if (titleBar) titleBar.style.opacity = '0';
+    if (toolbar) toolbar.style.opacity = '0';
+    // pointer-events を無効化してクリックスルー
+    if (titleBar) titleBar.style.pointerEvents = 'none';
+    if (toolbar) toolbar.style.pointerEvents = 'none';
+  });
+
+  window.electronAPI.onWindowFocus(() => {
+    if (titleBar) titleBar.style.opacity = '1';
+    if (toolbar) toolbar.style.opacity = '1';
+    if (titleBar) titleBar.style.pointerEvents = '';
+    if (toolbar) toolbar.style.pointerEvents = '';
+  });
+}
+
+// DOMContentLoaded で初期化
+document.addEventListener('DOMContentLoaded', init);

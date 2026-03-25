@@ -1,0 +1,483 @@
+/* ============================================
+   main.css — コンパクト・レトロ風デザイン
+   ============================================ */
+
+/* レトロカラーパレット（ゲームボーイ・SFC風） */
+:root {
+  /* メインパレット */
+  --c-bg: #2b2b3d;
+  --c-frame: #3d3552;
+  --c-frame-light: #5a4f73;
+  --c-frame-border: #6e6490;
+  --c-title-bg: #4a3f65;
+
+  /* アクセント */
+  --c-accent: #f0c060;
+  --c-accent-warm: #e89050;
+  --c-accent-pink: #e88ca5;
+  --c-accent-green: #70c070;
+
+  /* テキスト */
+  --c-text: #f0e8d8;
+  --c-text-dim: #a098b0;
+  --c-text-dark: #2b2b3d;
+
+  /* ステージ背景 */
+  --c-sky-top: #5080b0;
+  --c-sky-bottom: #88c0e0;
+  --c-ground: #7ab55a;
+  --c-ground-dark: #5a9040;
+  --c-soil: #8b6040;
+  --c-soil-dark: #6b4830;
+
+  /* ボタン */
+  --c-btn: #5a4f73;
+  --c-btn-hover: #7a6fa0;
+  --c-btn-active: #4a3f65;
+
+  /* フォント */
+  --font-retro: 'DotGothic16', 'MS Gothic', monospace;
+
+  /* サイズ */
+  --app-width: 240px;
+  --stage-height: 140px;
+}
+
+/* ============================================
+   リセット
+   ============================================ */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  font-family: var(--font-retro);
+  user-select: none;
+  -webkit-user-select: none;
+  font-size: 12px;
+  color: var(--c-text);
+  /* ブラウザでのデバッグ用背景色（Electronでは transparent） */
+  background: #1a1a2e;
+}
+
+/* ============================================
+   アプリコンテナ
+   ============================================ */
+.app {
+  width: var(--app-width);
+  margin: 20px auto;
+  position: relative;
+}
+
+/* ============================================
+   ウィンドウフレーム（レトロ風）
+   ============================================ */
+.window-frame {
+  background: var(--c-frame);
+  border: 2px solid var(--c-frame-border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* ============================================
+   タイトルバー
+   ============================================ */
+.title-bar {
+  background: var(--c-title-bg);
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  height: 26px;
+  -webkit-app-region: drag;
+  transition: opacity 0.3s ease;
+}
+
+.title-bar__stats {
+  -webkit-app-region: no-drag;
+}
+
+.title-bar__icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.title-bar__text {
+  font-size: 11px;
+  color: var(--c-accent);
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+.title-bar__stats {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 10px;
+}
+
+.stat {
+  padding: 1px 5px;
+  border-radius: 3px;
+  line-height: 1.4;
+}
+
+.stat--level {
+  background: rgba(240, 192, 96, 0.2);
+  color: var(--c-accent);
+  border: 1px solid rgba(240, 192, 96, 0.3);
+}
+
+.stat--points {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--c-text);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  min-width: 45px;
+  text-align: right;
+}
+
+/* ============================================
+   ステージ（ゲーム表示エリア）
+   ============================================ */
+.stage {
+  position: relative;
+  width: 100%;
+  height: var(--stage-height);
+  overflow: hidden;
+}
+
+.stage__sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom,
+      var(--c-sky-top) 0%,
+      var(--c-sky-bottom) 70%,
+      var(--c-ground) 70%,
+      var(--c-ground) 100%);
+}
+
+/* 地面テクスチャ（ドット風） */
+.stage__ground {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 42px;
+  background: var(--c-ground);
+  border-top: 2px solid var(--c-ground-dark);
+}
+
+.stage__ground::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 5%;
+  width: 90%;
+  height: 2px;
+  background: repeating-linear-gradient(90deg,
+      var(--c-ground-dark) 0px,
+      var(--c-ground-dark) 3px,
+      transparent 3px,
+      transparent 8px);
+  opacity: 0.4;
+}
+
+/* 雲（装飾） */
+.stage__sky::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  right: 15px;
+  width: 30px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 5px;
+  animation: cloud-drift 20s linear infinite;
+}
+
+.stage__sky::after {
+  content: '';
+  position: absolute;
+  top: 28px;
+  right: 60px;
+  width: 20px;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+  animation: cloud-drift 28s linear infinite 5s;
+}
+
+@keyframes cloud-drift {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-240px);
+  }
+}
+
+/* ============================================
+   収穫エフェクト
+   ============================================ */
+.harvest-effect {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--c-accent);
+  text-shadow:
+    1px 1px 0 var(--c-text-dark),
+    -1px -1px 0 var(--c-text-dark),
+    1px -1px 0 var(--c-text-dark),
+    -1px 1px 0 var(--c-text-dark);
+  pointer-events: none;
+  z-index: 50;
+  animation: harvest-pop 0.8s ease-out forwards;
+}
+
+.harvest-effect[hidden] {
+  display: none;
+}
+
+@keyframes harvest-pop {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+
+  20% {
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -80%) scale(1);
+  }
+}
+
+/* ============================================
+   ツールバー
+   ============================================ */
+.toolbar {
+  background: var(--c-title-bg);
+  padding: 4px 8px;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  transition: opacity 0.3s ease;
+}
+
+.toolbar__btn {
+  -webkit-app-region: no-drag;
+  background: var(--c-btn);
+  border: 1px solid var(--c-frame-border);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1;
+  position: relative;
+}
+
+.toolbar__btn:hover {
+  background: var(--c-btn-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.toolbar__btn:active {
+  background: var(--c-btn-active);
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* カスタムツールチップ */
+.toolbar__btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.9);
+  padding: 3px 8px;
+  background: var(--c-title-bg);
+  border: 1px solid var(--c-frame-border);
+  border-radius: 4px;
+  font-size: 9px;
+  color: var(--c-accent);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.15s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  z-index: 60;
+  font-family: var(--font-retro);
+  letter-spacing: 0.5px;
+}
+
+.toolbar__btn[data-tooltip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+/* ============================================
+   モーダル
+   ============================================ */
+.modal {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  border-radius: 8px;
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+.modal__content {
+  background: var(--c-frame);
+  border: 2px solid var(--c-frame-border);
+  border-radius: 8px;
+  padding: 12px;
+  width: 180px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.modal__title {
+  font-size: 13px;
+  color: var(--c-accent);
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.modal__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ============================================
+   ボタン
+   ============================================ */
+.btn {
+  font-family: var(--font-retro);
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+}
+
+.btn--primary {
+  background: var(--c-accent);
+  color: var(--c-text-dark);
+  border-color: rgba(0, 0, 0, 0.2);
+  font-weight: bold;
+}
+
+.btn--primary:hover {
+  background: #f5d080;
+  transform: translateY(-1px);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--c-text-dim);
+  border-color: var(--c-frame-border);
+}
+
+.btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--c-text);
+}
+
+/* ============================================
+   ガチャ結果
+   ============================================ */
+.gacha-result {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  margin-bottom: 8px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+/* ============================================
+   トグルボタン アクティブ状態
+   ============================================ */
+.toolbar__btn--toggle.is-active {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   透過モード
+   body に .bg-transparent を付与すると背景透過
+   ============================================ */
+body.bg-transparent {
+  background: transparent !important;
+}
+
+.bg-transparent .window-frame {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.bg-transparent .title-bar {
+  background: rgba(74, 63, 101, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 6px 6px 0 0;
+}
+
+.bg-transparent .stage__sky {
+  background: transparent;
+}
+
+
+
+
+
+.bg-transparent .toolbar {
+  background: rgba(74, 63, 101, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 0 0 6px 6px;
+}
+
+/* 透過モード時にテキストの視認性を確保 */
+.bg-transparent .harvest-effect {
+  text-shadow:
+    1px 1px 0 rgba(0, 0, 0, 0.8),
+    -1px -1px 0 rgba(0, 0, 0, 0.8),
+    1px -1px 0 rgba(0, 0, 0, 0.8),
+    -1px 1px 0 rgba(0, 0, 0, 0.8),
+    0 0 8px rgba(0, 0, 0, 0.5);
+}

@@ -1,0 +1,272 @@
+/* ============================================
+   event.css — ランダムイベントエフェクト
+   ============================================ */
+
+/* ============================================
+   天気インジケーター（タイトルバー内）
+   ============================================ */
+.weather-indicator {
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(100, 180, 255, 0.25);
+  color: #a0d0ff;
+  border: 1px solid rgba(100, 180, 255, 0.3);
+  animation: weather-pulse 1.5s ease-in-out infinite;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+@keyframes weather-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
+
+/* ============================================
+   🌧️ 雨粒パーティクル（共通）
+   ============================================ */
+.rain-drop {
+  position: absolute;
+  top: -20px;
+  width: 1px;
+  height: var(--rain-len, 12px);
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--rain-color, rgba(180, 210, 255, 0.7))
+  );
+  border-radius: 0 0 1px 1px;
+  pointer-events: none;
+  z-index: 42;
+  animation: rain-drop-fall var(--rain-speed, 0.4s) linear forwards;
+}
+
+@keyframes rain-drop-fall {
+  0%   { transform: translateY(0); opacity: 0.8; }
+  85%  { opacity: 0.6; }
+  100% { transform: translateY(170px); opacity: 0; }
+}
+
+/* 雨系: 空を暗く */
+.event--rain .stage__sky,
+.event--heavy-rain .stage__sky,
+.event--thunder .stage__sky {
+  filter: brightness(0.7) saturate(0.8);
+  transition: filter 0.5s;
+}
+
+/* 大雨: さらに暗く */
+.event--heavy-rain .stage__sky {
+  filter: brightness(0.55) saturate(0.7);
+}
+
+/* 💎 ダイヤモンドの雨: 空を紫に */
+.event--diamond-rain .stage__sky {
+  filter: brightness(0.6) saturate(1.2) hue-rotate(30deg);
+  transition: filter 0.5s;
+}
+
+.stage__sky {
+  transition: filter 0.5s;
+}
+
+/* ============================================
+   ❄️ 雪パーティクル
+   ============================================ */
+.snow-flake {
+  position: absolute;
+  top: -10px;
+  width: var(--snow-size, 3px);
+  height: var(--snow-size, 3px);
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 42;
+  animation: snow-fall var(--snow-speed, 2s) linear forwards;
+}
+
+@keyframes snow-fall {
+  0%   { transform: translateY(0) translateX(0); opacity: 0.9; }
+  25%  { transform: translateY(40px) translateX(8px); }
+  50%  { transform: translateY(80px) translateX(-4px); }
+  75%  { transform: translateY(120px) translateX(6px); }
+  100% { transform: translateY(170px) translateX(-2px); opacity: 0; }
+}
+
+.event--snow .stage__sky {
+  filter: brightness(0.85) saturate(0.6);
+  transition: filter 0.5s;
+}
+
+/* ============================================
+   ⚡ 雷フラッシュ
+   ============================================ */
+.lightning-flash {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+  z-index: 50;
+  animation: flash-anim 0.15s ease-out forwards;
+}
+
+@keyframes flash-anim {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ============================================
+   🌀 台風
+   ============================================ */
+.event--typhoon .stage__sky {
+  filter: brightness(0.5) saturate(0.5);
+  transition: filter 0.5s;
+}
+
+/* 台風時の揺れ */
+.event--typhoon .field {
+  animation: typhoon-shake 0.2s ease-in-out infinite;
+}
+
+@keyframes typhoon-shake {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-2px); }
+  75%      { transform: translateX(2px); }
+}
+
+/* ============================================
+   ☁️ 入道雲
+   ============================================ */
+.cumulonimbus-cloud {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 30px;
+  pointer-events: none;
+  z-index: 43;
+  animation: cloud-appear 2s ease-out forwards;
+}
+
+@keyframes cloud-appear {
+  0%   { opacity: 0; transform: translateX(-50%) scale(0.5); }
+  20%  { opacity: 1; transform: translateX(-50%) scale(1); }
+  80%  { opacity: 1; transform: translateX(-50%) scale(1.05); }
+  100% { opacity: 0.9; transform: translateX(-50%) scale(1); }
+}
+
+/* ============================================
+   横断スプライト（共通: 鳥・コウノトリ・サンタ・ジョン等）
+   ============================================ */
+.crossing-sprite {
+  position: absolute;
+  top: 10px;
+  left: -30px;
+  font-size: 18px;
+  pointer-events: none;
+  z-index: 45;
+  animation: sprite-cross var(--cross-duration, 3s) ease-in-out forwards;
+}
+
+@keyframes sprite-cross {
+  0%   { left: -30px; top: 10px; }
+  30%  { left: 40%; top: 16px; }
+  70%  { left: 60%; top: 12px; }
+  100% { left: calc(100% + 30px); top: 8px; }
+}
+
+/* ============================================
+   🐦 鳥スプライト
+   ============================================ */
+.bird-sprite {
+  position: absolute;
+  top: 10px;
+  left: -25px;
+  font-size: 18px;
+  z-index: 45;
+  pointer-events: none;
+  animation: bird-fly 2.5s ease-in-out forwards;
+}
+
+.bird-sprite::before {
+  content: '🐦';
+}
+
+@keyframes bird-fly {
+  0%   { left: -25px; top: 10px; }
+  35%  { left: 45%; top: 18px; }
+  50%  { left: 55%; top: 12px; }
+  100% { left: calc(100% + 25px); top: 6px; }
+}
+
+/* ============================================
+   💩 鳥のフン（白パーティクル）
+   ============================================ */
+.bird-poop {
+  position: absolute;
+  left: 50%;
+  top: 22px;
+  width: 4px;
+  height: 4px;
+  background: #f0f0f0;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 44;
+  box-shadow: 0 0 3px rgba(255, 255, 255, 0.6);
+  transform: translateX(var(--poop-x, 0px));
+  animation: poop-fall 0.8s ease-in forwards;
+  animation-delay: var(--poop-delay, 0s);
+  opacity: 0;
+}
+
+@keyframes poop-fall {
+  0%   { opacity: 1; transform: translateX(var(--poop-x, 0px)) translateY(0) scale(1); }
+  70%  { opacity: 0.9; transform: translateX(var(--poop-x, 0px)) translateY(80px) scale(0.7); }
+  85%  { opacity: 0.6; transform: translateX(var(--poop-x, 0px)) translateY(85px) scale(1.2); }
+  100% { opacity: 0; transform: translateX(var(--poop-x, 0px)) translateY(85px) scale(0); }
+}
+
+/* ============================================
+   🌿 タンブルウィード
+   ============================================ */
+.tumbleweed-sprite {
+  position: absolute;
+  bottom: 30px;
+  left: -30px;
+  font-size: 16px;
+  pointer-events: none;
+  z-index: 45;
+  animation: tumble-roll 4s ease-in-out forwards;
+}
+
+@keyframes tumble-roll {
+  0%   { left: -30px; transform: rotate(0deg); }
+  50%  { left: 50%; transform: rotate(720deg); }
+  100% { left: calc(100% + 30px); transform: rotate(1440deg); }
+}
+
+/* ============================================
+   🐕🐈 居座りペット（犬・猫の訪問）
+   ============================================ */
+.event--dog .field::after,
+.event--cat .field::after {
+  position: absolute;
+  bottom: 2px;
+  right: 10px;
+  font-size: 14px;
+  z-index: 35;
+  animation: pet-idle 2s ease-in-out infinite;
+}
+
+.event--dog .field::after {
+  content: '🐕';
+}
+
+.event--cat .field::after {
+  content: '🐈';
+}
+
+@keyframes pet-idle {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-2px); }
+}

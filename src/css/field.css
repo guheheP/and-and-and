@@ -1,0 +1,185 @@
+/* ============================================
+   field.css — 畑・作物（コンパクト版）
+   ============================================ */
+
+.field {
+  position: absolute;
+  bottom: 28px;
+  right: 50px;
+  width: 80px;
+  height: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* 土 */
+.field__soil {
+  width: 100%;
+  height: 14px;
+  background: linear-gradient(to bottom,
+      var(--c-soil, #8b6040) 0%,
+      var(--c-soil-dark, #6b4830) 100%);
+  border-radius: 3px;
+  position: relative;
+  box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.15);
+}
+
+/* 畝模様 */
+.field__soil::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 8%;
+  width: 84%;
+  height: 2px;
+  background: repeating-linear-gradient(90deg,
+      var(--c-soil-dark, #6b4830) 0px,
+      var(--c-soil-dark, #6b4830) 4px,
+      transparent 4px,
+      transparent 8px);
+  opacity: 0.5;
+}
+
+/* 草 */
+.field__soil::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 5%;
+  width: 90%;
+  height: 3px;
+  background: var(--c-ground, #7ab55a);
+  border-radius: 2px;
+  opacity: 0.5;
+}
+
+/* ============================================
+   作物
+   ============================================ */
+.crop {
+  --crop-color: #e04040;
+  --crop-stem: #4a8c3f;
+  --crop-size: 0;
+
+  position: absolute;
+  bottom: 12px;
+  width: calc(6px + 10px * var(--crop-size));
+  height: calc(3px + 18px * var(--crop-size));
+  transition: width 0.4s ease, height 0.4s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* 茎 */
+.crop::before {
+  content: '';
+  width: 2px;
+  height: 55%;
+  background: var(--crop-stem);
+  border-radius: 1px;
+}
+
+/* 実 */
+.crop::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: calc(4px + 8px * var(--crop-size));
+  height: calc(4px + 8px * var(--crop-size));
+  background: var(--crop-color);
+  border-radius: 50%;
+  transition: all 0.4s ease;
+  opacity: var(--crop-size);
+  box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.15);
+}
+
+.crop--empty {
+  --crop-size: 0;
+  visibility: hidden;
+}
+
+.crop--seed {
+  --crop-size: 0.1;
+}
+
+.crop--growing {
+  --crop-size: var(--growth-progress, 0.5);
+}
+
+.crop--ready {
+  --crop-size: 1;
+  animation: crop-bounce 0.7s ease-in-out infinite;
+}
+
+@keyframes crop-bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/* 作物カラー */
+.crop--tomato {
+  --crop-color: #e04040;
+}
+
+.crop--potato {
+  --crop-color: #c8a050;
+}
+
+.crop--golden-apple {
+  --crop-color: #ffd700;
+}
+
+.crop--carrot {
+  --crop-color: #ff8c00;
+}
+
+.crop--strawberry {
+  --crop-color: #ff4060;
+}
+
+.crop--corn {
+  --crop-color: #f0d040;
+}
+
+.crop--pumpkin {
+  --crop-color: #e08020;
+}
+
+.crop--watermelon {
+  --crop-color: #408040;
+}
+
+/* ============================================
+   収穫パーティクル
+   ============================================ */
+.harvest-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: particle-fly 0.5s ease-out forwards;
+}
+
+@keyframes particle-fly {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(var(--px, 15px), var(--py, -20px)) scale(0.2);
+  }
+}
