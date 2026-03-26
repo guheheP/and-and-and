@@ -3,7 +3,13 @@
 import { rollGacha, rollGachaBatch, getGachaCost, isGachaBatchUnlocked } from './gacha.js';
 import { CHARACTER_MASTER, CROP_MASTER, LEVEL_UNLOCK_CROPS } from './master-data.js';
 import { saveState, getCropLevel, getCropLevelMultiplier, getCropLevelProgress, executePrestige, purchaseUpgrade, getUpgradeLevel, clearSave, isCropInfinite } from './game-state.js';
-import { updateCharacter, updateHUD } from './renderer.js';
+import { updateHUD } from './renderer-common.js';
+
+// レンダラーモードに応じた updateCharacter を動的に取得
+const renderMode = localStorage.getItem('idle-farm-render-mode') || '3d';
+const { updateCharacter } = renderMode === '3d'
+  ? await import('./renderer-3d.js')
+  : await import('./renderer.js');
 import { PRESTIGE_CONFIG, PRESTIGE_UPGRADES, getUpgradeCost, getUpgradeEffect } from './prestige-data.js';
 import { EVENT_MASTER } from './event-data.js';
 
@@ -48,11 +54,12 @@ export function initUI(state) {
   gameState = state;
 
   // ============================================
-  //  ガチャ
+  //  種購入（旧ガチャ）
   // ============================================
   const btnGacha = document.getElementById('btn-gacha');
-  const btnGachaRoll = document.getElementById('btn-gacha-roll');
-  const btnGachaMulti = document.getElementById('btn-gacha-multi');
+  const btnGachaBuy = document.getElementById('btn-gacha-buy');
+  const btnGachaPrev = document.getElementById('btn-gacha-prev');
+  const btnGachaNext = document.getElementById('btn-gacha-next');
   const btnGachaClose = document.getElementById('btn-gacha-close');
   const gachaModal = document.getElementById('gacha-modal');
   const gachaResult = document.getElementById('gacha-result');
@@ -68,49 +75,83 @@ export function initUI(state) {
     });
   }
 
-  if (btnGachaRoll) {
-    btnGachaRoll.addEventListener('click', () => {
-      const result = rollGacha(gameState);
-      showGachaResult(gachaResult, result);
-      updateHUD(gameState);
+  // ◀▶ 数量切替
+  if (btnGachaPrev) {
+    btnGachaPrev.addEventListener('click', () => {
+      cycleGachaQty(-1);
       updateGachaCostDisplay();
-      saveState(gameState);
+    });
+  }
+  if (btnGachaNext) {
+    btnGachaNext.addEventListener('click', () => {
+      cycleGachaQty(1);
+      updateGachaCostDisplay();
     });
   }
 
-  const btnGacha50 = document.getElementById('btn-gacha-50');
-  const btnGacha100 = document.getElementById('btn-gacha-100');
+  // 購入ボタン（長押し連続購入対応）
+  if (btnGachaBuy) {
+    let isHolding = false;
 
-  const handleMultiGacha = (count) => {
-    const result = rollGachaBatch(gameState, count);
-    if (gachaResult) {
-      gachaResult.innerHTML = '';
-      if (result.success) {
-        const summary = {};
-        result.results.forEach(crop => {
-          summary[crop.name] = (summary[crop.name] || 0) + 1;
-        });
-        const msg = document.createElement('div');
-        msg.className = 'gacha-reveal';
-        msg.innerHTML = Object.entries(summary)
-          .map(([name, c]) => `${name} ×${c}`)
-          .join('<br>');
-        gachaResult.appendChild(msg);
+    /** 1回の購入処理 */
+    const executePurchase = () => {
+      const qty = getAvailableGachaQties()[currentGachaQtyIndex];
+      let result;
+      if (qty === 1) {
+        result = rollGacha(gameState);
+        showGachaResult(gachaResult, result, isHolding);
       } else {
-        const msg = document.createElement('div');
-        msg.textContent = result.message;
-        msg.style.color = '#ff6060';
-        gachaResult.appendChild(msg);
+        result = rollGachaBatch(gameState, qty);
+        showGachaBatchResult(gachaResult, result, isHolding);
       }
-    }
-    updateHUD(gameState);
-    updateGachaCostDisplay();
-    saveState(gameState);
-  };
+      updateHUD(gameState);
+      updateGachaCostDisplay();
+      saveState(gameState);
+      return result.success;
+    };
 
-  if (btnGachaMulti) btnGachaMulti.addEventListener('click', () => handleMultiGacha(10));
-  if (btnGacha50) btnGacha50.addEventListener('click', () => handleMultiGacha(50));
-  if (btnGacha100) btnGacha100.addEventListener('click', () => handleMultiGacha(100));
+    let holdTimer = null;
+    let holdCount = 0;
+
+    const startHold = (e) => {
+      e.preventDefault();
+      isHolding = false;
+      // 初回即時実行
+      if (!executePurchase()) return;
+      isHolding = true;
+      holdCount = 0;
+
+      const repeatPurchase = () => {
+        if (!executePurchase()) {
+          stopHold();
+          return;
+        }
+        holdCount++;
+        // 加速: 300ms → 最速50ms
+        const delay = Math.max(50, 300 - holdCount * 25);
+        holdTimer = setTimeout(repeatPurchase, delay);
+      };
+      holdTimer = setTimeout(repeatPurchase, 400); // 初回リピートまで少し長め
+    };
+
+    const stopHold = () => {
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+      holdCount = 0;
+      isHolding = false;
+    };
+
+    // マウス
+    btnGachaBuy.addEventListener('mousedown', startHold);
+    btnGachaBuy.addEventListener('mouseup', stopHold);
+    btnGachaBuy.addEventListener('mouseleave', stopHold);
+    // タッチ
+    btnGachaBuy.addEventListener('touchstart', startHold, { passive: false });
+    btnGachaBuy.addEventListener('touchend', stopHold);
+    btnGachaBuy.addEventListener('touchcancel', stopHold);
+  }
 
   if (btnGachaClose) {
     btnGachaClose.addEventListener('click', () => {
@@ -291,7 +332,7 @@ export function initUI(state) {
   // ============================================
   const btn3dToggle = document.getElementById('btn-3d-toggle');
   if (btn3dToggle) {
-    const currentMode = localStorage.getItem('idle-farm-render-mode') || '2d';
+    const currentMode = localStorage.getItem('idle-farm-render-mode') || '3d';
     if (currentMode === '3d') {
       btn3dToggle.classList.add('is-active');
     }
@@ -299,7 +340,7 @@ export function initUI(state) {
     btn3dToggle.addEventListener('click', () => {
       const menuPopup = document.getElementById('menu-popup');
       if (menuPopup) menuPopup.classList.remove('is-active');
-      const current = localStorage.getItem('idle-farm-render-mode') || '2d';
+      const current = localStorage.getItem('idle-farm-render-mode') || '3d';
       const next = current === '3d' ? '2d' : '3d';
       localStorage.setItem('idle-farm-render-mode', next);
       location.reload();
@@ -388,11 +429,45 @@ export function initUI(state) {
 }
 
 // ============================================
-//  ガチャ関連
+//  種購入（旧ガチャ）関連
 // ============================================
 
-function showGachaResult(resultEl, result) {
+/** 購入数量の選択肢管理 */
+let currentGachaQtyIndex = 0;
+
+/** 現在解放済みの購入数量リストを取得 */
+function getAvailableGachaQties() {
+  const qties = [1];
+  if (gameState && isGachaBatchUnlocked(gameState, 10)) qties.push(10);
+  if (gameState && isGachaBatchUnlocked(gameState, 50)) qties.push(50);
+  if (gameState && isGachaBatchUnlocked(gameState, 100)) qties.push(100);
+  return qties;
+}
+
+/** ◀▶で数量を切り替える */
+function cycleGachaQty(dir) {
+  const qties = getAvailableGachaQties();
+  currentGachaQtyIndex = (currentGachaQtyIndex + dir + qties.length) % qties.length;
+}
+
+function showGachaResult(resultEl, result, rapid = false) {
   if (!resultEl) return;
+
+  if (rapid && resultEl.firstChild) {
+    // 長押し中: テキストだけ更新（アニメーションなし）
+    const existing = resultEl.firstChild;
+    if (result.success) {
+      existing.className = `rarity-${result.cropData.rarity}`;
+      existing.textContent = result.message;
+      existing.style.color = '';
+    } else {
+      existing.className = '';
+      existing.textContent = result.message;
+      existing.style.color = '#ff6060';
+    }
+    return;
+  }
+
   resultEl.innerHTML = '';
   const msg = document.createElement('div');
   if (result.success) {
@@ -405,46 +480,66 @@ function showGachaResult(resultEl, result) {
   resultEl.appendChild(msg);
 }
 
+function showGachaBatchResult(resultEl, result, rapid = false) {
+  if (!resultEl) return;
+
+  if (rapid && resultEl.firstChild && result.success) {
+    // 長押し中: テキストだけ更新
+    const summary = {};
+    result.results.forEach(crop => {
+      summary[crop.name] = (summary[crop.name] || 0) + 1;
+    });
+    resultEl.firstChild.innerHTML = Object.entries(summary)
+      .map(([name, c]) => `${name} ×${c}`)
+      .join('<br>');
+    return;
+  }
+
+  resultEl.innerHTML = '';
+  if (result.success) {
+    const summary = {};
+    result.results.forEach(crop => {
+      summary[crop.name] = (summary[crop.name] || 0) + 1;
+    });
+    const msg = document.createElement('div');
+    msg.className = 'gacha-reveal';
+    msg.innerHTML = Object.entries(summary)
+      .map(([name, c]) => `${name} ×${c}`)
+      .join('<br>');
+    resultEl.appendChild(msg);
+  } else {
+    const msg = document.createElement('div');
+    msg.textContent = result.message;
+    msg.style.color = '#ff6060';
+    resultEl.appendChild(msg);
+  }
+}
+
 function updateGachaCostDisplay() {
   if (!gameState) return;
   const cost = getGachaCost(gameState);
-  const btnGachaRoll = document.getElementById('btn-gacha-roll');
-  if (btnGachaRoll) {
-    btnGachaRoll.textContent = `回す (${cost}pt)`;
-  }
+  const qties = getAvailableGachaQties();
 
-  // 10連ボタンの表示/非表示
-  const btnGachaMulti = document.getElementById('btn-gacha-multi');
-  if (btnGachaMulti) {
-    if (isGachaBatchUnlocked(gameState, 10)) {
-      btnGachaMulti.hidden = false;
-      btnGachaMulti.textContent = `10連 (${cost * 10}pt)`;
-    } else {
-      btnGachaMulti.hidden = true;
-    }
-  }
+  // インデックスが範囲外にならないよう制限
+  if (currentGachaQtyIndex >= qties.length) currentGachaQtyIndex = qties.length - 1;
 
-  // 50連ボタンの表示/非表示
-  const btnGacha50 = document.getElementById('btn-gacha-50');
-  if (btnGacha50) {
-    if (isGachaBatchUnlocked(gameState, 50)) {
-      btnGacha50.hidden = false;
-      btnGacha50.textContent = `50連 (${cost * 50}pt)`;
-    } else {
-      btnGacha50.hidden = true;
-    }
-  }
+  const qty = qties[currentGachaQtyIndex];
+  const totalCost = cost * qty;
 
-  // 100連ボタンの表示/非表示
-  const btnGacha100 = document.getElementById('btn-gacha-100');
-  if (btnGacha100) {
-    if (isGachaBatchUnlocked(gameState, 100)) {
-      btnGacha100.hidden = false;
-      btnGacha100.textContent = `100連 (${cost * 100}pt)`;
-    } else {
-      btnGacha100.hidden = true;
-    }
-  }
+  // 数量ラベル更新
+  const qtyLabel = document.getElementById('gacha-qty-label');
+  if (qtyLabel) qtyLabel.textContent = `${qty}個`;
+
+  // 購入ボタン更新
+  const btnBuy = document.getElementById('btn-gacha-buy');
+  if (btnBuy) btnBuy.textContent = `購入 (${totalCost}pt)`;
+
+  // ◀▶ボタンの表示制御（選択肢が1つなら非表示）
+  const btnPrev = document.getElementById('btn-gacha-prev');
+  const btnNext = document.getElementById('btn-gacha-next');
+  const hide = qties.length <= 1;
+  if (btnPrev) btnPrev.style.visibility = hide ? 'hidden' : 'visible';
+  if (btnNext) btnNext.style.visibility = hide ? 'hidden' : 'visible';
 }
 
 // ============================================

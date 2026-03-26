@@ -2,7 +2,7 @@
 
 const SAVE_KEY = 'idle-farm-save';
 
-import { PRESTIGE_CONFIG, PRESTIGE_UPGRADES, getUpgradeCost } from './prestige-data.js';
+import { PRESTIGE_CONFIG, PRESTIGE_UPGRADES, getUpgradeCost, getUpgradeEffect } from './prestige-data.js';
 import { CROP_MASTER } from './master-data.js';
 
 /**
@@ -245,6 +245,14 @@ export function executePrestige(state) {
   state.currentCharId = currentCharId;
   state.eventCounts = eventCounts;
   state.selectedCropId = null; // リセットで種が消えるためターゲットもリセット
+
+  // リセットボーナス（startBonus）のポイント付与
+  const startBonusLv = prestigeUpgrades['startBonus'] || 0;
+  if (startBonusLv > 0) {
+    const bonusPts = getUpgradeEffect('startBonus', startBonusLv);
+    state.points += bonusPts;
+    state.totalEarnedPoints += bonusPts;
+  }
 
   saveState(state);
   return { currency: earned };

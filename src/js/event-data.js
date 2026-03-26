@@ -155,7 +155,7 @@ export const EVENT_MASTER = {
     id: 'john',
     genre: 'friend',
     name: '🧑 ジョンの訪問',
-    durationMs: 5000,
+    durationMs: 15000,
     weight: 30,
     effectType: 'giveItem',
     effectValue: { cropId: null, count: 0, bonusPointsPerLevel: 100 },

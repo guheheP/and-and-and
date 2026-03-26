@@ -3,7 +3,7 @@
 import { EVENT_MASTER } from './event-data.js';
 import { forceTriggerEvent } from './event-system.js';
 import { addPlayerExp, addPoints, saveState } from './game-state.js';
-import { updateHUD } from './renderer.js';
+import { updateHUD } from './renderer-common.js';
 
 export function initDebug(gameState) {
   const debugModal = document.getElementById('debug-modal');

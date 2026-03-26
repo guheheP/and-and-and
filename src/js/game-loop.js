@@ -5,6 +5,7 @@ import { addPoints, addPlayerExp, consumeSeed, saveState, addCropExp, getCropLev
 import { checkLevelUp, getPointMultiplier } from './progression.js';
 import { updateEventSystem, getGrowthMultiplier, consumePointBoost } from './event-system.js';
 import { getUpgradeEffect } from './prestige-data.js';
+import { rollGacha } from './gacha.js';
 
 /** @type {number|null} */
 let loopId = null;
@@ -15,6 +16,10 @@ let lastTickTime = 0;
 /** 自動セーブ間隔 (ms) */
 const AUTO_SAVE_INTERVAL = 10000;
 let lastSaveTime = 0;
+
+/** 自動購入タイマー (ms) */
+const AUTO_GACHA_INTERVAL = 5000;
+let lastAutoGachaTime = 0;
 
 /**
  * コールバック: 描画更新やイベント通知に使用
@@ -31,6 +36,7 @@ export function startGameLoop(state, cbs = {}) {
   callbacks = cbs;
   lastTickTime = performance.now();
   lastSaveTime = lastTickTime;
+  lastAutoGachaTime = lastTickTime;
   loopId = requestAnimationFrame((time) => tick(state, time));
 }
 
@@ -74,6 +80,17 @@ function tick(state, currentTime) {
   // 収穫フェーズ（描画後に実行）
   if (state.fieldState.progress >= 1.0) {
     harvestCrop(state);
+  }
+
+  // 自動購入
+  const autoLv = getUpgradeLevel(state, 'autoGacha');
+  if (autoLv > 0 && currentTime - lastAutoGachaTime > AUTO_GACHA_INTERVAL) {
+    lastAutoGachaTime = currentTime;
+    const buyCount = Math.pow(2, autoLv - 1);
+    for (let i = 0; i < buyCount; i++) {
+      const result = rollGacha(state);
+      if (!result.success) break; // ポイント不足などで停止
+    }
   }
 
   // 自動セーブ

@@ -4,7 +4,7 @@ import { loadState, saveState, addSeed, addPoints } from './game-state.js';
 import { startGameLoop } from './game-loop.js';
 
 // 動的レンダラー選択（2D or 3D）
-const renderMode = localStorage.getItem('idle-farm-render-mode') || '2d';
+const renderMode = localStorage.getItem('idle-farm-render-mode') || '3d';
 const rendererModule = renderMode === '3d'
   ? await import('./renderer-3d.js')
   : await import('./renderer.js');
@@ -155,8 +155,8 @@ function handleEventStart(state, event) {
   if (!state.eventCounts) state.eventCounts = {};
   state.eventCounts[event.id] = (state.eventCounts[event.id] || 0) + 1;
 
-  // CSSクラス追加
-  if (event.cssClass) {
+  // CSSクラス追加（2Dの背景フィルターや犬・猫の擬似要素用）
+  if (event.cssClass && renderMode !== '3d') {
     stage.classList.add(event.cssClass);
   }
 

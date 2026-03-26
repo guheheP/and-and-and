@@ -71,7 +71,7 @@ const CROP_HEX = {
   carrot: 0xff8c00, strawberry: 0xff4060,
   corn: 0xf0d040, pumpkin: 0xe08020,
   watermelon: 0x408040, golden_apple: 0xffd700,
-  tumbleweed: 0xa08850, christmas_tree: 0x2d8040,
+  tumbleweed: 0xedc97f, christmas_tree: 0x2d8040,
 };
 const LEAF_HEX = {
   tomato: 0x2d8040, potato: 0x4a8e2c,
@@ -453,10 +453,10 @@ function createFruitMesh(cropId, r, color) {
       break;
 
     case 'tumbleweed':
-      // タンブルウィード（トゲトゲの球体っぽく見せるため複数のボックスを回転交差）
+      // タンブルウィード（大きめで明るく）
       core = new THREE.Group();
       for (let i = 0; i < 3; i++) {
-        const b = box(r * 1.8, r * 1.8, r * 0.4, color);
+        const b = box(r * 2.5, r * 2.5, r * 0.6, color);
         b.rotation.x = i * 1.0;
         b.rotation.y = i * 0.5;
         core.add(b);
@@ -564,7 +564,7 @@ function buildCrop(cropId) {
     const group = new THREE.Group();
     // 葉っぱに隠れないよう、Z軸（手前）に少しオフセット (+0.2)
     group.position.set(pt.x, pt.y - r * 0.3, pt.z + 0.2);
-    
+
     // 作物ごとの独自形状メッシュを生成して追加
     const fruitMeshGroup = createFruitMesh(cropId, r, fruitColor);
     group.add(fruitMeshGroup);
@@ -659,93 +659,146 @@ function buildHumanoidModel(c) {
 }
 
 function buildDogModel() {
-  const c = CHAR_COLORS['farmer--dog'];
-  // 横長の体
-  const body = box(1.4, 0.7, 0.6, c.body);
-  body.position.set(0, 1.0, 0);
-  body.castShadow = true;
-  farmerGroup.add(body);
+  const c = 0xd89f50; // 薄茶色
+  const w = 0xffffff; // 白
 
-  // 頭
-  const head = box(0.6, 0.6, 0.55, c.skin);
+  // 1: 体（上半分茶色）
+  const bodyTop = box(1.4, 0.4, 0.8, c);
+  bodyTop.position.set(0, 1.0, 0);
+  bodyTop.castShadow = true;
+  farmerGroup.add(bodyTop);
+  
+  // 体（下半分白）
+  const bodyBot = box(1.4, 0.3, 0.8, w);
+  bodyBot.position.set(0, 0.65, 0);
+  bodyBot.castShadow = true;
+  farmerGroup.add(bodyBot);
+
+  // 2: 頭
+  const head = box(0.8, 0.8, 0.8, c);
   head.position.set(0.8, 1.5, 0);
   head.castShadow = true;
   farmerGroup.add(head);
 
-  // 鼻
-  const nose = box(0.15, 0.1, 0.15, 0x333333);
-  nose.position.set(1.15, 1.45, 0);
+  // 3: マズル（白）
+  const muzzle = box(0.4, 0.4, 0.82, w);
+  muzzle.position.set(1.0, 1.35, 0);
+  farmerGroup.add(muzzle);
+
+  // 4: 鼻先
+  const nose = box(0.2, 0.2, 0.2, 0x333333);
+  nose.position.set(1.25, 1.45, 0);
   farmerGroup.add(nose);
 
-  // 耳
-  const earL = box(0.15, 0.3, 0.1, c.hair);
-  earL.position.set(0.65, 1.9, -0.2);
+  // 5 (左前脚), 6 (右前脚) - アニメーション対象 (白)
+  const legFL = box(0.3, 0.6, 0.3, w);
+  legFL.position.set(0.45, 0.3, -0.25);
+  legFL.castShadow = true;
+  farmerGroup.add(legFL);
+
+  const legFR = box(0.3, 0.6, 0.3, w);
+  legFR.position.set(0.45, 0.3, 0.25);
+  legFR.castShadow = true;
+  farmerGroup.add(legFR);
+
+  // 7 (左後脚), 8 (右後脚) (白)
+  const legBL = box(0.3, 0.6, 0.3, w);
+  legBL.position.set(-0.45, 0.3, -0.25);
+  legBL.castShadow = true;
+  farmerGroup.add(legBL);
+
+  const legBR = box(0.3, 0.6, 0.3, w);
+  legBR.position.set(-0.45, 0.3, 0.25);
+  legBR.castShadow = true;
+  farmerGroup.add(legBR);
+
+  // 9 耳L
+  const earL = box(0.2, 0.4, 0.2, c);
+  earL.position.set(0.6, 2.0, -0.3);
   farmerGroup.add(earL);
-  const earR = box(0.15, 0.3, 0.1, c.hair);
-  earR.position.set(0.65, 1.9, 0.2);
+
+  // 10 耳R
+  const earR = box(0.2, 0.4, 0.2, c);
+  earR.position.set(0.6, 2.0, 0.3);
   farmerGroup.add(earR);
 
-  // 脚 x4
-  const legPositions = [[-0.45, 0], [0.45, 0], [-0.45, 0.3], [0.45, 0.3]];
-  legPositions.forEach(([x, z]) => {
-    const leg = box(0.2, 0.6, 0.2, c.skin);
-    leg.position.set(x, 0.3, z);
-    leg.castShadow = true;
-    farmerGroup.add(leg);
-  });
-
-  // しっぽ
-  const tail = box(0.1, 0.35, 0.1, c.hair);
-  tail.position.set(-0.8, 1.3, 0);
-  tail.rotation.z = 0.5;
+  // 11 しっぽ
+  const tail = box(0.3, 0.4, 0.3, c);
+  tail.position.set(-0.7, 1.3, 0);
+  tail.rotation.z = Math.PI / 4;
   farmerGroup.add(tail);
 }
 
 function buildCatModel() {
-  const c = CHAR_COLORS['farmer--cat'];
-  // 小さめの体
-  const body = box(1.0, 0.5, 0.45, c.body);
+  const cw = 0xffffff;
+  const cb = 0x333333;
+  const co = 0xe08020;
+
+  // 1: 体
+  const body = box(1.2, 0.6, 0.6, cw);
   body.position.set(0, 0.8, 0);
   body.castShadow = true;
   farmerGroup.add(body);
 
-  // 頭（丸め）
-  const head = sphere(0.35, c.skin);
+  // 2: ブチ1
+  const patch1 = box(0.4, 0.62, 0.62, cb);
+  patch1.position.set(-0.3, 0.8, 0);
+  farmerGroup.add(patch1);
+  
+  // 3: ブチ2
+  const patch2 = box(0.3, 0.62, 0.62, co);
+  patch2.position.set(0.3, 0.8, 0);
+  farmerGroup.add(patch2);
+
+  // 4: 頭
+  const head = box(0.7, 0.7, 0.7, cw);
   head.position.set(0.6, 1.3, 0);
   head.castShadow = true;
   farmerGroup.add(head);
 
-  // 耳（三角）
-  const earL = box(0.12, 0.2, 0.08, c.hair);
-  earL.position.set(0.48, 1.6, -0.15);
+  // 5 (左前脚), 6 (右前脚) - アニメーション対象
+  const legFL = box(0.2, 0.5, 0.2, cw);
+  legFL.position.set(0.3, 0.25, -0.15);
+  legFL.castShadow = true;
+  farmerGroup.add(legFL);
+
+  const legFR = box(0.2, 0.5, 0.2, cw);
+  legFR.position.set(0.3, 0.25, 0.15);
+  legFR.castShadow = true;
+  farmerGroup.add(legFR);
+
+  // 頭のブチ (重なりによるちらつきを避けるため少し高く)
+  const headPatch = box(0.72, 0.32, 0.72, co);
+  headPatch.position.set(0.6, 1.51, 0);
+  farmerGroup.add(headPatch);
+
+  // 耳L
+  const earL = box(0.2, 0.3, 0.2, cb);
+  earL.position.set(0.48, 1.7, -0.25);
   earL.rotation.z = 0.3;
   farmerGroup.add(earL);
-  const earR = box(0.12, 0.2, 0.08, c.hair);
-  earR.position.set(0.48, 1.6, 0.15);
+  
+  // 耳R
+  const earR = box(0.2, 0.3, 0.2, co);
+  earR.position.set(0.48, 1.7, 0.25);
   earR.rotation.z = 0.3;
   farmerGroup.add(earR);
 
-  // 目
-  const eyeGeo = new THREE.BoxGeometry(0.08, 0.06, 0.04);
-  const eyeMat = new THREE.MeshLambertMaterial({ color: 0x44aa44 });
-  const eL = new THREE.Mesh(eyeGeo, eyeMat);
-  eL.position.set(0.85, 1.35, -0.12);
-  farmerGroup.add(eL);
-  const eR = new THREE.Mesh(eyeGeo, eyeMat);
-  eR.position.set(0.85, 1.35, 0.12);
-  farmerGroup.add(eR);
+  // 後ろ脚
+  const legBL = box(0.2, 0.5, 0.2, cw);
+  legBL.position.set(-0.3, 0.25, -0.15);
+  legBL.castShadow = true;
+  farmerGroup.add(legBL);
 
-  // 脚
-  [[-0.3, 0], [0.3, 0], [-0.3, 0.2], [0.3, 0.2]].forEach(([x, z]) => {
-    const leg = box(0.15, 0.5, 0.15, c.skin);
-    leg.position.set(x, 0.25, z);
-    farmerGroup.add(leg);
-  });
+  const legBR = box(0.2, 0.5, 0.2, cw);
+  legBR.position.set(-0.3, 0.25, 0.15);
+  legBR.castShadow = true;
+  farmerGroup.add(legBR);
 
   // しっぽ
-  const tail = cylinder(0.05, 0.03, 0.6, c.hair);
-  tail.position.set(-0.6, 0.9, 0);
-  tail.rotation.z = 0.8;
+  const tail = box(0.15, 0.7, 0.15, cb);
+  tail.position.set(-0.6, 1.0, 0);
+  tail.rotation.z = -0.3;
   farmerGroup.add(tail);
 }
 
@@ -868,18 +921,18 @@ export function triggerWorkAnimation() {
 function buildClouds() {
   for (let i = 0; i < 6; i++) {
     const cloud = new THREE.Group();
-    
+
     // ベースとなる平べったい四角
     const baseW = 3 + Math.random() * 2;
     const baseD = 2 + Math.random() * 2;
-    const base = cloudBox(baseW, 0.6, baseD, 0xffffff, 0.7);
+    const base = cloudBox(baseW, 0.6, baseD, 0xffffff, 0.2);
     base.castShadow = true;
     cloud.add(base);
 
     // 上に乗る少し小さな四角
     const puffW = baseW * 0.6;
     const puffD = baseD * 0.6;
-    const puff = cloudBox(puffW, 0.8, puffD, 0xffffff, 0.7);
+    const puff = cloudBox(puffW, 0.8, puffD, 0xffffff, 0.1);
     puff.position.set((Math.random() - 0.5) * 0.5, 0.5, (Math.random() - 0.5) * 0.5);
     puff.castShadow = true;
     cloud.add(puff);
@@ -914,11 +967,11 @@ export function startEventVisual(event) {
     case 'cumulonimbus':
       const cloud = new THREE.Group();
       const layers = 5;
-      for(let i = 0; i < layers; i++) {
+      for (let i = 0; i < layers; i++) {
         const w = 6 - i * 0.8 + Math.random();
         const d = 5 - i * 0.6 + Math.random();
         const h = 1.2;
-        const p = cloudBox(w, h, d, 0xcccccc, 0.8);
+        const p = cloudBox(w, h, d, 0xcccccc, 0.5);
         p.position.set((Math.random() - 0.5) * 1.5, i * (h * 0.8), (Math.random() - 0.5) * 1.5);
         p.castShadow = true;
         cloud.add(p);
@@ -930,9 +983,9 @@ export function startEventVisual(event) {
     case 'bird_poop': spawnCrossingObject3D('bird'); break;
     case 'stork': spawnCrossingObject3D('stork'); break;
     case 'santa': spawnCrossingObject3D('santa'); break;
-    case 'john': spawnCrossingObject3D('john'); break;
-    case 'dog_visit': spawnStaticAnimal3D('dog'); break;
-    case 'cat_visit': spawnStaticAnimal3D('cat'); break;
+    case 'john': spawnJohnVisit3D(); break;
+    case 'dog_visit': spawnStaticAnimal3D('dog_visit'); break;
+    case 'cat_visit': spawnStaticAnimal3D('cat_visit'); break;
   }
 }
 
@@ -950,7 +1003,7 @@ export function stopAllEventVisuals() {
       activeAnimators.splice(i, 1);
     }
   }
-  
+
   // reset thunder lighting
   scene.children.forEach(c => {
     if (c.isAmbientLight) c.intensity = CONFIG.ambientIntensity;
@@ -961,11 +1014,11 @@ export function stopAllEventVisuals() {
 function triggerThunderFlash() {
   const isTransparent = document.body.classList.contains('bg-transparent');
   if (!isTransparent) renderer3d.setClearColor(0xffffff, 1.0);
-  
+
   scene.children.forEach(c => {
     if (c.isAmbientLight) c.intensity = 2.0;
   });
-  
+
   setTimeout(() => {
     updateClearColor();
     scene.children.forEach(c => {
@@ -978,12 +1031,12 @@ function spawnWeatherParticles(type, colorHex, speed, count, slantX = 0) {
   const geo = new THREE.BufferGeometry();
   const pos = new Float32Array(count * 3);
   for (let i = 0; i < count; i++) {
-    pos[i * 3]     = -15 + Math.random() * 30; // x
+    pos[i * 3] = -15 + Math.random() * 30; // x
     pos[i * 3 + 1] = Math.random() * 15;       // y
     pos[i * 3 + 2] = -5 + Math.random() * 15;  // z
   }
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  
+
   let mat;
   // OrthographicCamera では PointsMaterial の size はピクセル単位になります。
   if (type === 'snow') {
@@ -991,10 +1044,10 @@ function spawnWeatherParticles(type, colorHex, speed, count, slantX = 0) {
   } else {
     mat = new THREE.PointsMaterial({ color: colorHex, size: type === 'diamond' ? 8 : 4, transparent: true, opacity: 0.6 });
   }
-  
+
   const points = new THREE.Points(geo, mat);
   weatherGroup.add(points);
-  
+
   activeAnimators.push({
     type: 'weather',
     mesh: points,
@@ -1003,18 +1056,18 @@ function spawnWeatherParticles(type, colorHex, speed, count, slantX = 0) {
       for (let i = 0; i < count; i++) {
         let x = positions[i * 3];
         let y = positions[i * 3 + 1];
-        
+
         y -= speed;
         x += slantX;
-        
+
         if (type === 'snow') {
           x += Math.sin(y * 2) * 0.02; // Wobble
         }
-        
+
         if (y < -1) y = 15;
         if (x > 15) x = -15;
-        
-        positions[i * 3]     = x;
+
+        positions[i * 3] = x;
         positions[i * 3 + 1] = y;
       }
       points.geometry.attributes.position.needsUpdate = true;
@@ -1026,18 +1079,18 @@ function spawnWeatherParticles(type, colorHex, speed, count, slantX = 0) {
 function spawnCrossingObject3D(type) {
   const grp = new THREE.Group();
   let startX = -10, endX = 10;
-  let moveY = 5, moveZ = 2; 
+  let moveY = 5, moveZ = 2;
   let speed = 0.05 + Math.random() * 0.03;
   let rotSpeed = 0;
-  
+
   if (type === 'tumbleweed') {
     for (let i = 0; i < 3; i++) {
-      const b = box(1.0, 1.0, 0.2, 0xa08850);
+      const b = box(1.6, 1.6, 0.4, 0xedc97f);
       b.rotation.x = i * 1.0;
       b.rotation.y = i * 0.5;
       grp.add(b);
     }
-    moveY = 0.3; // ground level
+    moveY = 0.5; // ground level (slightly higher due to size)
     moveZ = 2 + Math.random() * 3;
     rotSpeed = 0.1;
     speed = 0.03 + Math.random() * 0.02;
@@ -1065,10 +1118,10 @@ function spawnCrossingObject3D(type) {
     moveY = 0.5;
     rotSpeed = 0;
   }
-  
+
   grp.position.set(startX, moveY, moveZ);
   scene.add(grp);
-  
+
   activeAnimators.push({
     type: 'crossing',
     mesh: grp,
@@ -1087,7 +1140,7 @@ function spawnCrossingObject3D(type) {
       return true;
     }
   });
-  
+
   // For bird, dropping a poop midway
   if (type === 'bird') {
     setTimeout(() => {
@@ -1113,14 +1166,312 @@ function spawnCrossingObject3D(type) {
 
 function spawnStaticAnimal3D(type) {
   const grp = new THREE.Group();
-  const c = type === 'dog_visit' ? 0xc8a060 : 0xe0b880;
-  const body = box(0.6, 0.4, 0.3, c);
-  const head = box(0.3, 0.3, 0.3, c);
-  head.position.set(0.3, 0.3, 0);
-  body.position.y = 0.2;
-  grp.add(body, head);
-  grp.position.set(-4, 0, 3 + Math.random() * 2);
+  
+  if (type === 'dog_visit') {
+    // 柴犬カラー
+    const c = 0xd89f50; // 薄茶色
+    const w = 0xffffff; // 白
+    
+    // 体（上半分茶色、下半分白）
+    const bodyTop = box(1.4, 0.4, 0.8, c);
+    bodyTop.position.set(0, 1.0, 0);
+    const bodyBot = box(1.4, 0.3, 0.8, w);
+    bodyBot.position.set(0, 0.65, 0);
+    
+    // 頭 (茶色)
+    const head = box(0.8, 0.8, 0.8, c);
+    head.position.set(0.8, 1.4, 0);
+    
+    // マズル・頬などの白い部分
+    const muzzle = box(0.4, 0.4, 0.82, w);
+    muzzle.position.set(1.0, 1.25, 0);
+    
+    // 耳 (茶色)
+    const earL = box(0.2, 0.4, 0.2, c);
+    earL.position.set(0.6, 1.9, -0.3);
+    const earR = box(0.2, 0.4, 0.2, c);
+    earR.position.set(0.6, 1.9, 0.3);
+    
+    // 鼻先
+    const nose = box(0.2, 0.2, 0.2, 0x222222);
+    nose.position.set(1.25, 1.3, 0);
+    
+    // 脚 (白)
+    [[-0.5, -0.25], [0.5, -0.25], [-0.5, 0.25], [0.5, 0.25]].forEach(([x, z]) => {
+      const leg = box(0.3, 0.6, 0.3, w);
+      leg.position.set(x, 0.3, z);
+      grp.add(leg);
+    });
+    
+    // くるんと巻いたしっぽ (茶色)
+    const tail = box(0.3, 0.4, 0.3, c);
+    tail.position.set(-0.7, 1.3, 0);
+    tail.rotation.z = Math.PI / 4;
+
+    grp.add(bodyTop, bodyBot, head, muzzle, earL, earR, nose, tail);
+  } else {
+    // 三毛猫カラー
+    const cw = 0xffffff; // 白
+    const cb = 0x333333; // 黒
+    const co = 0xe08020; // オレンジ
+
+    // 体 (白ベース)
+    const body = box(1.2, 0.6, 0.6, cw);
+    body.position.set(0, 0.6, 0);
+    // 体のブチ模様
+    const patch1 = box(0.4, 0.62, 0.62, cb);
+    patch1.position.set(-0.3, 0.6, 0);
+    const patch2 = box(0.3, 0.62, 0.62, co);
+    patch2.position.set(0.3, 0.6, 0);
+    
+    // 頭 (白ベース)
+    const head = box(0.7, 0.7, 0.7, cw);
+    head.position.set(0.7, 1.2, 0);
+    // 頭のブチ (重なりによるちらつきを避けるため少し高く)
+    const headPatch = box(0.72, 0.32, 0.72, co);
+    headPatch.position.set(0.7, 1.41, 0);
+
+    // 耳 (左右で色を変える)
+    const earL = box(0.2, 0.3, 0.2, cb);
+    earL.position.set(0.6, 1.6, -0.25);
+    earL.rotation.z = 0.3;
+    const earR = box(0.2, 0.3, 0.2, co);
+    earR.position.set(0.6, 1.6, 0.25);
+    earR.rotation.z = 0.3;
+    
+    // 脚 (白)
+    [[-0.4, -0.15], [0.4, -0.15], [-0.4, 0.15], [0.4, 0.15]].forEach(([x, z]) => {
+      const leg = box(0.2, 0.4, 0.2, cw);
+      leg.position.set(x, 0.2, z);
+      grp.add(leg);
+    });
+    // しっぽ (黒寄り)
+    const tail = box(0.15, 0.7, 0.15, cb);
+    tail.position.set(-0.6, 0.8, 0);
+    tail.rotation.z = -0.3;
+    
+    grp.add(body, patch1, patch2, head, headPatch, earL, earR, tail);
+  }
+
+  // 影の設定
+  grp.traverse(child => {
+    if (child.isMesh) {
+      child.castShadow = true;
+    }
+  });
+
+  // 猫の場合：元の位置に留まらせてゆっくり息をさせる
+  if (type === 'cat_visit') {
+    grp.position.set(-4 + Math.random(), 0, 4 + Math.random() * 2);
+    grp.rotation.y = Math.PI / 4 + Math.random() * 0.5;
+    weatherGroup.add(grp);
+
+    activeAnimators.push({
+      type: 'animal_visit',
+      mesh: grp,
+      update: (dt, t) => {
+        if (!grp.parent) return false;
+        // 猫：歩き回らず、その場でゆっくりと呼吸するだけ
+        grp.position.y = Math.sin(t * 0.002) * 0.04; 
+        return true;
+      }
+    });
+    return; // 猫の処理はここで終了
+  }
+
+  // 犬の場合：初期配置
+  grp.position.set(-5 + Math.random() * 2, 0, 4 + Math.random() * 2);
+  grp.rotation.y = Math.PI / 4 + Math.random() * 0.5;
   weatherGroup.add(grp);
+  
+  // 犬がうろうろ歩き回るアニメーションを追加
+  let targetX = grp.position.x;
+  let targetZ = grp.position.z;
+  let state = 'idle'; 
+  let stateTimer = Date.now() + 1000;
+  const walkSpeed = 0.04; 
+  
+  activeAnimators.push({
+    type: 'animal_visit',
+    mesh: grp,
+    update: (dt, t) => {
+      // イベント終了等でmeshが削除された場合はアニメーターも終了
+      if (!grp.parent) return false;
+
+      if (t > stateTimer) {
+        if (state === 'idle') {
+          // 歩き始める
+          state = 'walk';
+          
+          // 新しい目標地点を決定（畑の領域 x: -3.5〜3.5, z: -0.5〜3.5 を確実に避ける）
+          const zone = Math.floor(Math.random() * 3);
+          if (zone === 0) {
+            // 畑の左側の空き地
+            targetX = -7 + Math.random() * 3;
+            targetZ = Math.random() * 6;
+          } else if (zone === 1) {
+            // 畑の右側の空き地
+            targetX = 4 + Math.random() * 3;
+            targetZ = Math.random() * 6;
+          } else {
+            // 畑より手前（カメラ側）の空き地
+            targetX = -6 + Math.random() * 12;
+            targetZ = 4.5 + Math.random() * 3;
+          }
+          
+          // 目標地点の方向を向く (Xが横、Zが奥方向)
+          const dx = targetX - grp.position.x;
+          const dz = targetZ - grp.position.z;
+          grp.rotation.y = Math.atan2(dx, dz);
+          
+          // 次のステート切り替えまでの時間
+          stateTimer = t + 1000 + Math.random() * 3000;
+        } else {
+          // 立ち止まる
+          state = 'idle';
+          stateTimer = t + 1000 + Math.random() * 2000;
+        }
+      }
+      
+      if (state === 'walk') {
+        const dx = targetX - grp.position.x;
+        const dz = targetZ - grp.position.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        
+        if (dist > 0.1) {
+          // 目標へ移動
+          grp.position.x += (dx / dist) * walkSpeed;
+          grp.position.z += (dz / dist) * walkSpeed;
+          // ピョコピョコ跳ねる歩行感
+          grp.position.y = Math.abs(Math.sin(t * 0.015)) * 0.3;
+        } else {
+          state = 'idle';
+          stateTimer = t + 500 + Math.random() * 2000;
+        }
+      } else {
+        // 待機中は高さをゼロに
+        grp.position.y = 0;
+      }
+      
+      return true;
+    }
+  });
+}
+
+
+function spawnJohnVisit3D() {
+  const grp = new THREE.Group();
+  
+  // ジョンのモデル構築（プレイヤーと同じようなサイズ感で）
+  const body = box(1.0, 1.4, 0.6, 0xffa07a);
+  body.position.y = 1.0; 
+  body.castShadow = true;
+  
+  const head = box(0.8, 0.8, 0.8, 0xffdcb4);
+  head.position.y = 2.1;
+  head.castShadow = true;
+  
+  const legL = box(0.4, 0.6, 0.4, 0x4444aa);
+  legL.position.set(0.25, 0.3, 0);
+  legL.castShadow = true;
+  
+  const legR = box(0.4, 0.6, 0.4, 0x4444aa);
+  legR.position.set(-0.25, 0.3, 0);
+  legR.castShadow = true;
+  
+  const armL = box(0.3, 0.8, 0.3, 0xffa07a);
+  armL.position.set(0.65, 1.3, 0);
+  armL.castShadow = true;
+
+  const armR = box(0.3, 0.8, 0.3, 0xffa07a);
+  armR.position.set(-0.65, 1.3, 0);
+  armR.castShadow = true;
+  
+  grp.add(body, head, legL, legR, armL, armR);
+  
+  // 初期位置 (右奥辺りから来る)
+  grp.position.set(10, 0, 5);
+  weatherGroup.add(grp);
+  
+  let state = 'enter';
+  let targetX = 3 + Math.random() * 2; // 畑の右側付近
+  let targetZ = 2 + Math.random() * 2;
+  
+  // 指定座標の方を向かせる関数
+  const faceTarget = (tx, tz) => {
+    const dx = tx - grp.position.x;
+    const dz = tz - grp.position.z;
+    grp.rotation.y = Math.atan2(dx, dz);
+  };
+  faceTarget(targetX, targetZ);
+  
+  const speed = 0.04;
+  const startTime = Date.now();
+
+  activeAnimators.push({
+    type: 'animal_visit', // animal_visitと同じ扱いでイベント終了時に消える
+    mesh: grp,
+    update: (dt, t) => {
+      if (!grp.parent) return false;
+      
+      const elapsed = Date.now() - startTime;
+      
+      if (state === 'enter') {
+        const dx = targetX - grp.position.x;
+        const dz = targetZ - grp.position.z;
+        const dist = Math.sqrt(dx*dx + dz*dz);
+        
+        if (dist > 0.1) {
+          grp.position.x += (dx/dist) * speed;
+          grp.position.z += (dz/dist) * speed;
+          // 歩行モーション（腕と脚も少し振る）
+          grp.position.y = Math.abs(Math.sin(elapsed * 0.01)) * 0.2;
+          legL.rotation.x = Math.sin(elapsed * 0.01) * 0.4;
+          legR.rotation.x = -Math.sin(elapsed * 0.01) * 0.4;
+          armL.rotation.x = -Math.sin(elapsed * 0.01) * 0.4;
+          armR.rotation.x = Math.sin(elapsed * 0.01) * 0.4;
+        } else {
+          // 到着したら畑（中央）を見る
+          state = 'watch';
+          grp.position.y = 0;
+          legL.rotation.x = 0; legR.rotation.x = 0;
+          armL.rotation.x = 0; armR.rotation.x = 0;
+          faceTarget(0, 0);
+        }
+      } else if (state === 'watch') {
+        // 10秒(10000ms)経過したら帰る準備
+        if (elapsed > 10000) {
+          state = 'exit';
+          targetX = 12; // 画面外へ
+          targetZ = 6;
+          faceTarget(targetX, targetZ);
+        } else {
+          // 見ている間、時々頷くような動き
+          head.rotation.x = Math.sin(elapsed * 0.003) * 0.1;
+        }
+      } else if (state === 'exit') {
+        head.rotation.x = 0;
+        const dx = targetX - grp.position.x;
+        const dz = targetZ - grp.position.z;
+        const dist = Math.sqrt(dx*dx + dz*dz);
+        
+        if (dist > 0.1) {
+          grp.position.x += (dx/dist) * speed;
+          grp.position.z += (dz/dist) * speed;
+          grp.position.y = Math.abs(Math.sin(elapsed * 0.01)) * 0.2;
+          legL.rotation.x = Math.sin(elapsed * 0.01) * 0.4;
+          legR.rotation.x = -Math.sin(elapsed * 0.01) * 0.4;
+          armL.rotation.x = -Math.sin(elapsed * 0.01) * 0.4;
+          armR.rotation.x = Math.sin(elapsed * 0.01) * 0.4;
+        } else {
+          // 画面外に出たら消す
+          grp.removeFromParent();
+          return false;
+        }
+      }
+      return true;
+    }
+  });
 }
 
 export function showHarvestParticles(cropId) {

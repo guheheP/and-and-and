@@ -33,14 +33,19 @@ export function getUpgradeCost(upgrade, currentLv) {
  */
 export function getUpgradeEffect(upgradeId, level) {
   if (level <= 0) {
-    if (['gachaMulti', 'gacha50', 'gacha100'].includes(upgradeId)) return 0;
+    if (['gachaMulti', 'gacha50', 'gacha100', 'autoGacha'].includes(upgradeId)) return 0;
+    if (upgradeId === 'startBonus') return 0;
     return 1.0;
   }
 
   switch (upgradeId) {
     case 'growthSpeed':
-      // 1レベルごとに-4% (最大Lv20で80%短縮：5倍速)
-      return Math.max(1 - level * 0.04, 0.2);
+      // Lv1-20: 1レベルごとに-4.5% (Lv20で×0.10＝10倍速)
+      // Lv21-30: 下限を突破して指数的に短縮
+      if (level <= 20) {
+        return Math.max(1 - level * 0.045, 0.10);
+      }
+      return 0.10 * Math.pow(0.85, level - 20);
     case 'basePoints':
       // 1レベルごとに+50% (最大Lv20で11倍)
       return 1 + level * 0.5;
@@ -73,6 +78,12 @@ export function getUpgradeEffect(upgradeId, level) {
     case 'gacha100':
       // ガチャ解放（0 or 1）
       return level >= 1 ? 1 : 0;
+    case 'autoGacha':
+      // 5秒あたりの自動購入数: 2^(Lv-1)
+      return Math.pow(2, level - 1);
+    case 'startBonus':
+      // プレステージ後の初期ポイント
+      return level * 500;
     default:
       return 1.0;
   }
@@ -88,10 +99,16 @@ export const PRESTIGE_UPGRADES = {
     name: '🌱 成長速度UP',
     description: '作物の成長時間を短縮',
     category: 'growth',
-    maxLv: 20,
-    baseCost: 5,
-    costScale: 1.8,
-    effectLabel: (lv) => lv > 0 ? `成長時間 ×${getUpgradeEffect('growthSpeed', lv).toFixed(2)}` : '効果なし',
+    maxLv: 30,
+    baseCost: 3,
+    costScale: 1.5,
+    effectLabel: (lv) => {
+      if (lv <= 0) return '効果なし';
+      const mult = getUpgradeEffect('growthSpeed', lv);
+      return mult >= 0.01
+        ? `成長時間 ×${mult.toFixed(2)}`
+        : `成長時間 ×${mult.toFixed(3)}`;
+    },
   },
   basePoints: {
     id: 'basePoints',
@@ -155,10 +172,20 @@ export const PRESTIGE_UPGRADES = {
     costScale: 2.2,
     effectLabel: (lv) => lv > 0 ? `高レア重み ×${getUpgradeEffect('gachaRarity', lv).toFixed(2)}` : '効果なし',
   },
+  autoGacha: {
+    id: 'autoGacha',
+    name: '🤖 自動購入',
+    description: '5秒ごとに自動で種を購入',
+    category: 'gacha',
+    maxLv: 8,
+    baseCost: 500,
+    costScale: 2.2,
+    effectLabel: (lv) => lv > 0 ? `5秒ごとに${Math.pow(2, lv - 1)}個` : '効果なし',
+  },
   gachaMulti: {
     id: 'gachaMulti',
-    name: '🔟 10連ガチャ',
-    description: '10連ガチャを解放',
+    name: '🔟 10連購入',
+    description: '10連購入を解放',
     category: 'gacha',
     maxLv: 1,
     baseCost: 30,
@@ -167,8 +194,8 @@ export const PRESTIGE_UPGRADES = {
   },
   gacha50: {
     id: 'gacha50',
-    name: '🎰 50連ガチャ',
-    description: '50連ガチャを解放',
+    name: '🎰 50連購入',
+    description: '50連購入を解放',
     category: 'gacha',
     maxLv: 1,
     baseCost: 1000,
@@ -177,8 +204,8 @@ export const PRESTIGE_UPGRADES = {
   },
   gacha100: {
     id: 'gacha100',
-    name: '🌟 100連ガチャ',
-    description: '100連ガチャを解放',
+    name: '🌟 100連購入',
+    description: '100連購入を解放',
     category: 'gacha',
     maxLv: 1,
     baseCost: 5000,
@@ -216,5 +243,17 @@ export const PRESTIGE_UPGRADES = {
     baseCost: 10,
     costScale: 2.0,
     effectLabel: (lv) => lv > 0 ? `持続 ×${getUpgradeEffect('eventDuration', lv).toFixed(1)}` : '効果なし',
+  },
+
+  // 💰 ボーナス系
+  startBonus: {
+    id: 'startBonus',
+    name: '💰 リセットボーナス',
+    description: 'プレステージ後の初期ポイント',
+    category: 'bonus',
+    maxLv: 10,
+    baseCost: 100,
+    costScale: 2.0,
+    effectLabel: (lv) => lv > 0 ? `初期 ${getUpgradeEffect('startBonus', lv)}pt` : '効果なし',
   },
 };

@@ -2,14 +2,14 @@
    main.css — コンパクト・レトロ風デザイン
    ============================================ */
 
-/* レトロカラーパレット（ゲームボーイ・SFC風） */
+/* レトロカラーパレット（茶色系ウッディー） */
 :root {
   /* メインパレット */
-  --c-bg: #2b2b3d;
-  --c-frame: #3d3552;
-  --c-frame-light: #5a4f73;
-  --c-frame-border: #6e6490;
-  --c-title-bg: #4a3f65;
+  --c-bg: #2e2418;
+  --c-frame: #3d3025;
+  --c-frame-light: #5c4a38;
+  --c-frame-border: #7a6550;
+  --c-title-bg: #4a3a2a;
 
   /* アクセント */
   --c-accent: #f0c060;
@@ -19,8 +19,8 @@
 
   /* テキスト */
   --c-text: #f0e8d8;
-  --c-text-dim: #a098b0;
-  --c-text-dark: #2b2b3d;
+  --c-text-dim: #b0a088;
+  --c-text-dark: #2e2418;
 
   /* ステージ背景 */
   --c-sky-top: #5080b0;
@@ -31,9 +31,9 @@
   --c-soil-dark: #6b4830;
 
   /* ボタン */
-  --c-btn: #5a4f73;
-  --c-btn-hover: #7a6fa0;
-  --c-btn-active: #4a3f65;
+  --c-btn: #5c4a38;
+  --c-btn-hover: #7a6550;
+  --c-btn-active: #4a3a2a;
 
   /* フォント */
   --font-retro: 'DotGothic16', 'MS Gothic', monospace;
@@ -414,6 +414,49 @@ body {
   /* メニューポップアップ用基準点 */
 }
 
+/* 種袋アイコン（ガチャボタン用） */
+.gacha-icon {
+  display: inline-block;
+  position: relative;
+  width: 12px;
+  height: 10px;
+  background: #c8a050;
+  border-radius: 0 0 2px 2px;
+  border: 1px solid #8b6040;
+  border-top: none;
+  margin-top: 4px;
+}
+
+.gacha-icon::before {
+  /* 袋の結び目（上部） */
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 5px;
+  background: #c8a050;
+  border: 1px solid #8b6040;
+  border-radius: 2px 2px 0 0;
+  border-bottom: 1px dashed #8b6040;
+}
+
+.gacha-icon::after {
+  /* 種の模様（小さなドット） */
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 2px;
+  width: 2px;
+  height: 2px;
+  background: #5a9040;
+  border-radius: 50%;
+  box-shadow:
+    3px 0 0 #5a9040,
+    1.5px 3px 0 #5a9040;
+}
+
 .toolbar__btn {
   -webkit-app-region: no-drag;
   background: var(--c-btn);
@@ -625,6 +668,50 @@ body {
   border-radius: 2px;
 }
 
+/* 数量セレクター */
+.gacha-qty-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.gacha-qty-arrow {
+  background: var(--c-btn);
+  border: 1px solid var(--c-frame-border);
+  border-radius: 3px;
+  color: var(--c-accent);
+  font-size: 10px;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  font-family: var(--font-retro);
+}
+
+.gacha-qty-arrow:hover {
+  background: var(--c-btn-hover);
+  transform: scale(1.1);
+}
+
+.gacha-qty-arrow:active {
+  background: var(--c-btn-active);
+  transform: scale(0.95);
+}
+
+.gacha-qty-label {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--c-accent);
+  min-width: 40px;
+  text-align: center;
+}
+
+
 /* ============================================
    トグルボタン アクティブ状態
    ============================================ */
@@ -649,7 +736,7 @@ body.bg-transparent {
 }
 
 .bg-transparent .title-bar {
-  background: rgba(74, 63, 101, 0.7);
+  background: rgba(74, 58, 42, 0.7);
   backdrop-filter: blur(4px);
   border-radius: 6px 6px 0 0;
 }
@@ -663,7 +750,7 @@ body.bg-transparent {
 
 
 .bg-transparent .toolbar {
-  background: rgba(74, 63, 101, 0.7);
+  background: rgba(74, 58, 42, 0.7);
   backdrop-filter: blur(4px);
   border-radius: 0 0 6px 6px;
   transition: opacity 0.3s ease;

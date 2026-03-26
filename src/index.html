@@ -99,7 +99,8 @@
 
       <!-- ツールバー -->
       <div class="toolbar">
-        <button id="btn-gacha" class="toolbar__btn toolbar__btn--main" data-tooltip="ガチャ">🌱</button>
+        <button id="btn-gacha" class="toolbar__btn toolbar__btn--main" data-tooltip="種を入手"><span
+            class="gacha-icon"></span></button>
         <button id="btn-inventory" class="toolbar__btn toolbar__btn--main" data-tooltip="作物一覧">📖</button>
         <button id="btn-prestige" class="toolbar__btn toolbar__btn--main" data-tooltip="プレステージ">⭐</button>
 
@@ -130,13 +131,15 @@
     <!-- ガチャモーダル -->
     <div id="gacha-modal" class="modal" hidden>
       <div class="modal__content">
-        <div class="modal__title">🎰 ガチャ</div>
+        <div class="modal__title">🌱 種を入手</div>
         <div id="gacha-result" class="gacha-result"></div>
+        <div class="gacha-qty-row">
+          <button id="btn-gacha-prev" class="gacha-qty-arrow">◀</button>
+          <span id="gacha-qty-label" class="gacha-qty-label">1個</span>
+          <button id="btn-gacha-next" class="gacha-qty-arrow">▶</button>
+        </div>
         <div class="modal__actions">
-          <button id="btn-gacha-roll" class="btn btn--primary">回す (100pt)</button>
-          <button id="btn-gacha-multi" class="btn btn--primary" hidden>10連 (1000pt)</button>
-          <button id="btn-gacha-50" class="btn btn--primary" hidden>50連 (5000pt)</button>
-          <button id="btn-gacha-100" class="btn btn--primary" hidden>100連 (10000pt)</button>
+          <button id="btn-gacha-buy" class="btn btn--primary">購入 (100pt)</button>
           <button id="btn-gacha-close" class="btn btn--ghost">閉じる</button>
         </div>
       </div>
@@ -192,7 +195,7 @@
         <div class="modal__title">ℹ バージョン情報</div>
         <div style="padding: 10px 0; border-top: 1px solid rgba(255, 255, 255, 0.1);">
           <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">No のーえん No Life</div>
-          <div style="font-size: 0.8rem; color: #a098b0; margin-bottom: 15px;">Version 0.2.0</div>
+          <div style="font-size: 0.8rem; color: #a098b0; margin-bottom: 15px;">Version 0.3.1</div>
           <div style="font-size: 0.7rem; color: #807890; line-height: 1.5;"></div>
         </div>
         <div class="modal__actions" style="flex-direction: column; gap: 10px;">
@@ -222,10 +225,11 @@
       <div class="modal__content">
         <div class="modal__title">🛠 デバッグモード</div>
         <div class="debug-actions" style="display:flex; flex-direction:column; gap:8px; padding-top: 10px;">
-           <select id="debug-event-select" style="padding: 8px; font-family: inherit; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--c-border); border-radius: 4px;"></select>
-           <button id="btn-debug-trigger-event" class="btn btn--primary">イベント強制発生</button>
-           <button id="btn-debug-add-exp" class="btn btn--primary">経験値+1000</button>
-           <button id="btn-debug-add-pt" class="btn btn--primary">ポイント+10000</button>
+          <select id="debug-event-select"
+            style="padding: 8px; font-family: inherit; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--c-border); border-radius: 4px;"></select>
+          <button id="btn-debug-trigger-event" class="btn btn--primary">イベント強制発生</button>
+          <button id="btn-debug-add-exp" class="btn btn--primary">経験値+1000</button>
+          <button id="btn-debug-add-pt" class="btn btn--primary">ポイント+10000</button>
         </div>
         <div class="modal__actions">
           <button id="btn-debug-close" class="btn btn--ghost">閉じる</button>

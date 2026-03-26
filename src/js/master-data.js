@@ -120,11 +120,6 @@ export const CHARACTER_MASTER = {
   girl: { id: 'girl', name: '少女', cssClass: 'farmer--girl' },
   grandpa: { id: 'grandpa', name: 'おじいさん', cssClass: 'farmer--grandpa' },
   grandma: { id: 'grandma', name: 'おばあさん', cssClass: 'farmer--grandma' },
-  dog: { id: 'dog', name: '犬', cssClass: 'farmer--dog' },
-  cat: { id: 'cat', name: '猫', cssClass: 'farmer--cat' },
-  tree: { id: 'tree', name: '木', cssClass: 'farmer--tree' },
-  bird: { id: 'bird', name: '鳥', cssClass: 'farmer--bird' },
-  insect: { id: 'insect', name: 'クワガタ', cssClass: 'farmer--insect' },
 };
 
 /**
