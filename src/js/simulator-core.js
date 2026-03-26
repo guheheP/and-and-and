@@ -1,7 +1,8 @@
 // simulator-core.js - Virtual time game loop for balancing tests
+// 現在の仕様に完全準拠したシミュレータコア
 
-import { createInitialState, getCropLevel, getCropLevelMultiplier, addPoints, addCropExp, consumeSeed, executePrestige, purchaseUpgrade, getUpgradeLevel } from './game-state.js';
-import { CROP_MASTER, getDefaultCropId, GACHA_CONFIG } from './master-data.js';
+import { createInitialState, getCropLevel, getCropLevelMultiplier, addPoints, addPlayerExp, addCropExp, consumeSeed, executePrestige, purchaseUpgrade, getUpgradeLevel, isCropInfinite } from './game-state.js';
+import { CROP_MASTER, GACHA_CONFIG } from './master-data.js';
 import { checkLevelUp, getPointMultiplier, getGachaPool } from './progression.js';
 import { getUpgradeCost, PRESTIGE_UPGRADES, getUpgradeEffect } from './prestige-data.js';
 
@@ -10,8 +11,9 @@ export class SimulatorCore {
         this.state = createInitialState();
         this.virtualTimeMs = 0;
         this.logs = [];
-        this.dataPoints = { time: [], level: [], points: [] };
-        
+        this.dataPoints = { time: [], level: [], points: [], exp: [], prestigeCount: [] };
+        this.harvestCount = 0;
+
         // Settings
         this.autoPrestige = true;
         this.prestigeThreshold = 50;
@@ -22,7 +24,8 @@ export class SimulatorCore {
         this.state = createInitialState();
         this.virtualTimeMs = 0;
         this.logs = [];
-        this.dataPoints = { time: [], level: [], points: [] };
+        this.dataPoints = { time: [], level: [], points: [], exp: [], prestigeCount: [] };
+        this.harvestCount = 0;
         this.totalCurrencyEarned = 0;
     }
 
@@ -30,22 +33,31 @@ export class SimulatorCore {
         const hours = Math.floor(this.virtualTimeMs / 3600000);
         const minutes = Math.floor((this.virtualTimeMs % 3600000) / 60000);
         const timeStr = `${hours}h ${minutes}m`;
-        this.logs.push({ time: this.virtualTimeMs, timeStr, level: this.state.level, msg: message, points: this.state.points });
+        this.logs.push({
+            time: this.virtualTimeMs,
+            timeStr,
+            level: this.state.level,
+            msg: message,
+            points: this.state.points,
+            exp: this.state.totalEarnedExp,
+        });
     }
 
     recordDataPoint() {
-        this.dataPoints.time.push(this.virtualTimeMs / 3600000); // 単位: 時間
+        this.dataPoints.time.push(this.virtualTimeMs / 3600000);
         this.dataPoints.level.push(this.state.level);
         this.dataPoints.points.push(this.state.totalEarnedPoints);
+        this.dataPoints.exp.push(this.state.totalEarnedExp);
+        this.dataPoints.prestigeCount.push(this.state.prestigeCount);
     }
 
     run(durationSeconds, tickMs = 1000) {
         let elapsedTime = 0;
         const targetTime = durationSeconds * 1000;
-        const recordInterval = Math.max(1000, targetTime / 100); // Record roughly 100 points
+        const recordInterval = Math.max(1000, targetTime / 200);
         let nextRecordTime = this.virtualTimeMs;
 
-        this.log(`Simulation started for ${durationSeconds} seconds.`);
+        this.log(`シミュレーション開始 (${durationSeconds}秒間)`);
 
         while (elapsedTime < targetTime) {
             this.tick(tickMs);
@@ -57,9 +69,9 @@ export class SimulatorCore {
                 nextRecordTime += recordInterval;
             }
         }
-        
+
         this.recordDataPoint();
-        this.log(`Simulation ended.`);
+        this.log(`シミュレーション終了`);
         return { state: this.state, logs: this.logs, dataPoints: this.dataPoints };
     }
 
@@ -87,35 +99,50 @@ export class SimulatorCore {
         }
     }
 
+    /**
+     * 最も効率の良い種を選択（EXP/時間ベース）
+     */
     getBestSeed() {
         let bestId = null;
         let bestScore = -1;
-        
+
         for (const [id, count] of Object.entries(this.state.seedsInventory || {})) {
             if (count > 0 && CROP_MASTER[id]) {
                 const crop = CROP_MASTER[id];
-                // Points per real time is roughly basePoint / growTimeMs
-                const score = crop.basePoint / crop.growTimeMs;
+                const cropLv = getCropLevel(this.state, id);
+                const cropMult = getCropLevelMultiplier(cropLv);
+                // EXP効率 = baseExp * cropMult / growTimeMs
+                const score = (crop.baseExp || crop.basePoint) * cropMult / crop.growTimeMs;
                 if (score > bestScore) {
                     bestScore = score;
                     bestId = id;
                 }
             }
         }
-        
-        return bestId || getDefaultCropId(this.state.level);
+
+        // 無限作物もチェック
+        for (const [id, crop] of Object.entries(CROP_MASTER)) {
+            if (isCropInfinite(this.state, id)) {
+                const cropLv = getCropLevel(this.state, id);
+                const cropMult = getCropLevelMultiplier(cropLv);
+                const score = (crop.baseExp || crop.basePoint) * cropMult / crop.growTimeMs;
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestId = id;
+                }
+            }
+        }
+
+        return bestId || 'tomato';
     }
 
     plantCrop() {
         const cropId = this.getBestSeed();
-        
-        // Consume seed if not default
-        let isDefault = true;
-        for (const entry of Object.values(CROP_MASTER)) {
-            if (entry.id === cropId && !entry.isDefault) isDefault = false;
+
+        // 無限化されていない場合のみ種を消費
+        if (!isCropInfinite(this.state, cropId)) {
+            consumeSeed(this.state, cropId);
         }
-        
-        if (!isDefault) consumeSeed(this.state, cropId);
 
         this.state.fieldState.isPlanted = true;
         this.state.fieldState.cropId = cropId;
@@ -127,10 +154,9 @@ export class SimulatorCore {
         const crop = CROP_MASTER[this.state.fieldState.cropId];
         if (!crop) return;
 
-        const growthMult = 1.0; // Assume no weather events for basic balance baseline
         const prestigeGrowth = getUpgradeEffect('growthSpeed', getUpgradeLevel(this.state, 'growthSpeed'));
-        const effectiveGrowTime = crop.growTimeMs * prestigeGrowth / growthMult;
-        
+        const effectiveGrowTime = crop.growTimeMs * prestigeGrowth;
+
         const elapsed = this.virtualTimeMs - this.state.fieldState.plantedAt;
         this.state.fieldState.progress = Math.min(elapsed / effectiveGrowTime, 1.0);
     }
@@ -138,38 +164,45 @@ export class SimulatorCore {
     harvestCrop() {
         const cropId = this.state.fieldState.cropId;
         const crop = CROP_MASTER[cropId];
-        
-        // Add EXP
-        const expBoost = getUpgradeEffect('cropExpBoost', getUpgradeLevel(this.state, 'cropExpBoost'));
-        const expAmount = Math.floor(expBoost);
-        for (let i = 0; i < expAmount; i++) {
-            if (!this.state.cropExp) this.state.cropExp = {};
-            if (!this.state.cropExp[cropId]) this.state.cropExp[cropId] = 0;
-            this.state.cropExp[cropId]++;
-        }
+        if (!crop) return;
 
-        // Calculate Points
-        const playerMultiplier = getPointMultiplier(this.state.level);
-        const cropMultiplier = getCropLevelMultiplier(getCropLevel(this.state, cropId));
-        const prestigePoints = getUpgradeEffect('basePoints', getUpgradeLevel(this.state, 'basePoints'));
-        
+        this.harvestCount++;
+        const basePoint = crop.basePoint;
+        const baseExp = crop.baseExp || basePoint;
+
+        // ラッキー収穫判定
         const luckyChance = getUpgradeEffect('luckyHarvest', getUpgradeLevel(this.state, 'luckyHarvest'));
         const luckyMultiplier = (Math.random() * 100 < luckyChance) ? 3 : 1;
 
-        const earnedPoints = Math.floor(crop.basePoint * playerMultiplier * cropMultiplier * prestigePoints * luckyMultiplier);
-        addPoints(this.state, earnedPoints);
+        // 各種倍率
+        const prestigeMult = getUpgradeEffect('basePoints', getUpgradeLevel(this.state, 'basePoints'));
+        const playerPointMult = getPointMultiplier(this.state.level);
+        const boostMult = 1.0; // イベントブーストなし
+        const cropLevelMult = getCropLevelMultiplier(getCropLevel(this.state, cropId));
 
-        // Level Up
-        const oldLevel = this.state.level;
+        // ポイント加算
+        const gainedPoints = Math.floor(basePoint * playerPointMult * cropLevelMult * prestigeMult * boostMult * luckyMultiplier);
+        addPoints(this.state, gainedPoints);
+
+        // EXP加算（EXP専用プレステージ倍率を適用）
+        const expPrestigeMult = getUpgradeEffect('expMultiplier', getUpgradeLevel(this.state, 'expMultiplier'));
+        const gainedExp = Math.floor(baseExp * cropLevelMult * expPrestigeMult * boostMult * luckyMultiplier);
+        addPlayerExp(this.state, gainedExp);
+
+        // 作物EXP加算（cropExpBoost適用）
+        const expBoost = getUpgradeEffect('cropExpBoost', getUpgradeLevel(this.state, 'cropExpBoost'));
+        const cropExpAmount = Math.floor(expBoost);
+        for (let i = 0; i < cropExpAmount; i++) addCropExp(this.state, cropId);
+
+        // レベルアップ判定
         const { leveledUp, newLevel } = checkLevelUp(this.state);
-        
         if (leveledUp) {
-            if (newLevel % 10 === 0 || newLevel === 2) {
-                this.log(`Reached Lv.${newLevel}`);
+            if (newLevel % 10 === 0 || newLevel <= 5) {
+                this.log(`Lv.${newLevel} 到達 (pt: ${formatNum(this.state.points)}, exp: ${formatNum(this.state.totalEarnedExp)})`);
             }
         }
 
-        // Reset Field
+        // 畑リセット
         this.state.fieldState.isPlanted = false;
         this.state.fieldState.cropId = null;
         this.state.fieldState.plantedAt = null;
@@ -183,47 +216,82 @@ export class SimulatorCore {
         const discount = getUpgradeEffect('gachaDiscount', getUpgradeLevel(this.state, 'gachaDiscount'));
         const cost = Math.floor(GACHA_CONFIG.cost * discount);
 
-        // Limit gacha pulls so we don't spend all points instantly and stall. Keep a buffer.
+        // ポイントに余裕がある場合のみガチャ
         if (this.state.points > cost * 10) {
             this.state.points -= cost;
-            
-            // Randomly select from pool (ignoring rarities for simple sim)
-            const roll = pool[Math.floor(Math.random() * pool.length)];
-            if (!this.state.seedsInventory) this.state.seedsInventory = {};
-            if (!this.state.seedsInventory[roll.id]) this.state.seedsInventory[roll.id] = 0;
-            this.state.seedsInventory[roll.id]++;
+
+            // レアリティ重み付き抽選
+            const rarityBoost = getUpgradeEffect('gachaRarity', getUpgradeLevel(this.state, 'gachaRarity'));
+            const weights = pool.map(crop => {
+                const base = GACHA_CONFIG.rarityWeights[crop.rarity] || 1;
+                return crop.rarity >= 3 ? base * rarityBoost : base;
+            });
+            const totalWeight = weights.reduce((s, w) => s + w, 0);
+            let roll = Math.random() * totalWeight;
+            let selected = pool[0];
+            for (let i = 0; i < pool.length; i++) {
+                roll -= weights[i];
+                if (roll <= 0) { selected = pool[i]; break; }
+            }
+
+            if (!this.state.seedsInventory[selected.id]) this.state.seedsInventory[selected.id] = 0;
+            this.state.seedsInventory[selected.id]++;
         }
     }
 
     doPrestige() {
         const result = executePrestige(this.state);
         this.totalCurrencyEarned += result.currency;
-        this.log(`Prestiged! Earned ${result.currency} currency`);
-        
-        // Auto-buy upgrades strategy
-        // 1. basePoints
-        // 2. growthSpeed
-        // 3. gachaDiscount
-        let currency = this.state.prestigeCurrency || 0;
-        const priorities = ['basePoints', 'growthSpeed', 'cropExpBoost', 'luckyHarvest', 'gachaDiscount', 'gachaRarity'];
-        
+        this.log(`プレステージ実行! 💎+${result.currency} (累計: ${this.totalCurrencyEarned})`);
+
+        // 自動強化購入（優先度順）
+        const priorities = [
+            'growthSpeed', 'basePoints', 'expMultiplier', 'cropExpBoost',
+            'gachaDiscount', 'luckyHarvest', 'gachaRarity',
+            'gachaMulti', 'eventRate', 'eventPower', 'eventDuration',
+            'gacha50', 'gacha100',
+        ];
+
         let boughtSomething = true;
-        while(boughtSomething && currency > 0) {
+        while (boughtSomething) {
             boughtSomething = false;
             for (const id of priorities) {
                 const upg = PRESTIGE_UPGRADES[id];
+                if (!upg) continue;
                 const lv = getUpgradeLevel(this.state, id);
                 if (lv < upg.maxLv) {
                     const cost = getUpgradeCost(upg, lv);
-                    if (currency >= cost) {
+                    if ((this.state.prestigeCurrency || 0) >= cost) {
                         purchaseUpgrade(this.state, id);
-                        currency = this.state.prestigeCurrency;
                         boughtSomething = true;
-                        this.log(`Bought ${upg.name} Lv.${getUpgradeLevel(this.state, id)}`);
+                        this.log(`強化購入: ${upg.name} Lv.${getUpgradeLevel(this.state, id)}`);
                         break;
                     }
                 }
             }
         }
     }
+
+    /**
+     * 作物レベルのサマリーを取得
+     */
+    getCropSummary() {
+        const summary = [];
+        for (const [id, crop] of Object.entries(CROP_MASTER)) {
+            const lv = getCropLevel(this.state, id);
+            const seeds = this.state.seedsInventory[id] || 0;
+            const inf = isCropInfinite(this.state, id);
+            if (lv > 1 || seeds > 0 || inf) {
+                summary.push({ id, name: crop.name, level: lv, seeds, infinite: inf });
+            }
+        }
+        return summary;
+    }
+}
+
+function formatNum(num) {
+    if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+    if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+    if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K';
+    return num.toString();
 }

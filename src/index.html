@@ -5,9 +5,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>No のーえん No Life</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+      }
+    }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=VT323&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/character.css">
   <link rel="stylesheet" href="css/field.css">
@@ -39,7 +46,9 @@
       <!-- メインステージ -->
       <div id="stage" class="stage">
         <!-- 背景（空＋地面） -->
-        <div class="stage__sky"></div>
+        <div class="stage__sky">
+          <div id="sky-clock" class="sky-clock" hidden>00:00</div>
+        </div>
         <div class="stage__ground"></div>
 
         <!-- キャラクター -->
@@ -55,12 +64,26 @@
         <!-- 畑 -->
         <div id="field" class="field">
           <div class="field__soil"></div>
-          <div id="crop" class="crop"></div>
+
+          <!-- ツルと実を包括する作物コンテナ -->
+          <div id="crop" class="crop">
+            <!-- 支柱 -->
+            <div class="pole pole--left"></div>
+            <div class="pole pole--right"></div>
+
+            <div class="crop__vine"></div>
+            <div class="crop__fruits">
+              <div class="fruit pos-1"></div>
+              <div class="fruit pos-2"></div>
+              <div class="fruit pos-3"></div>
+              <div class="fruit pos-4"></div>
+            </div>
+          </div>
         </div>
 
         <!-- 収穫エフェクト -->
         <div id="harvest-effect" class="harvest-effect" hidden></div>
-        
+
         <!-- レベルアップエフェクト -->
         <div id="levelup-effect" class="levelup-effect" hidden>LEVEL UP!</div>
 
@@ -76,11 +99,31 @@
 
       <!-- ツールバー -->
       <div class="toolbar">
-        <button id="btn-gacha" class="toolbar__btn" data-tooltip="ガチャ">🌱</button>
-        <button id="btn-character" class="toolbar__btn" data-tooltip="キャラ変更">👤</button>
-        <button id="btn-inventory" class="toolbar__btn" data-tooltip="作物一覧">📖</button>
-        <button id="btn-prestige" class="toolbar__btn" data-tooltip="プレステージ">⭐</button>
-        <button id="btn-bg-toggle" class="toolbar__btn toolbar__btn--toggle" data-tooltip="背景切替">🌤️</button>
+        <button id="btn-gacha" class="toolbar__btn toolbar__btn--main" data-tooltip="ガチャ">🌱</button>
+        <button id="btn-inventory" class="toolbar__btn toolbar__btn--main" data-tooltip="作物一覧">📖</button>
+        <button id="btn-prestige" class="toolbar__btn toolbar__btn--main" data-tooltip="プレステージ">⭐</button>
+
+        <button id="btn-menu" class="toolbar__btn toolbar__btn--sub" data-tooltip="メニュー">三</button>
+
+        <!-- メニューポップアップ -->
+        <div id="menu-popup" class="menu-popup">
+          <button id="btn-character" class="toolbar__btn" data-tooltip="キャラ変更">👤</button>
+          <button id="btn-bg-toggle" class="toolbar__btn toolbar__btn--toggle" data-tooltip="背景切替">🌤️</button>
+          <button id="btn-3d-toggle" class="toolbar__btn" data-tooltip="3D切替">🎮</button>
+          <button id="btn-clock-toggle" class="toolbar__btn" data-tooltip="時計切替">🕒</button>
+          <button id="btn-log" class="toolbar__btn" data-tooltip="イベント図鑑">📕</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- イベント図鑑モーダル -->
+    <div id="log-modal" class="modal" hidden>
+      <div class="modal__content modal__content--log">
+        <div class="modal__title">📕 イベント図鑑</div>
+        <div id="log-list" class="log-list"></div>
+        <div class="modal__actions">
+          <button id="btn-log-close" class="btn btn--ghost">閉じる</button>
+        </div>
       </div>
     </div>
 
@@ -91,7 +134,9 @@
         <div id="gacha-result" class="gacha-result"></div>
         <div class="modal__actions">
           <button id="btn-gacha-roll" class="btn btn--primary">回す (100pt)</button>
-          <button id="btn-gacha-multi" class="btn btn--primary" hidden>10連 (900pt)</button>
+          <button id="btn-gacha-multi" class="btn btn--primary" hidden>10連 (1000pt)</button>
+          <button id="btn-gacha-50" class="btn btn--primary" hidden>50連 (5000pt)</button>
+          <button id="btn-gacha-100" class="btn btn--primary" hidden>100連 (10000pt)</button>
           <button id="btn-gacha-close" class="btn btn--ghost">閉じる</button>
         </div>
       </div>
@@ -130,7 +175,8 @@
         <div class="modal__title">⭐ プレステージ確認</div>
         <div style="text-align: center; margin: 15px 0; line-height: 1.5; font-size: 11px;">
           プレステージを実行しますか？<br><br>
-          <span style="color:var(--c-accent); font-size: 13px; font-weight: bold;">💎 獲得通貨: +<span id="prestige-confirm-earn">0</span></span><br><br>
+          <span style="color:var(--c-accent); font-size: 13px; font-weight: bold;">💎 獲得通貨: +<span
+              id="prestige-confirm-earn">0</span></span><br><br>
           <span style="color:#a098b0; font-size:9px;">⚠️ レベル・ポイント・種がリセットされます<br>（強化内容は保持されます）</span>
         </div>
         <div class="modal__actions">
@@ -146,7 +192,7 @@
         <div class="modal__title">ℹ バージョン情報</div>
         <div style="padding: 10px 0; border-top: 1px solid rgba(255, 255, 255, 0.1);">
           <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">No のーえん No Life</div>
-          <div style="font-size: 0.8rem; color: #a098b0; margin-bottom: 15px;">Version 0.1.1</div>
+          <div style="font-size: 0.8rem; color: #a098b0; margin-bottom: 15px;">Version 0.2.0</div>
           <div style="font-size: 0.7rem; color: #807890; line-height: 1.5;"></div>
         </div>
         <div class="modal__actions" style="flex-direction: column; gap: 10px;">
@@ -167,6 +213,22 @@
         <div class="modal__actions">
           <button id="btn-confirm-yes" class="btn btn--danger">削除する</button>
           <button id="btn-confirm-no" class="btn btn--ghost">キャンセル</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- デバッグモーダル -->
+    <div id="debug-modal" class="modal" hidden>
+      <div class="modal__content">
+        <div class="modal__title">🛠 デバッグモード</div>
+        <div class="debug-actions" style="display:flex; flex-direction:column; gap:8px; padding-top: 10px;">
+           <select id="debug-event-select" style="padding: 8px; font-family: inherit; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--c-border); border-radius: 4px;"></select>
+           <button id="btn-debug-trigger-event" class="btn btn--primary">イベント強制発生</button>
+           <button id="btn-debug-add-exp" class="btn btn--primary">経験値+1000</button>
+           <button id="btn-debug-add-pt" class="btn btn--primary">ポイント+10000</button>
+        </div>
+        <div class="modal__actions">
+          <button id="btn-debug-close" class="btn btn--ghost">閉じる</button>
         </div>
       </div>
     </div>

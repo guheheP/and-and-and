@@ -51,14 +51,14 @@ export function rollGacha(state) {
 }
 
 /**
- * 10連ガチャ
+ * 一括ガチャ（割引なし）
  * @param {GameState} state
+ * @param {number} count 回数
  * @returns {{ success: boolean, results?: Array, message: string }}
  */
-export function rollGachaMulti(state) {
-  const count = 10;
+export function rollGachaBatch(state, count) {
   const singleCost = getGachaCost(state);
-  const totalCost = singleCost * (count - 1); // 9回分のコスト
+  const totalCost = singleCost * count; // 割引なし！
 
   if (state.points < totalCost) {
     return {
@@ -87,17 +87,21 @@ export function rollGachaMulti(state) {
   return {
     success: true,
     results,
-    message: `10連ガチャ完了！`,
+    message: `${count}連ガチャ完了！`,
   };
 }
 
 /**
- * 10連ガチャが解放されているか
+ * まとめてガチャが解放されているか
  * @param {GameState} state
+ * @param {number} count 引く回数 (10, 50, 100)
  * @returns {boolean}
  */
-export function isMultiGachaUnlocked(state) {
-  return getUpgradeEffect('gachaMulti', getUpgradeLevel(state, 'gachaMulti')) >= 1;
+export function isGachaBatchUnlocked(state, count) {
+  if (count === 10) return getUpgradeEffect('gachaMulti', getUpgradeLevel(state, 'gachaMulti')) >= 1;
+  if (count === 50) return getUpgradeEffect('gacha50', getUpgradeLevel(state, 'gacha50')) >= 1;
+  if (count === 100) return getUpgradeEffect('gacha100', getUpgradeLevel(state, 'gacha100')) >= 1;
+  return false;
 }
 
 /**

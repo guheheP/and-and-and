@@ -1,7 +1,7 @@
 // game-loop.js — ゲームループ（Tick処理）
 
-import { CROP_MASTER, getDefaultCropId } from './master-data.js';
-import { addPoints, consumeSeed, saveState, addCropExp, getCropLevel, getCropLevelMultiplier, getUpgradeLevel } from './game-state.js';
+import { CROP_MASTER } from './master-data.js';
+import { addPoints, addPlayerExp, consumeSeed, saveState, addCropExp, getCropLevel, getCropLevelMultiplier, getUpgradeLevel, isCropInfinite } from './game-state.js';
 import { checkLevelUp, getPointMultiplier } from './progression.js';
 import { updateEventSystem, getGrowthMultiplier, consumePointBoost } from './event-system.js';
 import { getUpgradeEffect } from './prestige-data.js';
@@ -66,14 +66,14 @@ function tick(state, currentTime) {
     updateGrowth(state, currentTime);
   }
 
-  // 収穫フェーズ
-  if (state.fieldState.progress >= 1.0) {
-    harvestCrop(state);
-  }
-
-  // 描画更新コールバック
+  // 描画更新コールバック（収穫前に呼ぶ → 成長中の作物を描画）
   if (callbacks.onFieldUpdate) {
     callbacks.onFieldUpdate(state.fieldState);
+  }
+
+  // 収穫フェーズ（描画後に実行）
+  if (state.fieldState.progress >= 1.0) {
+    harvestCrop(state);
   }
 
   // 自動セーブ
@@ -93,18 +93,37 @@ function tick(state, currentTime) {
 function plantCrop(state) {
   let cropId = null;
 
-  // インベントリから使える種を探す
-  for (const [id, count] of Object.entries(state.seedsInventory)) {
-    if (count > 0 && CROP_MASTER[id]) {
-      cropId = id;
-      break;
+  // 1. 優先指定の確認
+  if (state.selectedCropId && CROP_MASTER[state.selectedCropId]) {
+    const isInf = isCropInfinite(state, state.selectedCropId);
+    const hasSeeds = (state.seedsInventory[state.selectedCropId] || 0) > 0;
+    if (isInf || hasSeeds) {
+      cropId = state.selectedCropId;
     }
   }
 
-  // 種がなければデフォルト作物
+  // 2. 指定がない/植えられない場合、植えられる作物からランダム選択
   if (!cropId) {
-    cropId = getDefaultCropId(state.level);
-  } else {
+    const allAvailable = [];
+    for (const id of Object.keys(CROP_MASTER)) {
+      const isInf = isCropInfinite(state, id);
+      const hasSeeds = (state.seedsInventory[id] || 0) > 0;
+      if (isInf || hasSeeds) {
+        allAvailable.push(id);
+      }
+    }
+    if (allAvailable.length > 0) {
+      cropId = allAvailable[Math.floor(Math.random() * allAvailable.length)];
+    }
+  }
+
+  // 3. 安全装置（枯渇時フォールバック。通常トマトが無限なので発生しない）
+  if (!cropId) {
+    cropId = 'tomato';
+  }
+
+  // 無限化されていない場合のみ種を消費
+  if (!isCropInfinite(state, cropId)) {
     consumeSeed(state, cropId);
   }
 
@@ -143,32 +162,37 @@ function harvestCrop(state) {
   if (!crop) return;
 
   const cropId = state.fieldState.cropId;
-
-  // 作物経験値を加算（cropExpBoost適用）
-  const expBoost = getUpgradeEffect('cropExpBoost', getUpgradeLevel(state, 'cropExpBoost'));
-  const expAmount = Math.floor(expBoost);
-  for (let i = 0; i < expAmount; i++) addCropExp(state, cropId);
-
-  // ポイント計算
-  const playerMultiplier = getPointMultiplier(state.level);
-  const cropLevel = getCropLevel(state, cropId);
-  const cropMultiplier = getCropLevelMultiplier(cropLevel);
-  const eventPointBoost = consumePointBoost();
-  const prestigePoints = getUpgradeEffect('basePoints', getUpgradeLevel(state, 'basePoints'));
+  const basePoint = crop.basePoint;
+  const baseExp = crop.baseExp || basePoint;
 
   // ラッキー収穫判定
   const luckyChance = getUpgradeEffect('luckyHarvest', getUpgradeLevel(state, 'luckyHarvest'));
   const luckyMultiplier = (Math.random() * 100 < luckyChance) ? 3 : 1;
 
-  const earnedPoints = Math.floor(
-    crop.basePoint * playerMultiplier * cropMultiplier * eventPointBoost * prestigePoints * luckyMultiplier
-  );
+  // 各種倍率
+  const prestigeMult = getUpgradeEffect('basePoints', getUpgradeLevel(state, 'basePoints'));
+  const playerPointMult = getPointMultiplier(state.level);
+  const eventGrowMult = getGrowthMultiplier(); // TODO: 必要時適用
+  const boostMult = consumePointBoost();
+  const cropLevelMult = getCropLevelMultiplier(getCropLevel(state, cropId));
 
-  addPoints(state, earnedPoints);
+  // ポイント加算（プレイヤーLv倍率はポイント専用）
+  const gainedPoints = Math.floor(basePoint * playerPointMult * cropLevelMult * prestigeMult * boostMult * luckyMultiplier);
+  addPoints(state, gainedPoints);
+
+  // EXP加算（EXP専用プレステージ倍率を適用）
+  const expPrestigeMult = getUpgradeEffect('expMultiplier', getUpgradeLevel(state, 'expMultiplier'));
+  const gainedExp = Math.floor(baseExp * cropLevelMult * expPrestigeMult * boostMult * luckyMultiplier);
+  addPlayerExp(state, gainedExp);
+
+  // 作物自体の経験値加算 (cropExpBoost適用)
+  const expBoost = getUpgradeEffect('cropExpBoost', getUpgradeLevel(state, 'cropExpBoost'));
+  const cropExpAmount = Math.floor(expBoost);
+  for (let i = 0; i < cropExpAmount; i++) addCropExp(state, cropId);
 
   // 収穫コールバック
   if (callbacks.onHarvest) {
-    callbacks.onHarvest(cropId, earnedPoints);
+    callbacks.onHarvest(cropId, gainedPoints);
   }
 
   // レベルアップ判定
@@ -177,7 +201,7 @@ function harvestCrop(state) {
     callbacks.onLevelUp(newLevel);
   }
 
-  // 畑をリセット（次のtickで再び種植えへ）
+  // 畑をリセット
   state.fieldState.isPlanted = false;
   state.fieldState.cropId = null;
   state.fieldState.plantedAt = null;

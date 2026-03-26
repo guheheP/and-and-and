@@ -60,7 +60,17 @@ ipcMain.on('window-close', () => {
 });
 
 ipcMain.on('window-resize', (event, width, height) => {
-  if (mainWindow) mainWindow.setContentSize(width, height);
+  if (mainWindow) {
+    const bounds = mainWindow.getBounds();
+    // 現在の高さと新しい高さの差分だけY座標を上にずらす
+    const diffY = height - bounds.height;
+    mainWindow.setBounds({
+      x: bounds.x,
+      y: bounds.y - diffY,
+      width: width,
+      height: height
+    });
+  }
 });
 
 app.whenReady().then(createWindow);

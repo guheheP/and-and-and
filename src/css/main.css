@@ -65,6 +65,10 @@ body {
   -webkit-user-select: none;
   font-size: 12px;
   color: var(--c-text);
+
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
 /* ============================================
@@ -72,11 +76,9 @@ body {
    ============================================ */
 .app {
   width: var(--app-width);
-  margin: 20px auto;
+  margin: 0 auto;
   position: relative;
-  /* ブラウザ開発時の背景色（Electronではbodyが透過） */
-  background: #1a1a2e;
-  border-radius: 8px;
+  background: transparent;
 }
 
 /* ============================================
@@ -206,6 +208,23 @@ body {
       var(--c-sky-bottom) 70%,
       var(--c-ground) 70%,
       var(--c-ground) 100%);
+}
+
+/* ============================================
+   空に浮かぶ時計
+   ============================================ */
+.sky-clock {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'VT323', 'Courier New', monospace;
+  font-size: 42px;
+  letter-spacing: 4px;
+  color: rgba(255, 255, 255, 0.4);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  z-index: 5;
+  pointer-events: none;
 }
 
 /* 地面テクスチャ（ドット風） */
@@ -384,12 +403,15 @@ body {
    ============================================ */
 .toolbar {
   background: var(--c-title-bg);
-  padding: 4px 8px;
+  padding: 4px 6px;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: stretch;
   gap: 4px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   transition: opacity 0.3s ease;
+  position: relative;
+  /* メニューポップアップ用基準点 */
 }
 
 .toolbar__btn {
@@ -397,12 +419,54 @@ body {
   background: var(--c-btn);
   border: 1px solid var(--c-frame-border);
   border-radius: 4px;
-  padding: 3px 10px;
+  padding: 3px 6px;
   font-size: 13px;
   cursor: pointer;
   transition: all 0.15s;
   line-height: 1;
   position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 主な3大ボタン（ガチャ・図鑑・プレステ）は横幅いっぱいに広げる */
+.toolbar__btn--main {
+  flex-grow: 1;
+}
+
+/* メニュー系サブボタンは固定幅 */
+.toolbar__btn--sub {
+  flex-grow: 0;
+  width: 35px;
+}
+
+/* ============================================
+   メニューポップアップ
+   ============================================ */
+.menu-popup {
+  position: absolute;
+  right: 6px;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--c-frame);
+  border: 1px solid var(--c-frame-border);
+  border-radius: 6px;
+  padding: 6px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 150;
+}
+
+.menu-popup.is-active {
+  transform: translateY(-44px);
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .toolbar__btn:hover {
@@ -456,8 +520,13 @@ body {
   z-index: 100;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  padding-top: 15px;
+  align-items: flex-end;
+  /* 下寄せに変更 */
+  padding-bottom: 45px;
+  /* ツールバーの少し上に配置 */
+  padding-top: 25px;
+  /* 上部のはみ出しを防ぐ */
+  -webkit-app-region: no-drag;
 }
 
 .modal[hidden] {
@@ -529,7 +598,8 @@ body {
    ガチャ結果
    ============================================ */
 .gacha-result {
-  min-height: 36px;
+  height: 64px;
+  overflow-y: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -538,6 +608,21 @@ body {
   padding: 4px;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 4px;
+}
+
+/* ガチャ結果のスクロールバー (レトロ風縮小版) */
+.gacha-result::-webkit-scrollbar {
+  width: 4px;
+}
+
+.gacha-result::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+}
+
+.gacha-result::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
 }
 
 /* ============================================

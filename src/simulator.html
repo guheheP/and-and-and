@@ -6,23 +6,42 @@
     <title>IdleFarm - Balance Simulator</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: sans-serif; margin: 20px; background: #f0f0f0; color: #333; }
-        .container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
-        .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .control-group { margin-bottom: 15px; }
-        .control-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="number"], select { width: 100%; padding: 8px; box-sizing: border-box; }
-        button { background: #4CAF50; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-size: 16px; width: 100%; margin-bottom: 10px; }
-        button:hover { background: #45a049; }
-        button.danger { background: #f44336; }
-        button.danger:hover { background: #d32f2f; }
-        .stat-box { background: #e9ecef; padding: 10px; border-radius: 4px; margin-bottom: 10px; font-family: monospace; }
-        .stat-label { font-size: 12px; color: #666; }
-        .stat-value { font-size: 20px; font-weight: bold; color: #000; }
-        .chart-container { position: relative; height: 300px; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 20px; }
+        h2 { color: #64ffda; margin-bottom: 15px; font-size: 16px; }
+        h3 { color: #90caf9; margin: 15px 0 10px; font-size: 14px; }
+        .container { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: 280px 1fr; gap: 16px; }
+        .panel { background: #16213e; padding: 16px; border-radius: 8px; border: 1px solid #0f3460; }
+        .control-group { margin-bottom: 12px; }
+        .control-group label { display: block; margin-bottom: 4px; font-size: 12px; color: #90caf9; }
+        select, input[type="number"] { width: 100%; padding: 6px 8px; background: #0f3460; color: #e0e0e0; border: 1px solid #1a5276; border-radius: 4px; font-size: 13px; }
+        button { width: 100%; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; margin-bottom: 8px; transition: opacity 0.2s; }
+        button:hover { opacity: 0.85; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-run { background: linear-gradient(135deg, #4CAF50, #2e7d32); color: white; }
+        .btn-reset { background: linear-gradient(135deg, #f44336, #c62828); color: white; }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        .stat-box { background: #0f3460; padding: 8px; border-radius: 6px; }
+        .stat-box.wide { grid-column: 1 / -1; }
+        .stat-label { font-size: 10px; color: #90caf9; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-size: 18px; font-weight: bold; color: #fff; font-family: 'Consolas', monospace; }
+        .stat-box.accent { background: linear-gradient(135deg, #0f3460, #1a5276); border: 1px solid #64ffda33; }
+        .stat-box.accent .stat-value { color: #64ffda; }
+
+        .info-box { font-size: 11px; white-space: pre-wrap; background: #0a1a35; padding: 8px; border-radius: 4px; color: #b0bec5; max-height: 120px; overflow-y: auto; line-height: 1.5; }
+
+        .chart-container { position: relative; height: 220px; margin-bottom: 16px; }
+        .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .charts-row .chart-container { height: 200px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { background: #0f3460; color: #90caf9; padding: 6px 8px; text-align: left; font-weight: 600; position: sticky; top: 0; }
+        td { border-bottom: 1px solid #0f346066; padding: 4px 8px; color: #b0bec5; }
+        tr:hover td { background: #0f346033; }
+        .log-container { max-height: 250px; overflow-y: auto; border-radius: 4px; border: 1px solid #0f3460; }
+
+        hr { border: none; border-top: 1px solid #0f3460; margin: 12px 0; }
     </style>
     <script>
         // MOCK localStorage to protect real save data from the simulator!
@@ -42,85 +61,100 @@
     <div class="container">
         <!-- Controls Sidebar -->
         <div class="panel">
-            <h2>Simulator Controls</h2>
-            
+            <h2>⚙️ シミュレータ設定</h2>
+
             <div class="control-group">
-                <label>Simulate Duration</label>
+                <label>シミュレーション時間</label>
                 <select id="sim-duration">
-                    <option value="3600">1 Hour</option>
-                    <option value="21600">6 Hours</option>
-                    <option value="86400">1 Day</option>
-                    <option value="604800">1 Week</option>
-                    <option value="2592000">1 Month</option>
+                    <option value="3600">1時間</option>
+                    <option value="21600">6時間</option>
+                    <option value="86400" selected>1日</option>
+                    <option value="604800">1週間</option>
+                    <option value="2592000">1ヶ月</option>
                 </select>
             </div>
 
             <div class="control-group">
-                <label><input type="checkbox" id="auto-prestige" checked> Auto Prestige</label>
+                <label><input type="checkbox" id="auto-prestige" checked> 自動プレステージ</label>
             </div>
             <div class="control-group">
-                <label>Prestige Target Level</label>
+                <label>プレステージ目標レベル</label>
                 <input type="number" id="prestige-threshold" value="50" min="50" step="10">
             </div>
 
-            <button id="btn-run">Run Simulation</button>
-            <button id="btn-reset" class="danger">Reset State</button>
+            <button id="btn-run" class="btn-run">▶ シミュレーション開始</button>
+            <button id="btn-reset" class="btn-reset">↻ リセット</button>
 
-            <hr style="margin: 20px 0; border-top: 1px solid #ddd;">
-            
-            <h3>Current State</h3>
-            <div class="stat-box">
-                <div class="stat-label">Time Passed</div>
-                <div class="stat-value" id="val-time">0h 0m</div>
+            <hr>
+
+            <h3>📊 現在のステータス</h3>
+            <div class="stat-grid">
+                <div class="stat-box wide">
+                    <div class="stat-label">経過時間</div>
+                    <div class="stat-value" id="val-time">0h 0m</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">レベル</div>
+                    <div class="stat-value" id="val-level">1</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">収穫回数</div>
+                    <div class="stat-value" id="val-harvests">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">累計ポイント</div>
+                    <div class="stat-value" id="val-points">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">累計EXP</div>
+                    <div class="stat-value" id="val-exp">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">プレステージ</div>
+                    <div class="stat-value" id="val-prestige">0</div>
+                </div>
+                <div class="stat-box accent">
+                    <div class="stat-label">累計通貨 💎</div>
+                    <div class="stat-value" id="val-currency">0</div>
+                    <div class="stat-label" id="val-currency-hr" style="color: #64ffda;">(0.00 / hr)</div>
+                </div>
             </div>
-            <div class="stat-box">
-                <div class="stat-label">Level</div>
-                <div class="stat-value" id="val-level">1</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">Points</div>
-                <div class="stat-value" id="val-points">0</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">Prestige Count</div>
-                <div class="stat-value" id="val-prestige">0</div>
-            </div>
-            <div class="stat-box" style="background: #e3f2fd;">
-                <div class="stat-label">Total Currency Earned</div>
-                <div class="stat-value" id="val-currency">0</div>
-                <div class="stat-label" id="val-currency-hr" style="color: #2196F3;">(0.00 / hr)</div>
-            </div>
-            
-            <div class="control-group" style="margin-top: 15px;">
-                <label>Upgrades</label>
-                <div id="val-upgrades" style="font-size: 12px; white-space: pre-wrap; background: #eee; padding: 5px;">None</div>
-            </div>
+
+            <h3>🔧 取得強化</h3>
+            <div id="val-upgrades" class="info-box">なし</div>
+
+            <h3>🌱 作物状況</h3>
+            <div id="val-crops" class="info-box">トマトのみ</div>
         </div>
 
         <!-- Charts and Log Panel -->
         <div class="panel">
-            <h2>Results</h2>
+            <h2>📈 結果</h2>
             <div class="chart-container">
                 <canvas id="levelChart"></canvas>
             </div>
-            <div class="chart-container">
-                <canvas id="pointsChart"></canvas>
+            <div class="charts-row">
+                <div class="chart-container">
+                    <canvas id="pointsChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="expChart"></canvas>
+                </div>
             </div>
 
-            <h3>Milestone Logs</h3>
-            <div style="max-height: 250px; overflow-y: auto;">
+            <h3>📋 マイルストーンログ</h3>
+            <div class="log-container">
                 <table id="log-table">
                     <thead>
                         <tr>
-                            <th width="20%">Virtual Time</th>
-                            <th width="15%">Level</th>
-                            <th width="40%">Event</th>
-                            <th width="25%">Points</th>
+                            <th width="15%">時間</th>
+                            <th width="10%">Lv</th>
+                            <th width="40%">イベント</th>
+                            <th width="17%">Points</th>
+                            <th width="18%">EXP</th>
                         </tr>
                     </thead>
-                    <tbody id="log-tbody">
-                        <!-- Logs injected here -->
-                    </tbody>
+                    <tbody id="log-tbody"></tbody>
                 </table>
             </div>
         </div>

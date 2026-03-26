@@ -3,6 +3,7 @@
 const SAVE_KEY = 'idle-farm-save';
 
 import { PRESTIGE_CONFIG, PRESTIGE_UPGRADES, getUpgradeCost } from './prestige-data.js';
+import { CROP_MASTER } from './master-data.js';
 
 /**
  * 初期ゲーム状態を生成
@@ -12,6 +13,8 @@ export function createInitialState() {
   return {
     points: 0,
     totalEarnedPoints: 0,
+    playerExp: 0,
+    totalEarnedExp: 0,
     level: 1,
     seedsInventory: {},
     cropExp: {},
@@ -22,10 +25,12 @@ export function createInitialState() {
       plantedAt: null,
       progress: 0,
     },
+    selectedCropId: null, // 優先植え付けのターゲット
     // プレステージ
     prestigeCount: 0,
     prestigeCurrency: 0,
     prestigeUpgrades: {},
+    eventCounts: {},
   };
 }
 
@@ -52,6 +57,13 @@ export function loadState() {
     if (!json) return createInitialState();
 
     const saved = JSON.parse(json);
+
+    // 互換性パッチ：旧バージョンのポイントを初期EXPに変換
+    if (saved.totalEarnedExp === undefined && saved.totalEarnedPoints !== undefined) {
+      saved.totalEarnedExp = saved.totalEarnedPoints;
+      saved.playerExp = saved.points;
+    }
+
     // 初期値とマージ（バージョン間のフィールド欠損を防止）
     const initial = createInitialState();
     return {
@@ -98,6 +110,18 @@ export function addPoints(state, amount) {
 }
 
 /**
+ * プレイヤー経験値を加算
+ * @param {GameState} state
+ * @param {number} amount
+ */
+export function addPlayerExp(state, amount) {
+  if (state.playerExp === undefined) state.playerExp = 0;
+  if (state.totalEarnedExp === undefined) state.totalEarnedExp = 0;
+  state.playerExp += amount;
+  state.totalEarnedExp += amount;
+}
+
+/**
  * 種をインベントリに追加
  * @param {GameState} state
  * @param {string} cropId
@@ -138,14 +162,30 @@ export function addCropExp(state, cropId) {
 
 /**
  * 作物のレベルを取得
- * 収穫5回ごとにレベルアップ（上限なし）
+ * Lv N→N+1 に必要なexp = N（累計 = N*(N-1)/2）
  * @param {GameState} state
  * @param {string} cropId
  * @returns {number}
  */
 export function getCropLevel(state, cropId) {
   const exp = state.cropExp[cropId] || 0;
-  return Math.floor(exp / 5) + 1;
+  return Math.floor((1 + Math.sqrt(1 + 8 * exp)) / 2);
+}
+
+/**
+ * 作物の現在レベル内での経験値進捗を取得
+ * @param {GameState} state
+ * @param {string} cropId
+ * @returns {{ current: number, required: number }}
+ */
+export function getCropLevelProgress(state, cropId) {
+  const exp = state.cropExp[cropId] || 0;
+  const level = getCropLevel(state, cropId);
+  const totalForCurrentLevel = level * (level - 1) / 2;
+  return {
+    current: exp - totalForCurrentLevel,
+    required: level,
+  };
 }
 
 /**
@@ -156,6 +196,22 @@ export function getCropLevel(state, cropId) {
  */
 export function getCropLevelMultiplier(cropLevel) {
   return 1.0 + (cropLevel - 1) * 0.01;
+}
+
+/**
+ * 作物が無限化（種消費なし）されているか判定
+ * トマトは初期から無限、レアリティが高いほど低レベルで無限化
+ * @param {GameState} state
+ * @param {string} cropId
+ * @returns {boolean}
+ */
+export function isCropInfinite(state, cropId) {
+  if (cropId === 'tomato') return true;
+  const crop = CROP_MASTER[cropId];
+  if (!crop) return false;
+  const thresholds = { 1: 100, 2: 80, 3: 60, 4: 40, 5: 30 };
+  const threshold = thresholds[crop.rarity] || 100;
+  return getCropLevel(state, cropId) >= threshold;
 }
 
 // ============================================
@@ -176,6 +232,7 @@ export function executePrestige(state) {
   const prestigeCurrency = (state.prestigeCurrency || 0) + earned;
   const prestigeUpgrades = { ...(state.prestigeUpgrades || {}) };
   const currentCharId = state.currentCharId;
+  const eventCounts = { ...(state.eventCounts || {}) };
 
   // ゲーム部分をリセット
   const fresh = createInitialState();
@@ -186,6 +243,8 @@ export function executePrestige(state) {
   state.prestigeCurrency = prestigeCurrency;
   state.prestigeUpgrades = prestigeUpgrades;
   state.currentCharId = currentCharId;
+  state.eventCounts = eventCounts;
+  state.selectedCropId = null; // リセットで種が消えるためターゲットもリセット
 
   saveState(state);
   return { currency: earned };

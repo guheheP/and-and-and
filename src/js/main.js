@@ -2,7 +2,13 @@
 
 import { loadState, saveState, addSeed, addPoints } from './game-state.js';
 import { startGameLoop } from './game-loop.js';
-import {
+
+// 動的レンダラー選択（2D or 3D）
+const renderMode = localStorage.getItem('idle-farm-render-mode') || '2d';
+const rendererModule = renderMode === '3d'
+  ? await import('./renderer-3d.js')
+  : await import('./renderer.js');
+const {
   initRenderer,
   updateCharacter,
   updateField,
@@ -11,8 +17,9 @@ import {
   showHarvestParticles,
   triggerWorkAnimation,
   showLevelUpEffect,
-} from './renderer.js';
+} = rendererModule;
 import { initUI, buildCatalog } from './ui-controller.js';
+import { initDebug } from './debug.js';
 import { CROP_MASTER } from './master-data.js';
 import { getGachaPool } from './progression.js';
 import {
@@ -53,6 +60,7 @@ function init() {
 
   // 4. UI初期化
   initUI(state);
+  initDebug(state);
 
   // 5. イベントシステム初期化
   initEventSystem({
@@ -143,59 +151,67 @@ function handleEventStart(state, event) {
   const stage = document.getElementById('stage');
   if (!stage) return;
 
+  // 出現回数を記録
+  if (!state.eventCounts) state.eventCounts = {};
+  state.eventCounts[event.id] = (state.eventCounts[event.id] || 0) + 1;
+
   // CSSクラス追加
   if (event.cssClass) {
     stage.classList.add(event.cssClass);
   }
 
-  // インジケーター表示
-  showEventIndicator(event.name);
+  // インジケーター表示（無効化）
+  // showEventIndicator(event.name);
 
   // ビジュアルエフェクト
-  switch (event.id) {
-    case 'rain':
-      startRainParticles();
-      break;
-    case 'heavy_rain':
-      startRainParticles('rgba(140, 180, 220, 0.8)', 35);
-      break;
-    case 'diamond_rain':
-      startRainParticles('rgba(180, 220, 255, 0.9)', 25);
-      break;
-    case 'snow':
-      startSnowParticles();
-      break;
-    case 'thunder':
-      startRainParticles('rgba(160, 180, 200, 0.6)', 50);
-      startThunderFlashes();
-      break;
-    case 'typhoon':
-      startRainParticles('rgba(150, 170, 190, 0.5)', 30);
-      break;
-    case 'cumulonimbus':
-      spawnCumulonimbus();
-      break;
-    case 'tumbleweed':
-      spawnTumbleweed();
-      break;
-    case 'bird_poop':
-      spawnBirdDropping();
-      break;
-    case 'stork':
-      spawnCrossingSprite('🦩', 4000);
-      break;
-    case 'santa':
-      spawnCrossingSprite('🎅', 4000);
-      break;
-    case 'john':
-      spawnCrossingSprite('🧑', 4000);
-      break;
-    case 'dog_visit':
-      // CSS ::after で犬が居座る
-      break;
-    case 'cat_visit':
-      // CSS ::after で猫が居座る
-      break;
+  if (renderMode === '3d' && rendererModule.startEventVisual) {
+    rendererModule.startEventVisual(event);
+  } else {
+    switch (event.id) {
+      case 'rain':
+        startRainParticles();
+        break;
+      case 'heavy_rain':
+        startRainParticles('rgba(140, 180, 220, 0.8)', 35);
+        break;
+      case 'diamond_rain':
+        startRainParticles('rgba(180, 220, 255, 0.9)', 25);
+        break;
+      case 'snow':
+        startSnowParticles();
+        break;
+      case 'thunder':
+        startRainParticles('rgba(160, 180, 200, 0.6)', 50);
+        startThunderFlashes();
+        break;
+      case 'typhoon':
+        startRainParticles('rgba(150, 170, 190, 0.5)', 30);
+        break;
+      case 'cumulonimbus':
+        spawnCumulonimbus();
+        break;
+      case 'tumbleweed':
+        spawnTumbleweed();
+        break;
+      case 'bird_poop':
+        spawnBirdDropping();
+        break;
+      case 'stork':
+        spawnCrossingSprite('🦩', 4000);
+        break;
+      case 'santa':
+        spawnCrossingSprite('🎅', 4000);
+        break;
+      case 'john':
+        spawnCrossingSprite('🧑', 4000);
+        break;
+      case 'dog_visit':
+        // CSS ::after で犬が居座る
+        break;
+      case 'cat_visit':
+        // CSS ::after で猫が居座る
+        break;
+    }
   }
 
   // ゲーム効果の適用
@@ -214,11 +230,15 @@ function handleEventEnd(state, event) {
   // 全CSSクラス除去
   ALL_EVENT_CLASSES.forEach(cls => stage.classList.remove(cls));
 
-  // 全パーティクル停止
-  stopAllParticles();
+  if (renderMode === '3d' && rendererModule.stopAllEventVisuals) {
+    rendererModule.stopAllEventVisuals();
+  } else {
+    // 全パーティクル停止
+    stopAllParticles();
+  }
 
-  // インジケーター非表示
-  hideEventIndicator();
+  // インジケーター非表示（無効化）
+  // hideEventIndicator();
 
   saveState(state);
 }
@@ -260,33 +280,6 @@ function applyEventEffect(state, event) {
       break;
     }
     // growthBoost と visual は自動で処理される（getGrowthMultiplier経由）
-  }
-}
-
-// ============================================
-//  インジケーターUI
-// ============================================
-
-function showEventIndicator(name) {
-  let indicator = document.getElementById('weather-indicator');
-  if (!indicator) {
-    indicator = document.createElement('span');
-    indicator.id = 'weather-indicator';
-    indicator.className = 'weather-indicator';
-    const titleBar = document.querySelector('.title-bar');
-    if (titleBar) {
-      titleBar.insertBefore(indicator, titleBar.querySelector('.title-bar__controls'));
-    }
-  }
-  indicator.textContent = name;
-  indicator.style.display = '';
-}
-
-function hideEventIndicator() {
-  const indicator = document.getElementById('weather-indicator');
-  if (indicator) {
-    indicator.textContent = '';
-    indicator.style.display = 'none';
   }
 }
 
@@ -340,4 +333,10 @@ function initElectronHandlers(state) {
 }
 
 // DOMContentLoaded で初期化
-document.addEventListener('DOMContentLoaded', init);
+// NOTE: top-level await によりモジュール実行が遅延するため、
+// DOMContentLoaded が既に発火済みの場合は直接 init() を呼ぶ
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

@@ -12,7 +12,7 @@ export function checkLevelUp(state) {
   let newLevel = oldLevel;
 
   // 次のレベルの閾値を超えている限りレベルアップ
-  while (state.totalEarnedPoints >= getLevelThreshold(newLevel + 1)) {
+  while (state.totalEarnedExp >= getLevelThreshold(newLevel + 1)) {
     newLevel++;
   }
 
@@ -26,13 +26,13 @@ export function checkLevelUp(state) {
 
 /**
  * レベルに応じたポイント倍率
- * 基本: 1.0 + (level - 1) * 0.1
- * Lv.1 = x1.0, Lv.5 = x1.4, Lv.10 = x1.9, Lv.15 = x2.4
+ * 基本: 1.0 + (level - 1) * 0.03
+ * Lv.1 = x1.0, Lv.10 = x1.27, Lv.20 = x1.57
  * @param {number} level
  * @returns {number}
  */
 export function getPointMultiplier(level) {
-  return 1.0 + (level - 1) * 0.1;
+  return 1.0 + (level - 1) * 0.03;
 }
 
 /**
@@ -63,10 +63,10 @@ export function getGachaPool(level) {
 }
 
 /**
- * 次のレベルアップまでに必要なポイント
+ * 次のレベルアップまでに必要なEXP
  * @param {GameState} state
  * @returns {number}
  */
-export function getPointsToNextLevel(state) {
-  return getLevelThreshold(state.level + 1) - state.totalEarnedPoints;
+export function getExpToNextLevel(state) {
+  return getLevelThreshold(state.level + 1) - state.totalEarnedExp;
 }

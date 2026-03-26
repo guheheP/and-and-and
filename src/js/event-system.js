@@ -139,6 +139,22 @@ function startEvent(event, currentTime) {
   }
 }
 
+/**
+ * イベントを強制発生させる（デバッグ用・特殊効果用）
+ * @param {string} eventId
+ */
+export function forceTriggerEvent(eventId) {
+  const event = EVENT_MASTER[eventId];
+  if (!event) return;
+
+  // 既にイベント中の場合は終了処理を呼んでから上書き
+  if (activeEvent) {
+    endEvent();
+  }
+
+  startEvent(event, performance.now());
+}
+
 function endEvent() {
   const ended = activeEvent;
   activeEvent = null;

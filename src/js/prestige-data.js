@@ -7,7 +7,7 @@ export const PRESTIGE_CONFIG = {
   minLevel: 50,
   // プレステージ周回数に応じて指数を少しずつ上げ、最高効率のポイントを後退させる
   getCurrency: (state) => {
-    const level = Math.max(0, state.level - 40);
+    const level = Math.max(0, state.level - 45);
     const count = state.prestigeCount || 0;
     // 基礎指数1.5からスタートし、1周ごとに+0.05（最大2.5まで）
     const exponent = Math.min(2.5, 1.5 + count * 0.05);
@@ -32,14 +32,20 @@ export function getUpgradeCost(upgrade, currentLv) {
  * @returns {number}
  */
 export function getUpgradeEffect(upgradeId, level) {
-  if (level <= 0) return upgradeId === 'gachaMulti' ? 0 : 1.0;
+  if (level <= 0) {
+    if (['gachaMulti', 'gacha50', 'gacha100'].includes(upgradeId)) return 0;
+    return 1.0;
+  }
 
   switch (upgradeId) {
     case 'growthSpeed':
-      // 1レベルごとに-4.5% (最大Lv20で90%短縮：10倍速)
-      return Math.max(1 - level * 0.045, 0.1);
+      // 1レベルごとに-4% (最大Lv20で80%短縮：5倍速)
+      return Math.max(1 - level * 0.04, 0.2);
     case 'basePoints':
       // 1レベルごとに+50% (最大Lv20で11倍)
+      return 1 + level * 0.5;
+    case 'expMultiplier':
+      // プレイヤーEXP倍率: 1レベルごとに+50% (最大Lv20で11倍)
       return 1 + level * 0.5;
     case 'luckyHarvest':
       // ラッキー発生確率（%）
@@ -52,7 +58,7 @@ export function getUpgradeEffect(upgradeId, level) {
       return Math.max(1 - level * 0.05, 0.5);
     case 'gachaRarity':
       // 高レア重み倍率
-      return 1 + level * 0.15;
+      return 1 + level * 0.3;
     case 'eventRate':
       // イベント発生確率の追加%
       return level * 1.5;
@@ -63,7 +69,9 @@ export function getUpgradeEffect(upgradeId, level) {
       // イベント持続時間倍率
       return 1 + level * 0.1;
     case 'gachaMulti':
-      // 10連ガチャ解放（0 or 1）
+    case 'gacha50':
+    case 'gacha100':
+      // ガチャ解放（0 or 1）
       return level >= 1 ? 1 : 0;
     default:
       return 1.0;
@@ -115,6 +123,16 @@ export const PRESTIGE_UPGRADES = {
     costScale: 2.0,
     effectLabel: (lv) => lv > 0 ? `作物Exp ×${getUpgradeEffect('cropExpBoost', lv).toFixed(1)}` : '効果なし',
   },
+  expMultiplier: {
+    id: 'expMultiplier',
+    name: '📚 EXP倍率UP',
+    description: 'プレイヤーEXPの獲得量を増加',
+    category: 'growth',
+    maxLv: 20,
+    baseCost: 5,
+    costScale: 1.8,
+    effectLabel: (lv) => lv > 0 ? `EXP ×${getUpgradeEffect('expMultiplier', lv).toFixed(1)}` : '効果なし',
+  },
 
   // 🎰 ガチャ系
   gachaDiscount: {
@@ -140,10 +158,30 @@ export const PRESTIGE_UPGRADES = {
   gachaMulti: {
     id: 'gachaMulti',
     name: '🔟 10連ガチャ',
-    description: '10連ガチャを解放（9回分のコスト）',
+    description: '10連ガチャを解放',
     category: 'gacha',
     maxLv: 1,
     baseCost: 30,
+    costScale: 1.0,
+    effectLabel: (lv) => lv >= 1 ? '解放済み' : '未解放',
+  },
+  gacha50: {
+    id: 'gacha50',
+    name: '🎰 50連ガチャ',
+    description: '50連ガチャを解放',
+    category: 'gacha',
+    maxLv: 1,
+    baseCost: 1000,
+    costScale: 1.0,
+    effectLabel: (lv) => lv >= 1 ? '解放済み' : '未解放',
+  },
+  gacha100: {
+    id: 'gacha100',
+    name: '🌟 100連ガチャ',
+    description: '100連ガチャを解放',
+    category: 'gacha',
+    maxLv: 1,
+    baseCost: 5000,
     costScale: 1.0,
     effectLabel: (lv) => lv >= 1 ? '解放済み' : '未解放',
   },

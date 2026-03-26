@@ -248,22 +248,38 @@
 /* ============================================
    🐕🐈 居座りペット（犬・猫の訪問）
    ============================================ */
-.event--dog .field::after,
+/* 犬：左からやってきてうろうろする */
+.event--dog::after {
+  content: '🐕';
+  position: absolute;
+  bottom: 25px; /* キャラクターと同じ地面の高さ */
+  left: -30px;
+  font-size: 16px;
+  z-index: 35; /* キャラクターの手前を歩く */
+  animation: dog-wander 15s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes dog-wander {
+  0%    { transform: translateX(0) scaleX(-1); }
+  20%   { transform: translateX(70px) scaleX(-1); }
+  25%   { transform: translateX(70px) scaleX(1); }
+  45%   { transform: translateX(20px) scaleX(1); }
+  50%   { transform: translateX(20px) scaleX(-1); }
+  70%   { transform: translateX(80px) scaleX(-1); }
+  75%   { transform: translateX(80px) scaleX(1); }
+  100%  { transform: translateX(-20px) scaleX(1); }
+}
+
+/* 猫：フィールドの右端に居座る */
 .event--cat .field::after {
+  content: '🐈';
   position: absolute;
   bottom: 2px;
   right: 10px;
   font-size: 14px;
   z-index: 35;
   animation: pet-idle 2s ease-in-out infinite;
-}
-
-.event--dog .field::after {
-  content: '🐕';
-}
-
-.event--cat .field::after {
-  content: '🐈';
 }
 
 @keyframes pet-idle {
