@@ -10,12 +10,12 @@ import { initCommonDOM, updateHUD, showHarvestEffect, showLevelUpEffect, getCrop
 // ═══════════════════════════════════════════
 const CONFIG = {
   // ── カメラ ──
-  frustum: 5,                      // 視野の広さ（大きい=引き、小さい=寄り）
-  cameraPos: { x: 0, y: 12, z: 30 },  // カメラ位置
-  cameraLookAt: { x: 0, y: 3, z: 0 },    // カメラの注視点
+  frustum: 4,                      // 視野の広さ（大きい=引き、小さい=寄り）
+  cameraPos: { x: -0.8, y: 12, z: 30 },  // カメラ位置
+  cameraLookAt: { x: -0.8, y: 2.5, z: 0 },    // カメラの注視点
 
   // ── 地面 ──
-  groundX: [-8, 8],     // X方向の範囲 [min, max]
+  groundX: [-10, 10],     // X方向の範囲 [min, max]
   groundZ: [-5, 6],     // Z方向の範囲 [min, max]（手前がプラス）
   groundY: -0.25,       // 地面ブロックの高さ位置
   groundHeight: 0.5,    // 地面ブロックの厚み
@@ -39,8 +39,8 @@ const CONFIG = {
   farmerRotY: Math.PI / 4,               // キャラクターのY軸回転（畑の方を向く）
 
   // ── ライティング ──
-  ambientIntensity: 0.65,
-  dirLightIntensity: 0.8,
+  ambientIntensity: 0.95,
+  dirLightIntensity: 1.0,
   dirLightPos: { x: 3, y: 8, z: 10 },
 };
 
@@ -53,6 +53,17 @@ export let currentCropId = null;
 export let currentProgress = 0;
 let smoothProgress = 0; // スムーズな成長アニメーション用
 let currentCharId = null;
+
+// ── ズーム制御 ──
+let currentFrustum = CONFIG.frustum;
+let currentLookAtY = CONFIG.cameraLookAt.y;
+
+// ── 3D時計 ──
+let clockMesh = null;
+let clockCanvas = null;
+let clockCtx = null;
+let clockTexture = null;
+let lastClockMinute = -1;
 
 // ─── Constants ───
 const V = 1;  // voxel unit
@@ -117,7 +128,7 @@ function cylinder(rTop, rBot, h, color) {
 
 function cloudBox(w, h, d, color, opacity = 0.8) {
   const geo = new THREE.BoxGeometry(w, h, d);
-  const mat = new THREE.MeshLambertMaterial({
+  const mat = new THREE.MeshBasicMaterial({
     color,
     transparent: true,
     opacity,
@@ -138,6 +149,10 @@ export function initRenderer() {
   // 2D要素を非表示
   const elements2D = stage.querySelectorAll('.stage__sky, .stage__ground, .farmer, .field');
   elements2D.forEach(el => el.style.display = 'none');
+
+  // HTML時計を非表示（3D時計が代替）
+  const htmlClock = document.getElementById('sky-clock');
+  if (htmlClock) htmlClock.style.display = 'none';
 
   scene = new THREE.Scene();
 
@@ -172,11 +187,15 @@ export function initRenderer() {
   renderer3d.domElement.style.height = '100%';
   stage.appendChild(renderer3d.domElement);
 
-  // ライティング（CONFIG で調整）
-  const ambient = new THREE.AmbientLight(0xffffff, CONFIG.ambientIntensity);
+  // ライティング（温かみのある農場の午後感）
+  const ambient = new THREE.AmbientLight(0xfff5e0, CONFIG.ambientIntensity);
   scene.add(ambient);
 
-  const dirLight = new THREE.DirectionalLight(0xffffff, CONFIG.dirLightIntensity);
+  // ヘミスフィアライト（空=淡い水色 / 地面=草色）で自然な陰影
+  const hemi = new THREE.HemisphereLight(0xb0d8f0, 0x607B33, 0.3);
+  scene.add(hemi);
+
+  const dirLight = new THREE.DirectionalLight(0xffe8b0, CONFIG.dirLightIntensity);
   dirLight.position.set(CONFIG.dirLightPos.x, CONFIG.dirLightPos.y, CONFIG.dirLightPos.z);
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.set(512, 512);
@@ -200,12 +219,35 @@ export function initRenderer() {
   cloudsGroup = new THREE.Group();
   scene.add(cloudsGroup);
   buildClouds();
+  build3DClock();
 
   animate();
 
   const observer = new MutationObserver(() => updateClearColor());
   observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
   window.addEventListener('resize', onResize);
+
+  // マウスホイールズーム
+  const stageEl = document.getElementById('stage');
+  if (stageEl) {
+    stageEl.addEventListener('wheel', (e) => {
+      const modals = document.querySelectorAll('.modal:not([hidden])');
+      if (modals.length > 0) return;
+      e.preventDefault();
+      const zoomStep = 0.15;
+      const dir = e.deltaY > 0 ? 1 : -1;
+      currentFrustum = Math.min(5, Math.max(3, currentFrustum + dir * zoomStep));
+      currentLookAtY = 2 + (currentFrustum - 3) * 0.5;
+      const w = stageEl.clientWidth, h = stageEl.clientHeight;
+      const aspect = w / h;
+      camera.left = -currentFrustum * aspect;
+      camera.right = currentFrustum * aspect;
+      camera.top = currentFrustum;
+      camera.bottom = -currentFrustum;
+      camera.updateProjectionMatrix();
+      camera.lookAt(CONFIG.cameraLookAt.x, currentLookAtY, CONFIG.cameraLookAt.z);
+    }, { passive: false });
+  }
 }
 
 function updateClearColor() {
@@ -218,12 +260,12 @@ function onResize() {
   if (!stage) return;
   const w = stage.clientWidth, h = stage.clientHeight;
   const aspect = w / h;
-  const f = CONFIG.frustum;
-  camera.left = -f * aspect;
-  camera.right = f * aspect;
-  camera.top = f;
-  camera.bottom = -f;
+  camera.left = -currentFrustum * aspect;
+  camera.right = currentFrustum * aspect;
+  camera.top = currentFrustum;
+  camera.bottom = -currentFrustum;
   camera.updateProjectionMatrix();
+  camera.lookAt(CONFIG.cameraLookAt.x, currentLookAtY, CONFIG.cameraLookAt.z);
   renderer3d.setSize(w, h);
 }
 
@@ -269,6 +311,9 @@ function animate() {
       }
     });
   }
+
+  // 3D時計の更新
+  update3DClock();
 
   // アクティブアニメーターの更新
   const dt = 16;
@@ -915,6 +960,73 @@ export function triggerWorkAnimation() {
 }
 
 // ═══════════════════════════════════════════
+//  3D Clock
+// ═══════════════════════════════════════════
+
+function build3DClock() {
+  clockCanvas = document.createElement('canvas');
+  clockCanvas.width = 1024;
+  clockCanvas.height = 256;
+  clockCtx = clockCanvas.getContext('2d');
+
+  clockTexture = new THREE.CanvasTexture(clockCanvas);
+  clockTexture.minFilter = THREE.LinearFilter;
+
+  const geo = new THREE.PlaneGeometry(24, 6);
+  const mat = new THREE.MeshBasicMaterial({
+    map: clockTexture,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  clockMesh = new THREE.Mesh(geo, mat);
+
+  clockMesh.position.set(CONFIG.cameraLookAt.x, 5.5, 2);
+  clockMesh.lookAt(CONFIG.cameraPos.x, CONFIG.cameraPos.y, CONFIG.cameraPos.z);
+
+  const savedClockMode = localStorage.getItem('idle-farm-clock-visible');
+  clockMesh.visible = savedClockMode === 'true';
+
+  scene.add(clockMesh);
+  renderClockTexture();
+}
+
+function renderClockTexture() {
+  if (!clockCtx) return;
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+
+  clockCtx.clearRect(0, 0, 1024, 256);
+  clockCtx.font = "bold 180px 'VT323', 'Courier New', monospace";
+  clockCtx.textAlign = 'center';
+  clockCtx.textBaseline = 'middle';
+
+  clockCtx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+  clockCtx.fillText(`${hh}:${mm}`, 518, 134);
+
+  clockCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+  clockCtx.fillText(`${hh}:${mm}`, 512, 128);
+
+  clockTexture.needsUpdate = true;
+}
+
+function update3DClock() {
+  if (!clockMesh) return;
+
+  const visible = localStorage.getItem('idle-farm-clock-visible') === 'true';
+  clockMesh.visible = visible;
+  if (!visible) return;
+
+  const now = new Date();
+  const currentMinute = now.getHours() * 60 + now.getMinutes();
+  if (currentMinute !== lastClockMinute) {
+    lastClockMinute = currentMinute;
+    renderClockTexture();
+  }
+}
+
+// ═══════════════════════════════════════════
 //  Clouds & 3D Events
 // ═══════════════════════════════════════════
 
@@ -925,16 +1037,14 @@ function buildClouds() {
     // ベースとなる平べったい四角
     const baseW = 3 + Math.random() * 2;
     const baseD = 2 + Math.random() * 2;
-    const base = cloudBox(baseW, 0.6, baseD, 0xffffff, 0.2);
-    base.castShadow = true;
+    const base = cloudBox(baseW, 0.6, baseD, 0xffffff, 0.35);
     cloud.add(base);
 
     // 上に乗る少し小さな四角
     const puffW = baseW * 0.6;
     const puffD = baseD * 0.6;
-    const puff = cloudBox(puffW, 0.8, puffD, 0xffffff, 0.1);
+    const puff = cloudBox(puffW, 0.8, puffD, 0xffffff, 0.15);
     puff.position.set((Math.random() - 0.5) * 0.5, 0.5, (Math.random() - 0.5) * 0.5);
-    puff.castShadow = true;
     cloud.add(puff);
 
     cloud.position.set(-20 + Math.random() * 40, 5 + Math.random() * 3, -5 + Math.random() * 4);
