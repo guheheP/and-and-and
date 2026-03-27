@@ -1,17 +1,24 @@
-// ui-controller.js — メニュー・UI制御
+// ui-controller.js — メニュー・UI制御（イベントリスナー登録）
 
 import { rollGacha, rollGachaBatch, getGachaCost, isGachaBatchUnlocked } from './gacha.js';
 import { CHARACTER_MASTER, CROP_MASTER, LEVEL_UNLOCK_CROPS } from './master-data.js';
 import { saveState, getCropLevel, getCropLevelMultiplier, getCropLevelProgress, executePrestige, purchaseUpgrade, getUpgradeLevel, clearSave, isCropInfinite } from './game-state.js';
 import { updateHUD } from './renderer-common.js';
+import { PRESTIGE_CONFIG, PRESTIGE_UPGRADES, getUpgradeCost, getUpgradeEffect } from './prestige-data.js';
+import { EVENT_MASTER } from './event-data.js';
+import {
+  setGameState,
+  cycleGachaQty, getCurrentGachaQty,
+  showGachaResult, showGachaBatchResult, updateGachaCostDisplay,
+  cycleCharacter,
+  buildCatalog, buildEventLog, buildPrestigeShop,
+} from './ui-modals.js';
 
 // レンダラーモードに応じた updateCharacter を動的に取得
 const renderMode = localStorage.getItem('idle-farm-render-mode') || '3d';
 const { updateCharacter } = renderMode === '3d'
   ? await import('./renderer-3d.js')
   : await import('./renderer.js');
-import { PRESTIGE_CONFIG, PRESTIGE_UPGRADES, getUpgradeCost, getUpgradeEffect } from './prestige-data.js';
-import { EVENT_MASTER } from './event-data.js';
 
 /** 作物の色マップ */
 const CROP_COLORS = {
@@ -52,110 +59,89 @@ function restoreSize() {
  */
 export function initUI(state) {
   gameState = state;
+  setGameState(state); // ui-modals にも共有
 
   // ============================================
   //  種購入（旧ガチャ）
   // ============================================
   const btnGacha = document.getElementById('btn-gacha');
   const btnGachaBuy = document.getElementById('btn-gacha-buy');
-  const btnGachaPrev = document.getElementById('btn-gacha-prev');
-  const btnGachaNext = document.getElementById('btn-gacha-next');
   const btnGachaClose = document.getElementById('btn-gacha-close');
   const gachaModal = document.getElementById('gacha-modal');
   const gachaResult = document.getElementById('gacha-result');
+  const btnGachaPrev = document.getElementById('btn-gacha-prev');
+  const btnGachaNext = document.getElementById('btn-gacha-next');
 
   if (btnGacha) {
     btnGacha.addEventListener('click', () => {
       if (gachaModal) {
         gachaModal.hidden = false;
-        if (gachaResult) gachaResult.textContent = '';
-        updateGachaCostDisplay();
         resizeForModal();
       }
+      updateGachaCostDisplay();
     });
   }
 
-  // ◀▶ 数量切替
+  // 長押し連続購入
+  let buyInterval = null;
+  let buyCount = 0;
+
+  function doBuy() {
+    const qty = getCurrentGachaQty();
+    const rapid = buyCount > 0;
+
+    if (qty === 1) {
+      const result = rollGacha(gameState);
+      showGachaResult(gachaResult, result, rapid);
+    } else {
+      const result = rollGachaBatch(gameState, qty);
+      showGachaBatchResult(gachaResult, result, rapid);
+    }
+    buyCount++;
+    updateHUD(gameState);
+    updateGachaCostDisplay();
+    saveState(gameState);
+  }
+
+  if (btnGachaBuy) {
+    btnGachaBuy.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      buyCount = 0;
+      doBuy();
+      buyInterval = setInterval(doBuy, 200);
+    });
+
+    const stopBuy = () => {
+      if (buyInterval) {
+        clearInterval(buyInterval);
+        buyInterval = null;
+      }
+      buyCount = 0;
+    };
+
+    btnGachaBuy.addEventListener('mouseup', stopBuy);
+    btnGachaBuy.addEventListener('mouseleave', stopBuy);
+    window.addEventListener('blur', stopBuy);
+  }
+
+  if (btnGachaClose) {
+    btnGachaClose.addEventListener('click', () => {
+      if (gachaModal) gachaModal.hidden = true;
+      restoreSize();
+    });
+  }
+
   if (btnGachaPrev) {
     btnGachaPrev.addEventListener('click', () => {
       cycleGachaQty(-1);
       updateGachaCostDisplay();
     });
   }
+
   if (btnGachaNext) {
     btnGachaNext.addEventListener('click', () => {
       cycleGachaQty(1);
       updateGachaCostDisplay();
-    });
-  }
-
-  // 購入ボタン（長押し連続購入対応）
-  if (btnGachaBuy) {
-    let isHolding = false;
-
-    /** 1回の購入処理 */
-    const executePurchase = () => {
-      const qty = getAvailableGachaQties()[currentGachaQtyIndex];
-      let result;
-      if (qty === 1) {
-        result = rollGacha(gameState);
-        showGachaResult(gachaResult, result, isHolding);
-      } else {
-        result = rollGachaBatch(gameState, qty);
-        showGachaBatchResult(gachaResult, result, isHolding);
-      }
-      updateHUD(gameState);
-      updateGachaCostDisplay();
-      saveState(gameState);
-      return result.success;
-    };
-
-    let holdTimer = null;
-    let holdCount = 0;
-
-    const startHold = (e) => {
-      e.preventDefault();
-      isHolding = false;
-      // 初回即時実行
-      if (!executePurchase()) return;
-      isHolding = true;
-      holdCount = 0;
-
-      const repeatPurchase = () => {
-        if (!executePurchase()) {
-          stopHold();
-          return;
-        }
-        holdCount++;
-        // 加速: 300ms → 最速50ms
-        const delay = Math.max(50, 300 - holdCount * 25);
-        holdTimer = setTimeout(repeatPurchase, delay);
-      };
-      holdTimer = setTimeout(repeatPurchase, 400); // 初回リピートまで少し長め
-    };
-
-    const stopHold = () => {
-      if (holdTimer) {
-        clearTimeout(holdTimer);
-        holdTimer = null;
-      }
-      holdCount = 0;
-      isHolding = false;
-    };
-
-    // マウス
-    btnGachaBuy.addEventListener('mousedown', startHold);
-    btnGachaBuy.addEventListener('mouseup', stopHold);
-    btnGachaBuy.addEventListener('mouseleave', stopHold);
-    // タッチ
-    btnGachaBuy.addEventListener('touchstart', startHold, { passive: false });
-    btnGachaBuy.addEventListener('touchend', stopHold);
-    btnGachaBuy.addEventListener('touchcancel', stopHold);
-  }
-
-  if (btnGachaClose) {
-    btnGachaClose.addEventListener('click', () => {
-      if (gachaModal) { gachaModal.hidden = true; restoreSize(); }
     });
   }
 
@@ -164,17 +150,13 @@ export function initUI(state) {
   // ============================================
   const btnMenu = document.getElementById('btn-menu');
   const menuPopup = document.getElementById('menu-popup');
-
   if (btnMenu && menuPopup) {
-    btnMenu.addEventListener('click', (e) => {
-      e.stopPropagation(); // 外側クリック判別用
-      menuPopup.classList.toggle('is-active');
+    btnMenu.addEventListener('click', () => {
+      menuPopup.hidden = !menuPopup.hidden;
     });
-
     document.addEventListener('click', (e) => {
-      // メニュー内やボタン本体のクリックでなければ閉じる
-      if (!menuPopup.contains(e.target) && e.target !== btnMenu) {
-        menuPopup.classList.remove('is-active');
+      if (!menuPopup.hidden && !menuPopup.contains(e.target) && e.target !== btnMenu) {
+        menuPopup.hidden = true;
       }
     });
   }
@@ -182,47 +164,43 @@ export function initUI(state) {
   // ============================================
   //  時計トグル
   // ============================================
-  const btnClockToggle = document.getElementById('btn-clock-toggle');
-  const skyClock = document.getElementById('sky-clock');
+  const btnClock = document.getElementById('btn-clock');
+  const clockEl = document.getElementById('sky-clock');
+  const saved = localStorage.getItem('idle-farm-clock-visible');
 
-  if (skyClock) {
-    // 毎秒時計を更新するループ
-    setInterval(() => {
-      if (skyClock.hidden) return;
-      const now = new Date();
-      const hh = String(now.getHours()).padStart(2, '0');
-      const mm = String(now.getMinutes()).padStart(2, '0');
-      skyClock.textContent = `${hh}:${mm}`;
-    }, 1000);
-  }
-
-  if (btnClockToggle && skyClock) {
-    const savedClockMode = localStorage.getItem('idle-farm-clock-visible');
-    if (savedClockMode === 'true') {
-      skyClock.hidden = false;
-      btnClockToggle.classList.add('is-active');
-      const now = new Date();
-      skyClock.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  if (btnClock) {
+    if (saved === 'true') {
+      btnClock.classList.add('is-active');
+      if (clockEl) clockEl.hidden = false;
+    } else {
+      if (clockEl) clockEl.hidden = true;
     }
 
-    btnClockToggle.addEventListener('click', () => {
-      const isVisible = skyClock.hidden;
-      skyClock.hidden = !isVisible;
-      btnClockToggle.classList.toggle('is-active', isVisible);
-      localStorage.setItem('idle-farm-clock-visible', isVisible);
-      if (isVisible) {
-        const now = new Date();
-        skyClock.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      }
+    btnClock.addEventListener('click', () => {
+      const isActive = btnClock.classList.toggle('is-active');
+      if (clockEl) clockEl.hidden = !isActive;
+      localStorage.setItem('idle-farm-clock-visible', isActive ? 'true' : 'false');
     });
+
+    // 分ごとに時刻を更新
+    if (clockEl) {
+      const updateClock = () => {
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        clockEl.textContent = `${hh}:${mm}`;
+      };
+      updateClock();
+      setInterval(updateClock, 10000);
+    }
   }
 
   // ============================================
   //  キャラ変更
   // ============================================
-  const btnCharacter = document.getElementById('btn-character');
-  if (btnCharacter) {
-    btnCharacter.addEventListener('click', () => {
+  const btnChar = document.getElementById('btn-char');
+  if (btnChar) {
+    btnChar.addEventListener('click', () => {
       cycleCharacter();
     });
   }
@@ -230,23 +208,24 @@ export function initUI(state) {
   // ============================================
   //  作物カタログ
   // ============================================
-  const btnInventory = document.getElementById('btn-inventory');
+  const btnCatalog = document.getElementById('btn-catalog');
   const catalogModal = document.getElementById('catalog-modal');
   const btnCatalogClose = document.getElementById('btn-catalog-close');
 
-  if (btnInventory) {
-    btnInventory.addEventListener('click', () => {
+  if (btnCatalog) {
+    btnCatalog.addEventListener('click', () => {
       if (catalogModal) {
-        buildCatalog();
         catalogModal.hidden = false;
         resizeForModal();
       }
+      buildCatalog();
     });
   }
 
   if (btnCatalogClose) {
     btnCatalogClose.addEventListener('click', () => {
-      if (catalogModal) { catalogModal.hidden = true; restoreSize(); }
+      if (catalogModal) catalogModal.hidden = true;
+      restoreSize();
     });
   }
 
@@ -261,88 +240,63 @@ export function initUI(state) {
   if (btnPrestige) {
     btnPrestige.addEventListener('click', () => {
       if (prestigeModal) {
-        buildPrestigeShop();
         prestigeModal.hidden = false;
         resizeForModal();
       }
+      buildPrestigeShop();
     });
   }
 
   if (btnPrestigeClose) {
     btnPrestigeClose.addEventListener('click', () => {
-      if (prestigeModal) { prestigeModal.hidden = true; restoreSize(); }
+      if (prestigeModal) prestigeModal.hidden = true;
+      restoreSize();
     });
   }
-
-  const prestigeConfirmModal = document.getElementById('prestige-confirm-modal');
-  const btnPrestigeConfirmYes = document.getElementById('btn-prestige-confirm-yes');
-  const btnPrestigeConfirmNo = document.getElementById('btn-prestige-confirm-no');
-  const prestigeConfirmEarn = document.getElementById('prestige-confirm-earn');
 
   if (btnPrestigeExec) {
     btnPrestigeExec.addEventListener('click', () => {
-      if (!gameState) return;
-      if (gameState.level < PRESTIGE_CONFIG.minLevel) return; // disabled checked earlier
+      if (!gameState || gameState.level < PRESTIGE_CONFIG.minLevel) return;
+      if (!confirm('プレステージで全データをリセットし報酬を得ますか？')) return;
 
-      const earned = PRESTIGE_CONFIG.getCurrency(gameState);
-      if (prestigeConfirmEarn) prestigeConfirmEarn.textContent = earned;
-      
-      if (prestigeModal) prestigeModal.hidden = true;
-      if (prestigeConfirmModal) prestigeConfirmModal.hidden = false;
-      resizeForModal();
-    });
-  }
-
-  if (btnPrestigeConfirmYes) {
-    btnPrestigeConfirmYes.addEventListener('click', () => {
       executePrestige(gameState);
-      // 自動セーブ回避用フラグ
-      window.skipSaveOnUnload = true;
-      location.reload();
-    });
-  }
+      
+      const char = CHARACTER_MASTER[gameState.currentCharId];
+      if (char) updateCharacter(gameState.currentCharId);
 
-  if (btnPrestigeConfirmNo) {
-    btnPrestigeConfirmNo.addEventListener('click', () => {
-      if (prestigeConfirmModal) prestigeConfirmModal.hidden = true;
-      if (prestigeModal) prestigeModal.hidden = false;
+      buildPrestigeShop();
+      updateHUD(gameState);
     });
   }
 
   // ============================================
   //  背景透過トグル
   // ============================================
-  const btnBgToggle = document.getElementById('btn-bg-toggle');
-  if (btnBgToggle) {
-    const savedBgMode = localStorage.getItem('idle-farm-bg-transparent');
-    if (savedBgMode === 'true') {
+  const btnBg = document.getElementById('btn-bg');
+  if (btnBg) {
+    const savedBg = localStorage.getItem('idle-farm-bg-transparent');
+    if (savedBg === 'true') {
       document.body.classList.add('bg-transparent');
-      btnBgToggle.classList.add('is-active');
+      btnBg.classList.add('is-active');
     }
-
-    btnBgToggle.addEventListener('click', () => {
-      const isTransparent = document.body.classList.toggle('bg-transparent');
-      btnBgToggle.classList.toggle('is-active', isTransparent);
-      localStorage.setItem('idle-farm-bg-transparent', isTransparent);
+    btnBg.addEventListener('click', () => {
+      const nowTransparent = document.body.classList.toggle('bg-transparent');
+      btnBg.classList.toggle('is-active', nowTransparent);
+      localStorage.setItem('idle-farm-bg-transparent', nowTransparent ? 'true' : 'false');
     });
   }
 
   // ============================================
   //  3D モード切替
   // ============================================
-  const btn3dToggle = document.getElementById('btn-3d-toggle');
-  if (btn3dToggle) {
-    const currentMode = localStorage.getItem('idle-farm-render-mode') || '3d';
-    if (currentMode === '3d') {
-      btn3dToggle.classList.add('is-active');
-    }
-
-    btn3dToggle.addEventListener('click', () => {
-      const menuPopup = document.getElementById('menu-popup');
-      if (menuPopup) menuPopup.classList.remove('is-active');
-      const current = localStorage.getItem('idle-farm-render-mode') || '3d';
-      const next = current === '3d' ? '2d' : '3d';
-      localStorage.setItem('idle-farm-render-mode', next);
+  const btn3D = document.getElementById('btn-3d');
+  if (btn3D) {
+    const mode = localStorage.getItem('idle-farm-render-mode') || '3d';
+    btn3D.classList.toggle('is-active', mode === '3d');
+    btn3D.addEventListener('click', () => {
+      const nowMode = localStorage.getItem('idle-farm-render-mode') || '3d';
+      const nextMode = nowMode === '3d' ? '2d' : '3d';
+      localStorage.setItem('idle-farm-render-mode', nextMode);
       location.reload();
     });
   }
@@ -356,19 +310,17 @@ export function initUI(state) {
 
   if (btnLog) {
     btnLog.addEventListener('click', () => {
-      const menuPopup = document.getElementById('menu-popup');
-      if (menuPopup) menuPopup.classList.remove('is-active');
       if (logModal) {
-        buildEventLog();
         logModal.hidden = false;
         resizeForModal();
       }
+      buildEventLog();
     });
   }
 
-  if (btnLogClose && logModal) {
+  if (btnLogClose) {
     btnLogClose.addEventListener('click', () => {
-      logModal.hidden = true;
+      if (logModal) logModal.hidden = true;
       restoreSize();
     });
   }
@@ -379,15 +331,13 @@ export function initUI(state) {
   const btnVersion = document.getElementById('btn-version');
   const versionModal = document.getElementById('version-modal');
   const btnVersionClose = document.getElementById('btn-version-close');
-  const btnOpenReset = document.getElementById('btn-open-reset');
-
+  const btnResetSave = document.getElementById('btn-reset-save');
   const confirmModal = document.getElementById('confirm-modal');
   const btnConfirmYes = document.getElementById('btn-confirm-yes');
   const btnConfirmNo = document.getElementById('btn-confirm-no');
 
   if (btnVersion) {
     btnVersion.addEventListener('click', () => {
-      if (menuPopup) menuPopup.classList.remove('is-active');
       if (versionModal) {
         versionModal.hidden = false;
         resizeForModal();
@@ -397,24 +347,20 @@ export function initUI(state) {
 
   if (btnVersionClose) {
     btnVersionClose.addEventListener('click', () => {
-      if (versionModal) {
-        versionModal.hidden = true;
-        restoreSize();
-      }
+      if (versionModal) versionModal.hidden = true;
+      restoreSize();
     });
   }
 
-  if (btnOpenReset) {
-    btnOpenReset.addEventListener('click', () => {
+  if (btnResetSave) {
+    btnResetSave.addEventListener('click', () => {
       if (versionModal) versionModal.hidden = true;
       if (confirmModal) confirmModal.hidden = false;
-      resizeForModal();
     });
   }
 
   if (btnConfirmYes) {
     btnConfirmYes.addEventListener('click', () => {
-      window.skipSaveOnUnload = true;
       clearSave();
       location.reload();
     });
@@ -428,319 +374,5 @@ export function initUI(state) {
   }
 }
 
-// ============================================
-//  種購入（旧ガチャ）関連
-// ============================================
-
-/** 購入数量の選択肢管理 */
-let currentGachaQtyIndex = 0;
-
-/** 現在解放済みの購入数量リストを取得 */
-function getAvailableGachaQties() {
-  const qties = [1];
-  if (gameState && isGachaBatchUnlocked(gameState, 10)) qties.push(10);
-  if (gameState && isGachaBatchUnlocked(gameState, 50)) qties.push(50);
-  if (gameState && isGachaBatchUnlocked(gameState, 100)) qties.push(100);
-  return qties;
-}
-
-/** ◀▶で数量を切り替える */
-function cycleGachaQty(dir) {
-  const qties = getAvailableGachaQties();
-  currentGachaQtyIndex = (currentGachaQtyIndex + dir + qties.length) % qties.length;
-}
-
-function showGachaResult(resultEl, result, rapid = false) {
-  if (!resultEl) return;
-
-  if (rapid && resultEl.firstChild) {
-    // 長押し中: テキストだけ更新（アニメーションなし）
-    const existing = resultEl.firstChild;
-    if (result.success) {
-      existing.className = `rarity-${result.cropData.rarity}`;
-      existing.textContent = result.message;
-      existing.style.color = '';
-    } else {
-      existing.className = '';
-      existing.textContent = result.message;
-      existing.style.color = '#ff6060';
-    }
-    return;
-  }
-
-  resultEl.innerHTML = '';
-  const msg = document.createElement('div');
-  if (result.success) {
-    msg.className = `gacha-reveal rarity-${result.cropData.rarity}`;
-    msg.textContent = result.message;
-  } else {
-    msg.textContent = result.message;
-    msg.style.color = '#ff6060';
-  }
-  resultEl.appendChild(msg);
-}
-
-function showGachaBatchResult(resultEl, result, rapid = false) {
-  if (!resultEl) return;
-
-  if (rapid && resultEl.firstChild && result.success) {
-    // 長押し中: テキストだけ更新
-    const summary = {};
-    result.results.forEach(crop => {
-      summary[crop.name] = (summary[crop.name] || 0) + 1;
-    });
-    resultEl.firstChild.innerHTML = Object.entries(summary)
-      .map(([name, c]) => `${name} ×${c}`)
-      .join('<br>');
-    return;
-  }
-
-  resultEl.innerHTML = '';
-  if (result.success) {
-    const summary = {};
-    result.results.forEach(crop => {
-      summary[crop.name] = (summary[crop.name] || 0) + 1;
-    });
-    const msg = document.createElement('div');
-    msg.className = 'gacha-reveal';
-    msg.innerHTML = Object.entries(summary)
-      .map(([name, c]) => `${name} ×${c}`)
-      .join('<br>');
-    resultEl.appendChild(msg);
-  } else {
-    const msg = document.createElement('div');
-    msg.textContent = result.message;
-    msg.style.color = '#ff6060';
-    resultEl.appendChild(msg);
-  }
-}
-
-function updateGachaCostDisplay() {
-  if (!gameState) return;
-  const cost = getGachaCost(gameState);
-  const qties = getAvailableGachaQties();
-
-  // インデックスが範囲外にならないよう制限
-  if (currentGachaQtyIndex >= qties.length) currentGachaQtyIndex = qties.length - 1;
-
-  const qty = qties[currentGachaQtyIndex];
-  const totalCost = cost * qty;
-
-  // 数量ラベル更新
-  const qtyLabel = document.getElementById('gacha-qty-label');
-  if (qtyLabel) qtyLabel.textContent = `${qty}個`;
-
-  // 購入ボタン更新
-  const btnBuy = document.getElementById('btn-gacha-buy');
-  if (btnBuy) btnBuy.textContent = `購入 (${totalCost}pt)`;
-
-  // ◀▶ボタンの表示制御（選択肢が1つなら非表示）
-  const btnPrev = document.getElementById('btn-gacha-prev');
-  const btnNext = document.getElementById('btn-gacha-next');
-  const hide = qties.length <= 1;
-  if (btnPrev) btnPrev.style.visibility = hide ? 'hidden' : 'visible';
-  if (btnNext) btnNext.style.visibility = hide ? 'hidden' : 'visible';
-}
-
-// ============================================
-//  キャラ変更
-// ============================================
-
-function cycleCharacter() {
-  if (!gameState) return;
-  const charIds = Object.keys(CHARACTER_MASTER);
-  const currentIdx = charIds.indexOf(gameState.currentCharId);
-  const nextIdx = (currentIdx + 1) % charIds.length;
-  const nextId = charIds[nextIdx];
-  gameState.currentCharId = nextId;
-  updateCharacter(nextId);
-  saveState(gameState);
-}
-
-// ============================================
-//  作物カタログ
-// ============================================
-
-function getUnlockedCropIds() {
-  if (!gameState) return [];
-  const unlocked = [];
-  for (const [lvl, cropIds] of Object.entries(LEVEL_UNLOCK_CROPS)) {
-    if (gameState.level >= Number(lvl)) {
-      unlocked.push(...cropIds);
-    }
-  }
-  return unlocked;
-}
-
-export function buildCatalog() {
-  const listEl = document.getElementById('catalog-list');
-  if (!listEl || !gameState) return;
-
-  // 1回だけイベントデリゲーションを設定（多重登録防止）
-  if (!listEl.dataset.clickEventAttached) {
-    listEl.addEventListener('mousedown', (e) => {
-      const itemNode = e.target.closest('.catalog-item');
-      if (!itemNode) return;
-      
-      const cropId = itemNode.dataset.cropId;
-      if (!cropId || itemNode.classList.contains('catalog-item--locked')) return;
-
-      // 対象を切り替え (既に優先なら解除)
-      if (gameState.selectedCropId === cropId) {
-        gameState.selectedCropId = null;
-      } else {
-        gameState.selectedCropId = cropId;
-      }
-      saveState(gameState);
-      buildCatalog(); // 即座に再描画
-    });
-    listEl.dataset.clickEventAttached = 'true';
-  }
-
-  listEl.innerHTML = '';
-  const unlockedIds = getUnlockedCropIds();
-
-  for (const [cropId, crop] of Object.entries(CROP_MASTER)) {
-    const isUnlocked = unlockedIds.includes(cropId);
-    const cropLevel = getCropLevel(gameState, cropId);
-    const { current: expInLevel, required: expRequired } = getCropLevelProgress(gameState, cropId);
-    const seedCount = gameState.seedsInventory[cropId] || 0;
-    const multiplier = getCropLevelMultiplier(cropLevel);
-
-    const isInf = isCropInfinite(gameState, cropId);
-    const isSelected = gameState.selectedCropId === cropId;
-
-    const item = document.createElement('div');
-    item.className = `catalog-item${isUnlocked ? '' : ' catalog-item--locked'}${isSelected ? ' is-selected' : ''}`;
-    
-    // イベントデリゲーション用にデータを仕込む
-    item.dataset.cropId = cropId;
-    
-    if (isUnlocked) {
-      item.style.cursor = 'pointer';
-    }
-
-    item.innerHTML = `
-      <div class="catalog-item__icon-wrapper ${crop.cssClass}">
-        <div class="catalog-fruit"></div>
-      </div>
-      <div class="catalog-item__info">
-        <div class="catalog-item__name">${isUnlocked ? crop.name : '???'}</div>
-        <div class="catalog-item__stats">
-          <span>Lv.${cropLevel}</span>
-          <span>x${multiplier.toFixed(2)}</span>
-        </div>
-        <div class="catalog-item__level-bar">
-          <div class="catalog-item__level-fill" style="width:${(expInLevel / expRequired) * 100}%"></div>
-        </div>
-      </div>
-      <div class="catalog-item__seeds">${isUnlocked ? (isInf ? '∞' : `${seedCount}`) : '🔒'}</div>
-    `;
-
-    listEl.appendChild(item);
-  }
-}
-
-// ============================================
-//  イベント図鑑
-// ============================================
-
-function buildEventLog() {
-  const listEl = document.getElementById('log-list');
-  if (!listEl || !gameState) return;
-
-  listEl.innerHTML = '';
-  
-  for (const [id, eventData] of Object.entries(EVENT_MASTER)) {
-    const count = (gameState.eventCounts && gameState.eventCounts[id]) || 0;
-    const isUnlocked = count > 0;
-
-    const item = document.createElement('div');
-    item.className = `log-item${isUnlocked ? '' : ' log-item--locked'}`;
-    
-    // アイコンと名前（分割）
-    const nameParts = eventData.name.split(' ');
-    // 未遭遇の場合は '❓ 未知の現象'
-    const icon = isUnlocked ? (nameParts[0] || '✨') : '❓';
-    const dispName = isUnlocked ? (nameParts.slice(1).join(' ') || eventData.name) : '未知の現象';
-
-    item.innerHTML = `
-      <div class="log-item__icon">${icon}</div>
-      <div class="log-item__info">
-        <div class="log-item__name">${dispName}</div>
-      </div>
-      <div class="log-item__count">${isUnlocked ? `遭遇: ${count}回` : '未遭遇'}</div>
-    `;
-
-    listEl.appendChild(item);
-  }
-}
-
-// ============================================
-//  プレステージショップ
-// ============================================
-
-function buildPrestigeShop() {
-  if (!gameState) return;
-
-  // ヘッダー更新
-  const currencyEl = document.getElementById('prestige-currency');
-  const countEl = document.getElementById('prestige-count');
-  if (currencyEl) currencyEl.textContent = gameState.prestigeCurrency || 0;
-  if (countEl) countEl.textContent = gameState.prestigeCount || 0;
-
-  // プレステージ実行ボタンの状態
-  const btnExec = document.getElementById('btn-prestige-exec');
-  if (btnExec) {
-    const canPrestige = gameState.level >= PRESTIGE_CONFIG.minLevel;
-    btnExec.disabled = !canPrestige;
-    if (canPrestige) {
-      const earn = PRESTIGE_CONFIG.getCurrency(gameState);
-      btnExec.textContent = `プレステージ (💎+${earn})`;
-    } else {
-      btnExec.textContent = `Lv.${PRESTIGE_CONFIG.minLevel}で解放`;
-    }
-  }
-
-  // ショップリスト
-  const shopEl = document.getElementById('prestige-shop');
-  if (!shopEl) return;
-  shopEl.innerHTML = '';
-
-  for (const [id, upgrade] of Object.entries(PRESTIGE_UPGRADES)) {
-    const currentLv = getUpgradeLevel(gameState, id);
-    const isMaxed = currentLv >= upgrade.maxLv;
-    const cost = isMaxed ? 0 : getUpgradeCost(upgrade, currentLv);
-    const canAfford = (gameState.prestigeCurrency || 0) >= cost;
-
-    const row = document.createElement('div');
-    row.className = `upgrade-row${isMaxed ? ' upgrade-row--maxed' : ''}`;
-
-    row.innerHTML = `
-      <div class="upgrade-info">
-        <span class="upgrade-name">${upgrade.name}</span>
-        <span class="upgrade-effect">${upgrade.effectLabel(currentLv)}</span>
-      </div>
-      <span class="upgrade-level">Lv.${currentLv}/${upgrade.maxLv}</span>
-    `;
-
-    const btn = document.createElement('button');
-    btn.className = 'upgrade-buy';
-    if (isMaxed) {
-      btn.textContent = 'MAX';
-      btn.disabled = true;
-    } else {
-      btn.textContent = `💎${cost}`;
-      btn.disabled = !canAfford;
-      btn.addEventListener('click', () => {
-        const result = purchaseUpgrade(gameState, id);
-        if (result.success) {
-          buildPrestigeShop(); // 再描画
-        }
-      });
-    }
-
-    row.appendChild(btn);
-    shopEl.appendChild(row);
-  }
-}
+// buildCatalog を再エクスポート（game-loop.js等からの参照用）
+export { buildCatalog };
