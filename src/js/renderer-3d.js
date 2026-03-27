@@ -312,6 +312,7 @@ function buildField() {
       const soil = box(V, 0.3, V, isDark ? COLORS.soilDark : COLORS.soil);
       soil.position.set(x * V, CONFIG.fieldY, z * V + CONFIG.fieldOffsetZ);
       soil.receiveShadow = true;
+      soil.userData = { isSoil: true, isDark };
       fieldGroup.add(soil);
     }
   }

@@ -132,12 +132,19 @@ export function buildClouds(cloudsGroup) {
 
 export function startEventVisual(event, { scene, weatherGroup, activeAnimators, CONFIG, updateClearColor, renderer3d }) {
   switch (event.id) {
-    case 'rain': spawnWeatherParticles('rain', 0xaaccff, 0.4, 300, 0, weatherGroup, activeAnimators); break;
-    case 'heavy_rain': spawnWeatherParticles('rain', 0x88bbdd, 0.6, 600, 0, weatherGroup, activeAnimators); break;
+    case 'rain': 
+      spawnWeatherParticles('rain', 0xaaccff, 0.4, 300, 0, weatherGroup, activeAnimators); 
+      setMudVisual(scene, true);
+      break;
+    case 'heavy_rain': 
+      spawnWeatherParticles('rain', 0x88bbdd, 0.6, 600, 0, weatherGroup, activeAnimators); 
+      setMudVisual(scene, true);
+      break;
     case 'diamond_rain': spawnWeatherParticles('diamond', 0xbbeeff, 0.5, 400, 0, weatherGroup, activeAnimators); break;
     case 'snow': spawnWeatherParticles('snow', 0xffffff, 0.1, 400, 0, weatherGroup, activeAnimators); break;
     case 'thunder':
       spawnWeatherParticles('rain', 0x99aabb, 0.5, 500, 0, weatherGroup, activeAnimators);
+      setMudVisual(scene, true);
       let flashTime = Date.now() + 1000 + Math.random() * 2000;
       activeAnimators.push({
         type: 'thunder',
@@ -150,7 +157,10 @@ export function startEventVisual(event, { scene, weatherGroup, activeAnimators, 
         }
       });
       break;
-    case 'typhoon': spawnWeatherParticles('rain', 0x7799bb, 0.8, 800, 0.4, weatherGroup, activeAnimators); break;
+    case 'typhoon': 
+      spawnWeatherParticles('rain', 0x7799bb, 0.8, 800, 0.4, weatherGroup, activeAnimators); 
+      setMudVisual(scene, true);
+      break;
     case 'cumulonimbus':
       const cloud = new THREE.Group();
       const layers = 5;
@@ -177,17 +187,24 @@ export function startEventVisual(event, { scene, weatherGroup, activeAnimators, 
 }
 
 export function stopAllEventVisuals({ scene, weatherGroup, activeAnimators, CONFIG, updateClearColor }) {
-  while (weatherGroup.children.length > 0) {
-    const c = weatherGroup.children[0];
-    c.removeFromParent();
-    if (c.geometry) c.geometry.dispose();
-    if (c.material) c.material.dispose();
-  }
+  // アニメーターのクリーンアップ（天気はフェードアウトフラグを立てて残す）
   for (let i = activeAnimators.length - 1; i >= 0; i--) {
     const anim = activeAnimators[i];
-    if (anim.type !== 'crossing' && anim.type !== 'poop') {
+    if (anim.type === 'weather') {
+      anim.fadeOut = true;
+    } else if (anim.type !== 'crossing' && anim.type !== 'poop' && anim.type !== 'thunder') {
       if (anim.mesh) anim.mesh.removeFromParent();
       activeAnimators.splice(i, 1);
+    }
+  }
+
+  // weatherGroupのクリーンアップ（天気パーティクル以外は即削除）
+  for (let i = weatherGroup.children.length - 1; i >= 0; i--) {
+    const c = weatherGroup.children[i];
+    if (!c.isPoints) {
+      c.removeFromParent();
+      if (c.geometry) c.geometry.dispose();
+      if (c.material) c.material.dispose();
     }
   }
 
@@ -195,6 +212,7 @@ export function stopAllEventVisuals({ scene, weatherGroup, activeAnimators, CONF
     if (c.isAmbientLight) c.intensity = CONFIG.ambientIntensity;
   });
   updateClearColor();
+  setMudVisual(scene, false); // 元の土の色に戻す
 }
 
 function triggerThunderFlash(scene, CONFIG, updateClearColor, renderer3d) {
@@ -224,19 +242,40 @@ function spawnWeatherParticles(type, colorHex, speed, count, slantX, weatherGrou
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
 
   let mat;
+  const targetOpacity = type === 'snow' ? 0.8 : 0.6;
   if (type === 'snow') {
-    mat = new THREE.PointsMaterial({ color: colorHex, size: 5, transparent: true, opacity: 0.8 });
+    mat = new THREE.PointsMaterial({ color: colorHex, size: 5, transparent: true, opacity: 0 });
   } else {
-    mat = new THREE.PointsMaterial({ color: colorHex, size: type === 'diamond' ? 8 : 4, transparent: true, opacity: 0.6 });
+    mat = new THREE.PointsMaterial({ color: colorHex, size: type === 'diamond' ? 8 : 4, transparent: true, opacity: 0 });
   }
 
   const points = new THREE.Points(geo, mat);
   weatherGroup.add(points);
 
-  activeAnimators.push({
+  let fadeTime = 0;
+
+  const animObj = {
     type: 'weather',
     mesh: points,
+    fadeOut: false,
     update: (dt) => {
+      // フェードイン / フェードアウト制御
+      if (!animObj.fadeOut) {
+        if (fadeTime < 2000) {
+          fadeTime += dt;
+          mat.opacity = Math.min(targetOpacity, (fadeTime / 2000) * targetOpacity);
+        }
+      } else {
+        fadeTime -= dt * 2; // フェードアウトは少し早め
+        if (fadeTime <= 0) {
+          points.removeFromParent();
+          points.geometry.dispose();
+          points.material.dispose();
+          return false; // アニメーターから削除
+        }
+        mat.opacity = Math.max(0, (fadeTime / 2000) * targetOpacity);
+      }
+
       const positions = points.geometry.attributes.position.array;
       for (let i = 0; i < count; i++) {
         let x = positions[i * 3];
@@ -257,6 +296,19 @@ function spawnWeatherParticles(type, colorHex, speed, count, slantX, weatherGrou
       }
       points.geometry.attributes.position.needsUpdate = true;
       return true;
+    }
+  };
+  activeAnimators.push(animObj);
+}
+
+function setMudVisual(scene, isMuddy) {
+  scene.traverse((c) => {
+    if (c.userData && c.userData.isSoil && c.material) {
+      if (isMuddy) {
+        c.material.color.setHex(c.userData.isDark ? 0x3a2517 : 0x4a3221); // Darker mud
+      } else {
+        c.material.color.setHex(c.userData.isDark ? 0x684b31 : 0x8a6042); // Normal soil
+      }
     }
   });
 }
