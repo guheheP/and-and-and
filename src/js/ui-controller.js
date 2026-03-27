@@ -315,7 +315,7 @@ export function initUI(state) {
   const btnVersion = document.getElementById('btn-version');
   const versionModal = document.getElementById('version-modal');
   const btnVersionClose = document.getElementById('btn-version-close');
-  const btnResetSave = document.getElementById('btn-reset-save');
+  const btnResetSave = document.getElementById('btn-open-reset');
   const confirmModal = document.getElementById('confirm-modal');
   const btnConfirmYes = document.getElementById('btn-confirm-yes');
   const btnConfirmNo = document.getElementById('btn-confirm-no');
