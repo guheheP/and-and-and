@@ -66,6 +66,38 @@ export function showLevelUpEffect() {
 }
 
 /**
+ * 実績解除トーストを表示
+ * @param {Object} ach 
+ */
+export function showAchievementToast(ach) {
+  const toast = document.getElementById('achievement-toast');
+  const desc = document.getElementById('achievement-toast-desc');
+  const reward = document.getElementById('achievement-toast-reward');
+  if (!toast || !desc || !reward) return;
+
+  desc.textContent = ach.name;
+  if (ach.rewardText) {
+    reward.textContent = `🎁 ${ach.rewardText} 解放！`;
+  } else {
+    reward.textContent = '';
+  }
+
+  toast.style.transition = 'none';
+  toast.style.opacity = '1';
+  toast.hidden = false;
+  
+  // force reflow
+  toast.offsetHeight;
+
+  toast.style.transition = 'opacity 0.5s';
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => { toast.hidden = true; }, 500);
+  }, 4000);
+}
+
+/**
  * 数値をフォーマット（1000以上はK表記）
  * @param {number} num
  * @returns {string}

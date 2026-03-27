@@ -18,6 +18,7 @@ import { initUI, buildCatalog } from './ui-controller.js';
 import { initDebug } from './debug.js';
 import { CROP_MASTER } from './master-data.js';
 import { getGachaPool } from './progression.js';
+import { showAchievementToast } from './renderer-common.js';
 import {
   initEventSystem,
   setPointBoost,
@@ -30,6 +31,7 @@ import {
   spawnTumbleweed,
   spawnCumulonimbus,
 } from './event-system.js';
+import { initAchievementSystem } from './achievement-system.js';
 
 /** すべてのイベントCSSクラス */
 const ALL_EVENT_CLASSES = [
@@ -57,6 +59,13 @@ function init() {
   // 4. UI初期化
   initUI(state);
   initDebug(state);
+
+  // 5. 実績システム初期化
+  initAchievementSystem({
+    onUnlock: (ach) => {
+      showAchievementToast(ach);
+    }
+  });
 
   // 5. イベントシステム初期化
   initEventSystem({
