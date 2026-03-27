@@ -40,7 +40,7 @@ export function build3DClock(scene, CONFIG) {
   clockTexture = new THREE.CanvasTexture(clockCanvas);
   clockTexture.minFilter = THREE.LinearFilter;
 
-  const geo = new THREE.PlaneGeometry(24, 6);
+  const geo = new THREE.PlaneGeometry(3, 0.75);
   const mat = new THREE.MeshBasicMaterial({
     map: clockTexture,
     transparent: true,
@@ -49,7 +49,7 @@ export function build3DClock(scene, CONFIG) {
   });
   clockMesh = new THREE.Mesh(geo, mat);
 
-  clockMesh.position.set(CONFIG.cameraLookAt.x, 5.5, 2);
+  clockMesh.position.set(CONFIG.cameraLookAt.x, 6.5, -3);
   clockMesh.lookAt(CONFIG.cameraPos.x, CONFIG.cameraPos.y, CONFIG.cameraPos.z);
 
   const savedClockMode = localStorage.getItem('idle-farm-clock-visible');

@@ -152,11 +152,11 @@ export function initUI(state) {
   const menuPopup = document.getElementById('menu-popup');
   if (btnMenu && menuPopup) {
     btnMenu.addEventListener('click', () => {
-      menuPopup.hidden = !menuPopup.hidden;
+      menuPopup.classList.toggle('is-active');
     });
     document.addEventListener('click', (e) => {
-      if (!menuPopup.hidden && !menuPopup.contains(e.target) && e.target !== btnMenu) {
-        menuPopup.hidden = true;
+      if (!menuPopup.contains(e.target) && e.target !== btnMenu) {
+        menuPopup.classList.remove('is-active');
       }
     });
   }
@@ -171,28 +171,12 @@ export function initUI(state) {
   if (btnClock) {
     if (saved === 'true') {
       btnClock.classList.add('is-active');
-      if (clockEl) clockEl.hidden = false;
-    } else {
-      if (clockEl) clockEl.hidden = true;
     }
 
     btnClock.addEventListener('click', () => {
       const isActive = btnClock.classList.toggle('is-active');
-      if (clockEl) clockEl.hidden = !isActive;
       localStorage.setItem('idle-farm-clock-visible', isActive ? 'true' : 'false');
     });
-
-    // 分ごとに時刻を更新
-    if (clockEl) {
-      const updateClock = () => {
-        const now = new Date();
-        const hh = String(now.getHours()).padStart(2, '0');
-        const mm = String(now.getMinutes()).padStart(2, '0');
-        clockEl.textContent = `${hh}:${mm}`;
-      };
-      updateClock();
-      setInterval(updateClock, 10000);
-    }
   }
 
   // ============================================
@@ -208,7 +192,7 @@ export function initUI(state) {
   // ============================================
   //  作物カタログ
   // ============================================
-  const btnCatalog = document.getElementById('btn-catalog');
+  const btnCatalog = document.getElementById('btn-inventory');
   const catalogModal = document.getElementById('catalog-modal');
   const btnCatalogClose = document.getElementById('btn-catalog-close');
 
