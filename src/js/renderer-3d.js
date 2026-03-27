@@ -359,12 +359,25 @@ function buildFarmer() {
 //  Public Interface
 // ═══════════════════════════════════════════
 
-export function updateCharacter(charId) {
-  const char = CHARACTER_MASTER[charId];
-  if (!char) return;
-  if (currentCharId === charId) return;
-  currentCharId = charId;
-  rebuildFarmerModel(farmerGroup, char.cssClass);
+export function updateCharacter(charIdOrConfig) {
+  let cssClass, config;
+
+  if (typeof charIdOrConfig === 'object' && charIdOrConfig !== null) {
+    // オブジェクト形式: { base: 'man', hat: 'straw_hat', accessory: 'watering_can' }
+    const baseId = charIdOrConfig.base || 'man';
+    const char = CHARACTER_MASTER[baseId];
+    cssClass = char ? char.cssClass : 'farmer--man';
+    config = charIdOrConfig;
+  } else {
+    // 文字列形式（後方互換）: 'man', 'woman', etc.
+    const char = CHARACTER_MASTER[charIdOrConfig];
+    if (!char) return;
+    cssClass = char.cssClass;
+    config = charIdOrConfig;
+  }
+
+  currentCharId = typeof charIdOrConfig === 'object' ? charIdOrConfig.base : charIdOrConfig;
+  rebuildFarmerModel(farmerGroup, config);
 }
 
 export function updateField(fieldState) {

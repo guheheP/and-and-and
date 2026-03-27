@@ -43,7 +43,7 @@ function init() {
   const state = loadState();
 
   // 3. 初期描画
-  updateCharacter(state.currentCharId);
+  updateCharacter(state.characterConfig || state.currentCharId);
   updateField(state.fieldState);
   updateHUD(state);
 

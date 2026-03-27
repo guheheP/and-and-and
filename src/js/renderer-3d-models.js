@@ -2,12 +2,14 @@
 // Farmer（人間/動物/雪だるま）の3Dモデルをtarget groupに生成する
 
 import * as THREE from 'three';
+import { CHARACTER_MASTER } from './master-data.js';
 
 // ─── Character colors ───
 export const CHAR_COLORS = {
   'farmer--man': { skin: 0xf5c6a0, body: 0x4477bb, hair: 0x4a3520, pants: 0x445566 },
   'farmer--woman': { skin: 0xf5c6a0, body: 0xcc4477, hair: 0x6a4530, pants: 0x445566 },
-  'farmer--oldman': { skin: 0xe0b890, body: 0x667744, hair: 0xcccccc, pants: 0x556644 },
+  'farmer--grandpa': { skin: 0xe0b890, body: 0x667744, hair: 0xcccccc, pants: 0x556644 },
+  'farmer--grandma': { skin: 0xe0b890, body: 0x885566, hair: 0xcccccc, pants: 0x665544 },
   'farmer--girl': { skin: 0xf5c6a0, body: 0xff88aa, hair: 0xffcc44, pants: 0x445566 },
   'farmer--boy': { skin: 0xf5c6a0, body: 0x44aa77, hair: 0x3a2010, pants: 0x445566 },
   'farmer--dog': { skin: 0xc8a060, body: 0xc8a060, hair: 0x8a6030, pants: 0xc8a060 },
@@ -50,7 +52,15 @@ export function rebuildFarmerModel(farmerGroup, charConfig) {
     if (c.material) c.material.dispose();
   }
 
-  let cssClass = typeof charConfig === 'string' ? charConfig : charConfig.base || 'farmer--man';
+  let cssClass;
+  if (typeof charConfig === 'string') {
+    cssClass = charConfig;
+  } else {
+    // base ID ('man') → cssClass ('farmer--man') に変換
+    const baseId = charConfig.base || 'man';
+    const charMaster = CHARACTER_MASTER[baseId];
+    cssClass = charMaster ? charMaster.cssClass : `farmer--${baseId}`;
+  }
 
   // 動物系は別Builder
   if (cssClass === 'farmer--dog') return buildDogModel(farmerGroup);
