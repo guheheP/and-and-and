@@ -183,6 +183,12 @@ export function initUI(state) {
     btnMenu.addEventListener('click', () => {
       menuPopup.classList.toggle('is-active');
     });
+    // メニュー内のボタンを押したらメニューを閉じる
+    menuPopup.addEventListener('click', (e) => {
+      if (e.target.closest('.toolbar__btn')) {
+        menuPopup.classList.remove('is-active');
+      }
+    });
     document.addEventListener('click', (e) => {
       if (!menuPopup.contains(e.target) && e.target !== btnMenu) {
         menuPopup.classList.remove('is-active');
