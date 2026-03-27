@@ -29,6 +29,7 @@ export const CROP_HEX = {
   corn: 0xf0d040, pumpkin: 0xe08020,
   watermelon: 0x408040, golden_apple: 0xffd700,
   tumbleweed: 0xedc97f, christmas_tree: 0x2d8040,
+  eggplant: 0x4b0082, melon: 0x98fb98,
 };
 export const LEAF_HEX = {
   tomato: 0x2d8040, potato: 0x4a8e2c,
@@ -36,6 +37,7 @@ export const LEAF_HEX = {
   corn: 0x5a9e3c, pumpkin: 0x2d6030,
   watermelon: 0x306030, golden_apple: 0x5a9e3c,
   tumbleweed: 0x807050, christmas_tree: 0x1a6030,
+  eggplant: 0x2d8040, melon: 0x306030,
 };
 
 // 実の出現位置（ツル上の4箇所）
@@ -141,6 +143,22 @@ function createFruitMesh(cropId, r, color) {
       const trunk = box(r * 0.4, r * 0.8, r * 0.4, 0x5a3216);
       trunk.position.y = -r * 1.0;
       grp.add(trunk, core);
+      break;
+
+    case 'eggplant':
+      core = cylinder(r * 0.4, r * 1.0, r * 2.5, color);
+      core.position.y = -r * 0.5;
+      cap = box(r * 0.8, 0.1, r * 0.8, 0x2d8040);
+      cap.position.set(0, r * 0.8, 0);
+      grp.add(core, cap);
+      break;
+
+    case 'melon':
+      core = sphere(r, color);
+      core.scale.set(1.2, 1.2, 1.2);
+      cap = cylinder(r * 0.1, r * 0.1, r * 0.5, 0x8b5a2b); 
+      cap.position.set(0, r * 1.3, 0);
+      grp.add(core, cap);
       break;
 
     case 'tomato':

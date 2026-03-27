@@ -65,6 +65,26 @@ export const CROP_MASTER = {
     isDefault: false,
     cssClass: 'crop--pumpkin',
   },
+  eggplant: {
+    id: 'eggplant',
+    name: 'ナス',
+    growTimeMs: 16000,
+    basePoint: 32,
+    baseExp: 80,
+    rarity: 2,
+    isDefault: false,
+    cssClass: 'crop--eggplant',
+  },
+  melon: {
+    id: 'melon',
+    name: 'メロン',
+    growTimeMs: 50000,
+    basePoint: 150,
+    baseExp: 1500,
+    rarity: 4,
+    isDefault: false,
+    cssClass: 'crop--melon',
+  },
   watermelon: {
     id: 'watermelon',
     name: 'スイカ',
@@ -140,8 +160,10 @@ export function getLevelThreshold(level) {
  */
 export const LEVEL_UNLOCK_CROPS = {
   1: ['tomato', 'carrot', 'potato', 'strawberry', 'corn'], // ガチャ用に序盤から5種解放
+  15: ['eggplant'],
   20: ['pumpkin'],
   30: ['watermelon'],
+  35: ['melon'],
   40: ['golden_apple'],
 };
 
