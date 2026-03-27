@@ -65,6 +65,9 @@ export function showLevelUpEffect() {
   setTimeout(() => { dom.levelupEffect.hidden = true; }, 1200);
 }
 
+let toastTimeout1 = null;
+let toastTimeout2 = null;
+
 /**
  * 実績解除トーストを表示
  * @param {Object} ach 
@@ -72,28 +75,27 @@ export function showLevelUpEffect() {
 export function showAchievementToast(ach) {
   const toast = document.getElementById('achievement-toast');
   const desc = document.getElementById('achievement-toast-desc');
-  const reward = document.getElementById('achievement-toast-reward');
-  if (!toast || !desc || !reward) return;
+  if (!toast || !desc) return;
 
-  desc.textContent = ach.name;
-  if (ach.rewardText) {
-    reward.textContent = `🎁 ${ach.rewardText} 解放！`;
-  } else {
-    reward.textContent = '';
-  }
+  if (toastTimeout1) clearTimeout(toastTimeout1);
+  if (toastTimeout2) clearTimeout(toastTimeout2);
+
+  const rewardStr = ach.rewardText ? ` ${ach.rewardText}が解放されました` : '';
+  desc.textContent = `【${ach.name}】を達成！${rewardStr}`;
 
   toast.style.transition = 'none';
-  toast.style.opacity = '1';
-  toast.hidden = false;
+  toast.style.opacity = '0';
+  toast.style.display = 'block';
   
   // force reflow
   toast.offsetHeight;
 
   toast.style.transition = 'opacity 0.5s';
+  toast.style.opacity = '1';
 
-  setTimeout(() => {
+  toastTimeout1 = setTimeout(() => {
     toast.style.opacity = '0';
-    setTimeout(() => { toast.hidden = true; }, 500);
+    toastTimeout2 = setTimeout(() => { toast.style.display = 'none'; }, 500);
   }, 4000);
 }
 
