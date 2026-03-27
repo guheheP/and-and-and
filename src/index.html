@@ -92,6 +92,43 @@
       </div>
     </div>
 
+    <!-- キャラクターカスタマイズモーダル -->
+    <div id="character-modal" class="modal" hidden>
+      <div class="modal__content" style="width: 300px;">
+        <div class="modal__title">👤 着せ替え</div>
+        <div class="character-preview" style="height: 100px; background: rgba(0,0,0,0.3); border-radius: 8px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; border: 1px inset #555;">
+          <span>3D上で即時反映中...</span>
+        </div>
+        
+        <div class="character-parts" style="display:flex; flex-direction:column; gap:8px;">
+          <div>
+            <label style="font-size: 0.8rem; color: #aaa;">ベース:</label>
+            <select id="char-base-select" style="width:100%; background: #222; color: #fff; border: 1px solid #555; padding: 6px; border-radius: 4px;"></select>
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; color: #aaa;">帽子:</label>
+            <select id="char-hat-select" style="width:100%; background: #222; color: #fff; border: 1px solid #555; padding: 6px; border-radius: 4px;">
+              <option value="none">なし</option>
+              <option value="straw_hat">麦わら帽子</option>
+              <option value="cap">赤いキャップ</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <label style="font-size: 0.8rem; color: #aaa;">アクセサリ:</label>
+            <select id="char-acc-select" style="width:100%; background: #222; color: #fff; border: 1px solid #555; padding: 6px; border-radius: 4px;">
+              <option value="none">なし</option>
+              <option value="watering_can">ジョウロ</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="modal__actions">
+          <button id="btn-character-save" class="btn btn--primary" style="flex:1;">決定</button>
+          <button id="btn-character-close" class="btn btn--ghost" style="flex:0.5;">やめる</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ガチャモーダル -->
     <div id="gacha-modal" class="modal" hidden>
       <div class="modal__content">

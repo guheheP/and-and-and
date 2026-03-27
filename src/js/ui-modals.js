@@ -140,15 +140,60 @@ export function updateGachaCostDisplay() {
 //  キャラ変更
 // ============================================
 
-export function cycleCharacter() {
+export function buildCharacterCustomizer() {
   if (!_gameState) return;
-  const charIds = Object.keys(CHARACTER_MASTER);
-  const currentIdx = charIds.indexOf(_gameState.currentCharId);
-  const nextIdx = (currentIdx + 1) % charIds.length;
-  const nextId = charIds[nextIdx];
-  _gameState.currentCharId = nextId;
-  updateCharacter(nextId);
-  saveState(_gameState);
+  const baseSelect = document.getElementById('char-base-select');
+  const hatSelect = document.getElementById('char-hat-select');
+  const accSelect = document.getElementById('char-acc-select');
+  if (!baseSelect || !hatSelect || !accSelect) return;
+
+  // 初期化：ベースの選択肢を生成
+  if (baseSelect.options.length === 0) {
+    for (const [id, charData] of Object.entries(CHARACTER_MASTER)) {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = charData.name;
+      baseSelect.appendChild(opt);
+    }
+  }
+
+  // 現在の設定を反映
+  const config = _gameState.characterConfig || { base: _gameState.currentCharId };
+  baseSelect.value = config.base || 'man';
+  hatSelect.value = config.hat || 'none';
+  accSelect.value = config.accessory || 'none';
+
+  // 値が変わった時のライブプレビュー更新
+  const updatePreview = () => {
+    updateCharacter({
+      base: baseSelect.value,
+      hat: hatSelect.value === 'none' ? undefined : hatSelect.value,
+      accessory: accSelect.value === 'none' ? undefined : accSelect.value
+    });
+  };
+
+  baseSelect.onchange = updatePreview;
+  hatSelect.onchange = updatePreview;
+  accSelect.onchange = updatePreview;
+  
+  // モーダルを開いた瞬間の状態反映
+  updatePreview();
+}
+
+export function saveCharacterCustomizer(gameStateObj) {
+  const baseSelect = document.getElementById('char-base-select');
+  const hatSelect = document.getElementById('char-hat-select');
+  const accSelect = document.getElementById('char-acc-select');
+  if (!baseSelect || !hatSelect || !accSelect) return;
+
+  gameStateObj.characterConfig = {
+    base: baseSelect.value,
+    hat: hatSelect.value === 'none' ? undefined : hatSelect.value,
+    accessory: accSelect.value === 'none' ? undefined : accSelect.value
+  };
+  gameStateObj.currentCharId = baseSelect.value; // 後方互換
+  saveState(gameStateObj);
+  updateCharacter(gameStateObj.characterConfig);
 }
 
 // ============================================

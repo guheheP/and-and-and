@@ -10,7 +10,7 @@ import {
   setGameState,
   cycleGachaQty, getCurrentGachaQty,
   showGachaResult, showGachaBatchResult, updateGachaCostDisplay,
-  cycleCharacter,
+  buildCharacterCustomizer, saveCharacterCustomizer,
   buildCatalog, buildEventLog, buildPrestigeShop,
 } from './ui-modals.js';
 
@@ -208,12 +208,37 @@ export function initUI(state) {
   }
 
   // ============================================
-  //  キャラ変更
+  //  キャラカスタマイズモーダル
   // ============================================
   const btnChar = document.getElementById('btn-character');
+  const characterModal = document.getElementById('character-modal');
+  const btnCharClose = document.getElementById('btn-character-close');
+  const btnCharSave = document.getElementById('btn-character-save');
+
   if (btnChar) {
     btnChar.addEventListener('click', () => {
-      cycleCharacter();
+      if (characterModal) {
+        characterModal.hidden = false;
+        resizeForModal();
+      }
+      buildCharacterCustomizer();
+    });
+  }
+
+  if (btnCharClose) {
+    btnCharClose.addEventListener('click', () => {
+      if (characterModal) characterModal.hidden = true;
+      restoreSize();
+      // 元の見た目にリセット
+      updateCharacter(gameState.characterConfig || { base: gameState.currentCharId });
+    });
+  }
+
+  if (btnCharSave) {
+    btnCharSave.addEventListener('click', () => {
+      saveCharacterCustomizer(gameState);
+      if (characterModal) characterModal.hidden = true;
+      restoreSize();
     });
   }
 
