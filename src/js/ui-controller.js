@@ -14,11 +14,7 @@ import {
   buildCatalog, buildEventLog, buildPrestigeShop,
 } from './ui-modals.js';
 
-// レンダラーモードに応じた updateCharacter を動的に取得
-const renderMode = localStorage.getItem('idle-farm-render-mode') || '3d';
-const { updateCharacter } = renderMode === '3d'
-  ? await import('./renderer-3d.js')
-  : await import('./renderer.js');
+import { updateCharacter } from './renderer-3d.js';
 
 /** 作物の色マップ */
 const CROP_COLORS = {
@@ -41,15 +37,19 @@ let gameState = null;
 const NORMAL_SIZE = { w: 240, h: 210 };
 const MODAL_SIZE = { w: 240, h: 400 };
 
+window.idleFarmScale = parseInt(localStorage.getItem('idle-farm-scale')) || 1;
+
 function resizeForModal() {
   if (window.electronAPI?.resize) {
-    window.electronAPI.resize(MODAL_SIZE.w, MODAL_SIZE.h);
+    const s = window.idleFarmScale;
+    window.electronAPI.resize(MODAL_SIZE.w * s, MODAL_SIZE.h * s);
   }
 }
 
 function restoreSize() {
   if (window.electronAPI?.resize) {
-    window.electronAPI.resize(NORMAL_SIZE.w, NORMAL_SIZE.h);
+    const s = window.idleFarmScale;
+    window.electronAPI.resize(NORMAL_SIZE.w * s, NORMAL_SIZE.h * s);
   }
 }
 
@@ -60,6 +60,34 @@ function restoreSize() {
 export function initUI(state) {
   gameState = state;
   setGameState(state); // ui-modals にも共有
+
+  // ============================================
+  //  2倍サイズ切替
+  // ============================================
+  const btnSizeToggle = document.getElementById('btn-size-toggle');
+  
+  // 初期スケール適用
+  document.body.style.zoom = window.idleFarmScale;
+  // 初回ロード時のウィンドウサイズ同期
+  setTimeout(() => {
+    const modals = document.querySelectorAll('.modal:not([hidden])');
+    if (modals.length > 0) resizeForModal();
+    else restoreSize();
+  }, 100);
+
+  if (btnSizeToggle) {
+    btnSizeToggle.addEventListener('click', () => {
+      // モーダルが開いている時は切り替えを無効化（レイアウト崩れ防止）
+      const modals = document.querySelectorAll('.modal:not([hidden])');
+      if (modals.length > 0) return;
+
+      window.idleFarmScale = window.idleFarmScale === 1 ? 2 : 1;
+      localStorage.setItem('idle-farm-scale', window.idleFarmScale);
+      
+      document.body.style.zoom = window.idleFarmScale;
+      restoreSize(); 
+    });
+  }
 
   // ============================================
   //  種購入（旧ガチャ）
