@@ -4,6 +4,7 @@ import { CROP_MASTER } from './master-data.js';
 import { addPoints, addPlayerExp, consumeSeed, saveState, addCropExp, getCropLevel, getCropLevelMultiplier, getUpgradeLevel, isCropInfinite } from './game-state.js';
 import { checkLevelUp, getPointMultiplier } from './progression.js';
 import { updateEventSystem, getGrowthMultiplier, consumePointBoost } from './event-system.js';
+import { checkAchievements } from './achievement-system.js';
 import { getUpgradeEffect } from './prestige-data.js';
 import { rollGacha } from './gacha.js';
 
@@ -93,8 +94,9 @@ function tick(state, currentTime) {
     }
   }
 
-  // 自動セーブ
+  // 実績チェックと自動セーブ
   if (currentTime - lastSaveTime > AUTO_SAVE_INTERVAL) {
+    checkAchievements(state);
     saveState(state);
     lastSaveTime = currentTime;
   }

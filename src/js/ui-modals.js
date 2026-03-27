@@ -6,6 +6,7 @@ import { saveState, getCropLevel, getCropLevelMultiplier, getCropLevelProgress, 
 import { isGachaBatchUnlocked, getGachaCost } from './gacha.js';
 import { PRESTIGE_CONFIG, PRESTIGE_UPGRADES, getUpgradeCost } from './prestige-data.js';
 import { EVENT_MASTER } from './event-data.js';
+import { isPartUnlocked } from './achievement-system.js';
 
 // レンダラーモードに応じた updateCharacter を動的に取得
 const renderMode = localStorage.getItem('idle-farm-render-mode') || '3d';
@@ -162,6 +163,21 @@ export function buildCharacterCustomizer() {
   baseSelect.value = config.base || 'man';
   hatSelect.value = config.hat || 'none';
   accSelect.value = config.accessory || 'none';
+
+  // 未解放パーツをロック表示
+  Array.from(hatSelect.options).forEach(opt => {
+    const unlocked = isPartUnlocked(_gameState, 'hat', opt.value);
+    opt.disabled = !unlocked;
+    opt.text = unlocked ? opt.text.replace('🔒 ', '') : `🔒 ${opt.text.replace('🔒 ', '')}`;
+    if (!unlocked && hatSelect.value === opt.value) hatSelect.value = 'none';
+  });
+
+  Array.from(accSelect.options).forEach(opt => {
+    const unlocked = isPartUnlocked(_gameState, 'accessory', opt.value);
+    opt.disabled = !unlocked;
+    opt.text = unlocked ? opt.text.replace('🔒 ', '') : `🔒 ${opt.text.replace('🔒 ', '')}`;
+    if (!unlocked && accSelect.value === opt.value) accSelect.value = 'none';
+  });
 
   // 値が変わった時のライブプレビュー更新
   const updatePreview = () => {
