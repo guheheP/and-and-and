@@ -40,7 +40,7 @@ export function build3DClock(scene, CONFIG) {
   clockTexture = new THREE.CanvasTexture(clockCanvas);
   clockTexture.minFilter = THREE.LinearFilter;
 
-  const geo = new THREE.PlaneGeometry(3, 0.75);
+  const geo = new THREE.PlaneGeometry(12, 3);
   const mat = new THREE.MeshBasicMaterial({
     map: clockTexture,
     transparent: true,
@@ -49,7 +49,7 @@ export function build3DClock(scene, CONFIG) {
   });
   clockMesh = new THREE.Mesh(geo, mat);
 
-  clockMesh.position.set(CONFIG.cameraLookAt.x, 4.5, -3);
+  clockMesh.position.set(CONFIG.cameraLookAt.x, 5.2, -3);
   clockMesh.lookAt(CONFIG.cameraPos.x, CONFIG.cameraPos.y, CONFIG.cameraPos.z);
 
   const savedClockMode = localStorage.getItem('idle-farm-clock-visible');
@@ -66,14 +66,21 @@ function renderClockTexture() {
   const mm = String(now.getMinutes()).padStart(2, '0');
 
   clockCtx.clearRect(0, 0, 1024, 256);
-  clockCtx.font = "bold 180px 'VT323', 'Courier New', monospace";
+
+  // フォントと文字詰めをCSS版に寄せる
+  clockCtx.font = "200px 'VT323', 'Courier New', monospace";
   clockCtx.textAlign = 'center';
   clockCtx.textBaseline = 'middle';
+  clockCtx.letterSpacing = "10px";
 
-  clockCtx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-  clockCtx.fillText(`${hh}:${mm}`, 518, 134);
+  // CSS版の text-shadow: 0 0 10px rgba(255,255,255,0.3) を再現
+  clockCtx.shadowColor = 'rgba(255, 255, 255, 0.4)';
+  clockCtx.shadowBlur = 30;
+  clockCtx.shadowOffsetX = 0;
+  clockCtx.shadowOffsetY = 0;
 
-  clockCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+  // CSS版の color: rgba(255,255,255,0.4) に近い半透明の白
+  clockCtx.fillStyle = 'rgba(255, 255, 255, 0.6)';
   clockCtx.fillText(`${hh}:${mm}`, 512, 128);
 
   clockTexture.needsUpdate = true;
