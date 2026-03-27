@@ -16,8 +16,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=VT323&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/main.css">
-  <link rel="stylesheet" href="css/character.css">
-  <link rel="stylesheet" href="css/field.css">
   <link rel="stylesheet" href="css/ui.css">
   <link rel="stylesheet" href="css/weather.css">
   <link rel="stylesheet" href="css/prestige.css">
@@ -47,41 +45,6 @@
       <!-- メインステージ -->
       <div id="stage" class="stage">
         <!-- 背景（空＋地面） -->
-        <div class="stage__sky">
-          <div id="sky-clock" class="sky-clock" hidden>00:00</div>
-        </div>
-        <div class="stage__ground"></div>
-
-        <!-- キャラクター -->
-        <div id="farmer" class="farmer farmer--man">
-          <div class="farmer__head"></div>
-          <div class="farmer__body"></div>
-          <div class="farmer__arm farmer__arm--left"></div>
-          <div class="farmer__arm farmer__arm--right"></div>
-          <div class="farmer__leg farmer__leg--left"></div>
-          <div class="farmer__leg farmer__leg--right"></div>
-        </div>
-
-        <!-- 畑 -->
-        <div id="field" class="field">
-          <div class="field__soil"></div>
-
-          <!-- ツルと実を包括する作物コンテナ -->
-          <div id="crop" class="crop">
-            <!-- 支柱 -->
-            <div class="pole pole--left"></div>
-            <div class="pole pole--right"></div>
-
-            <div class="crop__vine"></div>
-            <div class="crop__fruits">
-              <div class="fruit pos-1"></div>
-              <div class="fruit pos-2"></div>
-              <div class="fruit pos-3"></div>
-              <div class="fruit pos-4"></div>
-            </div>
-          </div>
-        </div>
-
         <!-- 収穫エフェクト -->
         <div id="harvest-effect" class="harvest-effect" hidden></div>
 
@@ -111,7 +74,6 @@
         <div id="menu-popup" class="menu-popup">
           <button id="btn-character" class="toolbar__btn" data-tooltip="キャラ変更">👤</button>
           <button id="btn-bg-toggle" class="toolbar__btn toolbar__btn--toggle" data-tooltip="背景切替">🌤️</button>
-          <button id="btn-3d-toggle" class="toolbar__btn" data-tooltip="3D切替">🎮</button>
           <button id="btn-clock-toggle" class="toolbar__btn" data-tooltip="時計切替">🕒</button>
           <button id="btn-log" class="toolbar__btn" data-tooltip="イベント図鑑">📕</button>
         </div>

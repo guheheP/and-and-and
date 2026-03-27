@@ -205,43 +205,6 @@ body {
   overflow: hidden;
 }
 
-.stage__sky {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom,
-      var(--c-sky-top) 0%,
-      var(--c-sky-bottom) 70%,
-      var(--c-ground) 70%,
-      var(--c-ground) 100%);
-}
-
-/* ============================================
-   空に浮かぶ時計
-   ============================================ */
-.sky-clock {
-  position: absolute;
-  top: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: 'VT323', 'Courier New', monospace;
-  font-size: 42px;
-  letter-spacing: 4px;
-  color: rgba(255, 255, 255, 0.4);
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-  z-index: 5;
-  pointer-events: none;
-}
-
-/* 地面テクスチャ（ドット風） */
-.stage__ground {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 42px;
-  background: var(--c-ground);
-  border-top: 2px solid var(--c-ground-dark);
-}
 
 /* 非アクティブ時ステータス表示 */
 .blur-stats {

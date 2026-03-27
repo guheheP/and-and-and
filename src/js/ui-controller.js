@@ -270,20 +270,7 @@ export function initUI(state) {
     });
   }
 
-  // ============================================
-  //  3D モード切替
-  // ============================================
-  const btn3D = document.getElementById('btn-3d-toggle');
-  if (btn3D) {
-    const mode = localStorage.getItem('idle-farm-render-mode') || '3d';
-    btn3D.classList.toggle('is-active', mode === '3d');
-    btn3D.addEventListener('click', () => {
-      const nowMode = localStorage.getItem('idle-farm-render-mode') || '3d';
-      const nextMode = nowMode === '3d' ? '2d' : '3d';
-      localStorage.setItem('idle-farm-render-mode', nextMode);
-      location.reload();
-    });
-  }
+
 
   // ============================================
   //  イベント図鑑

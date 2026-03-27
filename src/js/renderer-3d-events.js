@@ -40,7 +40,7 @@ export function build3DClock(scene, CONFIG) {
   clockTexture = new THREE.CanvasTexture(clockCanvas);
   clockTexture.minFilter = THREE.LinearFilter;
 
-  const geo = new THREE.PlaneGeometry(12, 3);
+  const geo = new THREE.PlaneGeometry(20, 5);
   const mat = new THREE.MeshBasicMaterial({
     map: clockTexture,
     transparent: true,
@@ -49,7 +49,7 @@ export function build3DClock(scene, CONFIG) {
   });
   clockMesh = new THREE.Mesh(geo, mat);
 
-  clockMesh.position.set(CONFIG.cameraLookAt.x, 5.2, -3);
+  clockMesh.position.set(CONFIG.cameraLookAt.x, 4.0, -3);
   clockMesh.lookAt(CONFIG.cameraPos.x, CONFIG.cameraPos.y, CONFIG.cameraPos.z);
 
   const savedClockMode = localStorage.getItem('idle-farm-clock-visible');
@@ -350,36 +350,36 @@ function spawnCrossingObject3D(type, scene, activeAnimators) {
 
 function spawnStaticAnimal3D(type, weatherGroup, activeAnimators) {
   const grp = new THREE.Group();
-  
+
   if (type === 'dog_visit') {
     const c = 0xd89f50;
     const w = 0xffffff;
-    
+
     const bodyTop = box(1.4, 0.4, 0.8, c);
     bodyTop.position.set(0, 1.0, 0);
     const bodyBot = box(1.4, 0.3, 0.8, w);
     bodyBot.position.set(0, 0.65, 0);
-    
+
     const head = box(0.8, 0.8, 0.8, c);
     head.position.set(0.8, 1.4, 0);
-    
+
     const muzzle = box(0.4, 0.4, 0.82, w);
     muzzle.position.set(1.0, 1.25, 0);
-    
+
     const earL = box(0.2, 0.4, 0.2, c);
     earL.position.set(0.6, 1.9, -0.3);
     const earR = box(0.2, 0.4, 0.2, c);
     earR.position.set(0.6, 1.9, 0.3);
-    
+
     const nose = box(0.2, 0.2, 0.2, 0x222222);
     nose.position.set(1.25, 1.3, 0);
-    
+
     [[-0.5, -0.25], [0.5, -0.25], [-0.5, 0.25], [0.5, 0.25]].forEach(([x, z]) => {
       const leg = box(0.3, 0.6, 0.3, w);
       leg.position.set(x, 0.3, z);
       grp.add(leg);
     });
-    
+
     const tail = box(0.3, 0.4, 0.3, c);
     tail.position.set(-0.7, 1.3, 0);
     tail.rotation.z = Math.PI / 4;
@@ -396,7 +396,7 @@ function spawnStaticAnimal3D(type, weatherGroup, activeAnimators) {
     patch1.position.set(-0.3, 0.6, 0);
     const patch2 = box(0.3, 0.62, 0.62, co);
     patch2.position.set(0.3, 0.6, 0);
-    
+
     const head = box(0.7, 0.7, 0.7, cw);
     head.position.set(0.7, 1.2, 0);
     const headPatch = box(0.72, 0.32, 0.72, co);
@@ -408,7 +408,7 @@ function spawnStaticAnimal3D(type, weatherGroup, activeAnimators) {
     const earR = box(0.2, 0.3, 0.2, co);
     earR.position.set(0.6, 1.6, 0.25);
     earR.rotation.z = 0.3;
-    
+
     [[-0.4, -0.15], [0.4, -0.15], [-0.4, 0.15], [0.4, 0.15]].forEach(([x, z]) => {
       const leg = box(0.2, 0.4, 0.2, cw);
       leg.position.set(x, 0.2, z);
@@ -417,7 +417,7 @@ function spawnStaticAnimal3D(type, weatherGroup, activeAnimators) {
     const tail = box(0.15, 0.7, 0.15, cb);
     tail.position.set(-0.6, 0.8, 0);
     tail.rotation.z = -0.3;
-    
+
     grp.add(body, patch1, patch2, head, headPatch, earL, earR, tail);
   }
 
@@ -437,7 +437,7 @@ function spawnStaticAnimal3D(type, weatherGroup, activeAnimators) {
       mesh: grp,
       update: (dt, t) => {
         if (!grp.parent) return false;
-        grp.position.y = Math.sin(t * 0.002) * 0.04; 
+        grp.position.y = Math.sin(t * 0.002) * 0.04;
         return true;
       }
     });
@@ -447,13 +447,13 @@ function spawnStaticAnimal3D(type, weatherGroup, activeAnimators) {
   grp.position.set(-5 + Math.random() * 2, 0, 4 + Math.random() * 2);
   grp.rotation.y = Math.PI / 4 + Math.random() * 0.5;
   weatherGroup.add(grp);
-  
+
   let targetX = grp.position.x;
   let targetZ = grp.position.z;
-  let state = 'idle'; 
+  let state = 'idle';
   let stateTimer = Date.now() + 1000;
-  const walkSpeed = 0.04; 
-  
+  const walkSpeed = 0.04;
+
   activeAnimators.push({
     type: 'animal_visit',
     mesh: grp,
@@ -483,12 +483,12 @@ function spawnStaticAnimal3D(type, weatherGroup, activeAnimators) {
           stateTimer = t + 1000 + Math.random() * 2000;
         }
       }
-      
+
       if (state === 'walk') {
         const dx = targetX - grp.position.x;
         const dz = targetZ - grp.position.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
-        
+
         if (dist > 0.1) {
           grp.position.x += (dx / dist) * walkSpeed;
           grp.position.z += (dz / dist) * walkSpeed;
@@ -500,7 +500,7 @@ function spawnStaticAnimal3D(type, weatherGroup, activeAnimators) {
       } else {
         grp.position.y = 0;
       }
-      
+
       return true;
     }
   });
@@ -509,23 +509,23 @@ function spawnStaticAnimal3D(type, weatherGroup, activeAnimators) {
 
 function spawnJohnVisit3D(weatherGroup, activeAnimators) {
   const grp = new THREE.Group();
-  
+
   const body = box(1.0, 1.4, 0.6, 0xffa07a);
-  body.position.y = 1.0; 
+  body.position.y = 1.0;
   body.castShadow = true;
-  
+
   const head = box(0.8, 0.8, 0.8, 0xffdcb4);
   head.position.y = 2.1;
   head.castShadow = true;
-  
+
   const legL = box(0.4, 0.6, 0.4, 0x4444aa);
   legL.position.set(0.25, 0.3, 0);
   legL.castShadow = true;
-  
+
   const legR = box(0.4, 0.6, 0.4, 0x4444aa);
   legR.position.set(-0.25, 0.3, 0);
   legR.castShadow = true;
-  
+
   const armL = box(0.3, 0.8, 0.3, 0xffa07a);
   armL.position.set(0.65, 1.3, 0);
   armL.castShadow = true;
@@ -533,23 +533,23 @@ function spawnJohnVisit3D(weatherGroup, activeAnimators) {
   const armR = box(0.3, 0.8, 0.3, 0xffa07a);
   armR.position.set(-0.65, 1.3, 0);
   armR.castShadow = true;
-  
+
   grp.add(body, head, legL, legR, armL, armR);
-  
+
   grp.position.set(10, 0, 5);
   weatherGroup.add(grp);
-  
+
   let state = 'enter';
   let targetX = 3 + Math.random() * 2;
   let targetZ = 2 + Math.random() * 2;
-  
+
   const faceTarget = (tx, tz) => {
     const dx = tx - grp.position.x;
     const dz = tz - grp.position.z;
     grp.rotation.y = Math.atan2(dx, dz);
   };
   faceTarget(targetX, targetZ);
-  
+
   const speed = 0.04;
   const startTime = Date.now();
 
@@ -558,17 +558,17 @@ function spawnJohnVisit3D(weatherGroup, activeAnimators) {
     mesh: grp,
     update: (dt, t) => {
       if (!grp.parent) return false;
-      
+
       const elapsed = Date.now() - startTime;
-      
+
       if (state === 'enter') {
         const dx = targetX - grp.position.x;
         const dz = targetZ - grp.position.z;
-        const dist = Math.sqrt(dx*dx + dz*dz);
-        
+        const dist = Math.sqrt(dx * dx + dz * dz);
+
         if (dist > 0.1) {
-          grp.position.x += (dx/dist) * speed;
-          grp.position.z += (dz/dist) * speed;
+          grp.position.x += (dx / dist) * speed;
+          grp.position.z += (dz / dist) * speed;
           grp.position.y = Math.abs(Math.sin(elapsed * 0.01)) * 0.2;
           legL.rotation.x = Math.sin(elapsed * 0.01) * 0.4;
           legR.rotation.x = -Math.sin(elapsed * 0.01) * 0.4;
@@ -594,11 +594,11 @@ function spawnJohnVisit3D(weatherGroup, activeAnimators) {
         head.rotation.x = 0;
         const dx = targetX - grp.position.x;
         const dz = targetZ - grp.position.z;
-        const dist = Math.sqrt(dx*dx + dz*dz);
-        
+        const dist = Math.sqrt(dx * dx + dz * dz);
+
         if (dist > 0.1) {
-          grp.position.x += (dx/dist) * speed;
-          grp.position.z += (dz/dist) * speed;
+          grp.position.x += (dx / dist) * speed;
+          grp.position.z += (dz / dist) * speed;
           grp.position.y = Math.abs(Math.sin(elapsed * 0.01)) * 0.2;
           legL.rotation.x = Math.sin(elapsed * 0.01) * 0.4;
           legR.rotation.x = -Math.sin(elapsed * 0.01) * 0.4;
