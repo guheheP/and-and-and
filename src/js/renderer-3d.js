@@ -263,7 +263,14 @@ function animate() {
   for (let i = activeAnimators.length - 1; i >= 0; i--) {
     const anim = activeAnimators[i];
     if (!anim.update(dt, t)) {
-      if (anim.mesh) anim.mesh.removeFromParent();
+      if (anim.mesh) {
+        anim.mesh.removeFromParent();
+        // ジオメトリとマテリアルを解放
+        anim.mesh.traverse(child => {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) child.material.dispose();
+        });
+      }
       activeAnimators.splice(i, 1);
     }
   }

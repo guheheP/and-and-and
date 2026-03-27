@@ -666,66 +666,109 @@ function spawnJohnVisit3D(weatherGroup, activeAnimators) {
   });
 }
 
+// ── 収穫パーティクルの共有プール ──
+const harvestPool = [];
+const MAX_HARVEST_PARTICLES = 60;
+let harvestAnimRunning = false;
+
+function tickHarvestPool() {
+  if (harvestPool.length === 0) {
+    harvestAnimRunning = false;
+    return;
+  }
+
+  const now = Date.now();
+  for (let i = harvestPool.length - 1; i >= 0; i--) {
+    const p = harvestPool[i];
+    const t = (now - p.startTime) / 1000;
+
+    if (p.phase === 'pop') {
+      if (t > p.popDuration) {
+        // ポップ終了 → 散らばるフェーズに移行
+        p.scene.remove(p.mesh);
+        p.mesh.geometry.dispose();
+        p.mesh.material.dispose();
+        harvestPool.splice(i, 1);
+
+        // パーティクル生成（上限チェック付き）
+        const count = Math.min(12, MAX_HARVEST_PARTICLES - harvestPool.length);
+        for (let j = 0; j < count; j++) {
+          if (harvestPool.length >= MAX_HARVEST_PARTICLES) break;
+          const size = 0.15 + Math.random() * 0.15;
+          const pColor = Math.random() > 0.8 ? 0xffea00 : p.color;
+          const particle = box(size, size, size, pColor);
+          particle.material.transparent = true;
+          particle.position.copy(p.originPos);
+          p.scene.add(particle);
+
+          harvestPool.push({
+            phase: 'scatter',
+            mesh: particle,
+            scene: p.scene,
+            startTime: now,
+            vx: (Math.random() - 0.5) * 8,
+            vy: 3 + Math.random() * 5,
+            vz: (Math.random() - 0.5) * 8,
+            duration: 0.5,
+          });
+        }
+      } else {
+        // サインカーブで上向きの弧を描く
+        const progress = t / p.popDuration;
+        p.mesh.position.y = 0.5 + Math.sin(progress * Math.PI) * 2.5;
+        p.mesh.rotation.x += 0.2;
+        p.mesh.rotation.y += 0.2;
+      }
+    } else if (p.phase === 'scatter') {
+      if (t > p.duration) {
+        p.scene.remove(p.mesh);
+        p.mesh.geometry.dispose();
+        p.mesh.material.dispose();
+        harvestPool.splice(i, 1);
+      } else {
+        p.mesh.position.x += p.vx * 0.016;
+        p.mesh.position.y += (p.vy - t * 15) * 0.016;
+        p.mesh.position.z += p.vz * 0.016;
+        p.mesh.rotation.x += 0.1;
+        p.mesh.rotation.y += 0.1;
+        p.mesh.material.opacity = 1 - t / p.duration;
+      }
+    }
+  }
+
+  requestAnimationFrame(tickHarvestPool);
+}
+
 export function showHarvestParticles(scene, cropId, CROP_HEX) {
   if (!scene) return;
   const color = CROP_HEX[cropId] || 0xffd700;
 
-  // 1. 大きな収穫物の飛び跳ね演出
+  // 古いパーティクルが溜まりすぎている場合、古いものを強制削除
+  while (harvestPool.length >= MAX_HARVEST_PARTICLES - 5) {
+    const old = harvestPool.shift();
+    if (old && old.mesh && old.mesh.parent) {
+      old.scene.remove(old.mesh);
+      old.mesh.geometry.dispose();
+      old.mesh.material.dispose();
+    }
+  }
+
   const bigCrop = box(0.6, 0.6, 0.6, color);
-  bigCrop.position.set(0, 0.5, 0.5); // 畑の中央付近から
+  bigCrop.position.set(0, 0.5, 0.5);
   scene.add(bigCrop);
 
-  const start = Date.now();
-  const popDuration = 0.3; // 0.3秒で飛び跳ねる
+  harvestPool.push({
+    phase: 'pop',
+    mesh: bigCrop,
+    scene,
+    color,
+    originPos: bigCrop.position.clone(),
+    startTime: Date.now(),
+    popDuration: 0.3,
+  });
 
-  (function animatePop() {
-    const t = (Date.now() - start) / 1000;
-    if (t > popDuration) {
-      scene.remove(bigCrop);
-      if (bigCrop.geometry) bigCrop.geometry.dispose();
-      if (bigCrop.material) bigCrop.material.dispose();
-
-      // 2. 弾けるパーティクル演出
-      for (let i = 0; i < 20; i++) {
-        const size = 0.15 + Math.random() * 0.15;
-        const pColor = Math.random() > 0.8 ? 0xffea00 : color;
-        const particle = box(size, size, size, pColor);
-        particle.position.copy(bigCrop.position);
-        scene.add(particle);
-
-        const vx = (Math.random() - 0.5) * 8;
-        const vy = 3 + Math.random() * 5;
-        const vz = (Math.random() - 0.5) * 8;
-        const pStart = Date.now();
-
-        (function tickParticle() {
-          const pt = (Date.now() - pStart) / 1000;
-          if (pt > 0.6) {
-            scene.remove(particle);
-            particle.geometry.dispose();
-            particle.material.dispose();
-            return;
-          }
-          particle.position.x += vx * 0.016;
-          particle.position.y += (vy - pt * 15) * 0.016; // 15=仮想重力
-          particle.position.z += vz * 0.016;
-          
-          particle.rotation.x += 0.1;
-          particle.rotation.y += 0.1;
-
-          particle.material.opacity = 1 - pt / 0.6;
-          particle.material.transparent = true;
-          requestAnimationFrame(tickParticle);
-        })();
-      }
-      return;
-    }
-    
-    // サインカーブで上向きの弧を描く
-    const progress = t / popDuration;
-    bigCrop.position.y = 0.5 + Math.sin(progress * Math.PI) * 2.5; 
-    bigCrop.rotation.x += 0.2;
-    bigCrop.rotation.y += 0.2;
-    requestAnimationFrame(animatePop);
-  })();
+  if (!harvestAnimRunning) {
+    harvestAnimRunning = true;
+    requestAnimationFrame(tickHarvestPool);
+  }
 }
