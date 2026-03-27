@@ -200,7 +200,7 @@ export function getCropLevelMultiplier(cropLevel) {
 
 /**
  * 作物が無限化（種消費なし）されているか判定
- * トマトは初期から無限、レアリティが高いほど低レベルで無限化
+ * トマトは初期から無限、それ以外は作物レベル100で無限化
  * @param {GameState} state
  * @param {string} cropId
  * @returns {boolean}
@@ -209,9 +209,7 @@ export function isCropInfinite(state, cropId) {
   if (cropId === 'tomato') return true;
   const crop = CROP_MASTER[cropId];
   if (!crop) return false;
-  const thresholds = { 1: 100, 2: 80, 3: 60, 4: 40, 5: 30 };
-  const threshold = thresholds[crop.rarity] || 100;
-  return getCropLevel(state, cropId) >= threshold;
+  return getCropLevel(state, cropId) >= 100;
 }
 
 // ============================================
