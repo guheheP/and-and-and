@@ -7,12 +7,7 @@ import { isGachaBatchUnlocked, getGachaCost } from './gacha.js';
 import { PRESTIGE_CONFIG, PRESTIGE_UPGRADES, getUpgradeCost } from './prestige-data.js';
 import { EVENT_MASTER } from './event-data.js';
 import { isPartUnlocked } from './achievement-system.js';
-
-// レンダラーモードに応じた updateCharacter を動的に取得
-const renderMode = localStorage.getItem('idle-farm-render-mode') || '3d';
-const { updateCharacter } = renderMode === '3d'
-  ? await import('./renderer-3d.js')
-  : await import('./renderer.js');
+import { updateCharacter } from './renderer-3d.js';
 
 // ============================================
 //  種購入（旧ガチャ）関連

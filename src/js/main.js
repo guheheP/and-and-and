@@ -13,24 +13,15 @@ import {
   triggerWorkAnimation,
   triggerHarvestAnimation,
   showLevelUpEffect,
+  startEventVisual,
+  stopAllEventVisuals,
 } from './renderer-3d.js';
 import { initUI, buildCatalog } from './ui-controller.js';
 import { initDebug } from './debug.js';
 import { CROP_MASTER } from './master-data.js';
 import { getGachaPool } from './progression.js';
 import { showAchievementToast } from './renderer-common.js';
-import {
-  initEventSystem,
-  setPointBoost,
-  startRainParticles,
-  stopAllParticles,
-  startSnowParticles,
-  startThunderFlashes,
-  spawnBirdDropping,
-  spawnCrossingSprite,
-  spawnTumbleweed,
-  spawnCumulonimbus,
-} from './event-system.js';
+import { initEventSystem, setPointBoost } from './event-system.js';
 import { initAchievementSystem } from './achievement-system.js';
 
 /** すべてのイベントCSSクラス */
@@ -160,64 +151,8 @@ function handleEventStart(state, event) {
   if (!state.eventCounts) state.eventCounts = {};
   state.eventCounts[event.id] = (state.eventCounts[event.id] || 0) + 1;
 
-  // CSSクラス追加（2Dの背景フィルターや犬・猫の擬似要素用）
-  if (event.cssClass && renderMode !== '3d') {
-    stage.classList.add(event.cssClass);
-  }
-
-  // インジケーター表示（無効化）
-  // showEventIndicator(event.name);
-
-  // ビジュアルエフェクト
-  if (renderMode === '3d' && rendererModule.startEventVisual) {
-    rendererModule.startEventVisual(event);
-  } else {
-    switch (event.id) {
-      case 'rain':
-        startRainParticles();
-        break;
-      case 'heavy_rain':
-        startRainParticles('rgba(140, 180, 220, 0.8)', 35);
-        break;
-      case 'diamond_rain':
-        startRainParticles('rgba(180, 220, 255, 0.9)', 25);
-        break;
-      case 'snow':
-        startSnowParticles();
-        break;
-      case 'thunder':
-        startRainParticles('rgba(160, 180, 200, 0.6)', 50);
-        startThunderFlashes();
-        break;
-      case 'typhoon':
-        startRainParticles('rgba(150, 170, 190, 0.5)', 30);
-        break;
-      case 'cumulonimbus':
-        spawnCumulonimbus();
-        break;
-      case 'tumbleweed':
-        spawnTumbleweed();
-        break;
-      case 'bird_poop':
-        spawnBirdDropping();
-        break;
-      case 'stork':
-        spawnCrossingSprite('🦩', 4000);
-        break;
-      case 'santa':
-        spawnCrossingSprite('🎅', 4000);
-        break;
-      case 'john':
-        spawnCrossingSprite('🧑', 4000);
-        break;
-      case 'dog_visit':
-        // CSS ::after で犬が居座る
-        break;
-      case 'cat_visit':
-        // CSS ::after で猫が居座る
-        break;
-    }
-  }
+  // ビジュアルエフェクト（3D renderer に委譲）
+  startEventVisual(event);
 
   // ゲーム効果の適用
   applyEventEffect(state, event);
@@ -232,18 +167,7 @@ function handleEventEnd(state, event) {
   const stage = document.getElementById('stage');
   if (!stage) return;
 
-  // 全CSSクラス除去
-  ALL_EVENT_CLASSES.forEach(cls => stage.classList.remove(cls));
-
-  if (renderMode === '3d' && rendererModule.stopAllEventVisuals) {
-    rendererModule.stopAllEventVisuals();
-  } else {
-    // 全パーティクル停止
-    stopAllParticles();
-  }
-
-  // インジケーター非表示（無効化）
-  // hideEventIndicator();
+  stopAllEventVisuals();
 
   saveState(state);
 }
