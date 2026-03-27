@@ -40,15 +40,17 @@ function cylinder(rTop, rBot, h, color) {
 /**
  * キャラクターモデルを再構築する
  * @param {THREE.Group} farmerGroup - 既存のfarmerGroup (子は全クリアされる)
- * @param {string} cssClass - キャラのCSSクラス名
+ * @param {string|Object} charConfig - キャラのCSSクラス名、またはカスタマイズオブジェクト
  */
-export function rebuildFarmerModel(farmerGroup, cssClass) {
+export function rebuildFarmerModel(farmerGroup, charConfig) {
   while (farmerGroup.children.length) {
     const c = farmerGroup.children[0];
     c.removeFromParent();
     if (c.geometry) c.geometry.dispose();
     if (c.material) c.material.dispose();
   }
+
+  let cssClass = typeof charConfig === 'string' ? charConfig : charConfig.base || 'farmer--man';
 
   // 動物系は別Builder
   if (cssClass === 'farmer--dog') return buildDogModel(farmerGroup);
@@ -57,13 +59,14 @@ export function rebuildFarmerModel(farmerGroup, cssClass) {
 
   // 人間系
   const colors = CHAR_COLORS[cssClass] || CHAR_COLORS['farmer--man'];
-  buildHumanoidModel(farmerGroup, colors);
+  buildHumanoidModel(farmerGroup, colors, typeof charConfig === 'object' ? charConfig : {});
 }
 
-function buildHumanoidModel(farmerGroup, c) {
+function buildHumanoidModel(farmerGroup, c, config = {}) {
   const head = box(0.9, 0.9, 0.9, c.skin);
   head.position.set(0, 3.1, 0);
   head.castShadow = true;
+  head.name = 'head';
   farmerGroup.add(head);
 
   const hair = box(0.95, 0.25, 0.95, c.hair);
@@ -82,25 +85,51 @@ function buildHumanoidModel(farmerGroup, c) {
   const body = box(0.9, 1.3, 0.6, c.body);
   body.position.set(0, 2.0, 0);
   body.castShadow = true;
+  body.name = 'body';
   farmerGroup.add(body);
 
   const armL = box(0.3, 1.1, 0.3, c.skin);
   armL.position.set(-0.6, 2.0, 0);
   armL.castShadow = true;
+  armL.name = 'armL';
   farmerGroup.add(armL);
   const armR = box(0.3, 1.1, 0.3, c.skin);
   armR.position.set(0.6, 2.0, 0);
   armR.castShadow = true;
+  armR.name = 'armR';
   farmerGroup.add(armR);
 
   const legL = box(0.35, 0.9, 0.35, c.pants);
   legL.position.set(-0.22, 0.7, 0);
   legL.castShadow = true;
+  legL.name = 'legL';
   farmerGroup.add(legL);
   const legR = box(0.35, 0.9, 0.35, c.pants);
   legR.position.set(0.22, 0.7, 0);
   legR.castShadow = true;
+  legR.name = 'legR';
   farmerGroup.add(legR);
+
+  // ─── アクセサリ等の後付けパーツ ───
+  if (config.hat === 'straw_hat') {
+    const brim = cylinder(0.8, 0.8, 0.05, 0xe0c080);
+    brim.position.set(0, 3.6, 0);
+    const top = cylinder(0.4, 0.45, 0.4, 0xe0c080);
+    top.position.set(0, 3.8, 0);
+    farmerGroup.add(brim, top);
+  } else if (config.hat === 'cap') {
+    const capTop = box(0.92, 0.3, 0.92, 0xff0000);
+    capTop.position.set(0, 3.65, 0);
+    const brim = box(0.92, 0.05, 0.5, 0xff0000);
+    brim.position.set(0, 3.5, 0.4);
+    farmerGroup.add(capTop, brim);
+  }
+
+  if (config.accessory === 'watering_can') {
+    const can = box(0.4, 0.4, 0.4, 0x88bbff);
+    can.position.set(0, -0.5, 0.3);
+    armR.add(can);
+  }
 }
 
 function buildDogModel(farmerGroup) {

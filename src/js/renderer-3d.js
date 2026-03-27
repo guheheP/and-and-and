@@ -392,15 +392,15 @@ export function triggerWorkAnimation() {
     _armResetTimer = null;
   }
 
-  const armL = farmerGroup.children[4];
-  const armR = farmerGroup.children[5];
+  const armL = farmerGroup.getObjectByName('armL');
+  const armR = farmerGroup.getObjectByName('armR');
   if (!armL || !armR) return;
 
   armL.rotation.x = -0.7;
   armR.rotation.x = -0.7;
 
   _armResetTimer = setTimeout(() => {
-    if (farmerGroup.children[4] === armL && farmerGroup.children[5] === armR) {
+    if (farmerGroup.getObjectByName('armL') === armL && farmerGroup.getObjectByName('armR') === armR) {
       armL.rotation.x = 0;
       armR.rotation.x = 0;
     }
@@ -417,9 +417,9 @@ export function triggerHarvestAnimation() {
     _armResetTimer = null;
   }
 
-  const bodyGroup = farmerGroup; 
-  const armL = farmerGroup.children[4];
-  const armR = farmerGroup.children[5];
+  const bodyGroup = farmerGroup.getObjectByName('body') || farmerGroup; 
+  const armL = farmerGroup.getObjectByName('armL');
+  const armR = farmerGroup.getObjectByName('armR');
 
   // 1: 屈む
   bodyGroup.position.y = -0.2;
