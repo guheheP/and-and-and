@@ -6,7 +6,7 @@ import { saveState, getCropLevel, getCropLevelMultiplier, getCropLevelProgress, 
 import { isGachaBatchUnlocked, getGachaCost } from './gacha.js';
 import { PRESTIGE_CONFIG, PRESTIGE_UPGRADES, getUpgradeCost } from './prestige-data.js';
 import { EVENT_MASTER } from './event-data.js';
-import { isPartUnlocked } from './achievement-system.js';
+import { isPartUnlocked, ACHIEVEMENT_MASTER } from './achievement-system.js';
 import { updateCharacter } from './renderer-3d.js';
 
 // ============================================
@@ -455,3 +455,62 @@ export function buildPrestigeShop() {
     shopEl.appendChild(row);
   }
 }
+
+// ============================================
+//  実績一覧
+// ============================================
+
+export function buildAchievementList() {
+  if (!_gameState) return;
+  const listEl = document.getElementById('achievement-list');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+
+  const unlocked = _gameState.unlockedAchievements || [];
+
+  for (const [id, ach] of Object.entries(ACHIEVEMENT_MASTER)) {
+    const isUnlocked = unlocked.includes(id);
+    const card = document.createElement('div');
+    card.style.cssText = `
+      background: ${isUnlocked ? 'rgba(255,215,0,0.08)' : 'rgba(255,255,255,0.03)'};
+      border: 1px solid ${isUnlocked ? '#ffd70066' : '#555'};
+      border-radius: 6px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    `;
+
+    const icon = document.createElement('div');
+    icon.style.cssText = 'font-size: 1.4rem; min-width: 28px; text-align: center;';
+    icon.textContent = isUnlocked ? '✅' : '🔒';
+
+    const info = document.createElement('div');
+    info.style.cssText = 'flex: 1; min-width: 0;';
+
+    const title = document.createElement('div');
+    title.style.cssText = `font-size: 0.85rem; font-weight: bold; color: ${isUnlocked ? '#ffd700' : '#888'};`;
+    title.textContent = ach.name;
+
+    const desc = document.createElement('div');
+    desc.style.cssText = 'font-size: 0.75rem; color: #aaa; margin-top: 2px;';
+    desc.textContent = ach.desc;
+
+    if (ach.rewardText) {
+      const reward = document.createElement('div');
+      reward.style.cssText = `font-size: 0.7rem; color: ${isUnlocked ? '#88ccff' : '#666'}; margin-top: 3px;`;
+      reward.textContent = `🎁 報酬: ${ach.rewardText}`;
+      info.appendChild(title);
+      info.appendChild(desc);
+      info.appendChild(reward);
+    } else {
+      info.appendChild(title);
+      info.appendChild(desc);
+    }
+
+    card.appendChild(icon);
+    card.appendChild(info);
+    listEl.appendChild(card);
+  }
+}
+

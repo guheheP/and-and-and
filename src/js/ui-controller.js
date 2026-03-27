@@ -12,6 +12,7 @@ import {
   showGachaResult, showGachaBatchResult, updateGachaCostDisplay,
   buildCharacterCustomizer, saveCharacterCustomizer, stopCharacterPreview,
   buildCatalog, buildEventLog, buildPrestigeShop,
+  buildAchievementList,
 } from './ui-modals.js';
 
 import { updateCharacter } from './renderer-3d.js';
@@ -241,6 +242,30 @@ export function initUI(state) {
       if (characterModal) characterModal.hidden = true;
       restoreSize();
       stopCharacterPreview();
+    });
+  }
+
+  // ============================================
+  //  実績一覧
+  // ============================================
+  const btnAchievements = document.getElementById('btn-achievements');
+  const achievementModal = document.getElementById('achievement-modal');
+  const btnAchievementClose = document.getElementById('btn-achievement-close');
+
+  if (btnAchievements) {
+    btnAchievements.addEventListener('click', () => {
+      if (achievementModal) {
+        achievementModal.hidden = false;
+        resizeForModal();
+      }
+      buildAchievementList();
+    });
+  }
+
+  if (btnAchievementClose) {
+    btnAchievementClose.addEventListener('click', () => {
+      if (achievementModal) achievementModal.hidden = true;
+      restoreSize();
     });
   }
 

@@ -79,6 +79,7 @@
         <!-- メニューポップアップ -->
         <div id="menu-popup" class="menu-popup">
           <button id="btn-character" class="toolbar__btn" data-tooltip="キャラ変更">👤</button>
+          <button id="btn-achievements" class="toolbar__btn" data-tooltip="実績一覧">🏆</button>
           <button id="btn-bg-toggle" class="toolbar__btn toolbar__btn--toggle" data-tooltip="背景切替">🌤️</button>
           <button id="btn-clock-toggle" class="toolbar__btn" data-tooltip="時計切替">🕒</button>
           <button id="btn-log" class="toolbar__btn" data-tooltip="イベント図鑑">📕</button>
@@ -94,6 +95,17 @@
         <div id="log-list" class="log-list"></div>
         <div class="modal__actions">
           <button id="btn-log-close" class="btn btn--ghost">閉じる</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 実績一覧モーダル -->
+    <div id="achievement-modal" class="modal" hidden>
+      <div class="modal__content modal__content--log">
+        <div class="modal__title">🏆 実績一覧</div>
+        <div id="achievement-list" style="max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 0;"></div>
+        <div class="modal__actions">
+          <button id="btn-achievement-close" class="btn btn--ghost">閉じる</button>
         </div>
       </div>
     </div>
