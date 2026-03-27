@@ -3,12 +3,7 @@
 import { loadState, saveState, addSeed, addPoints } from './game-state.js';
 import { startGameLoop } from './game-loop.js';
 
-// 動的レンダラー選択（2D or 3D）
-const renderMode = localStorage.getItem('idle-farm-render-mode') || '3d';
-const rendererModule = renderMode === '3d'
-  ? await import('./renderer-3d.js')
-  : await import('./renderer.js');
-const {
+import {
   initRenderer,
   updateCharacter,
   updateField,
@@ -16,8 +11,9 @@ const {
   showHarvestEffect,
   showHarvestParticles,
   triggerWorkAnimation,
+  triggerHarvestAnimation,
   showLevelUpEffect,
-} = rendererModule;
+} from './renderer-3d.js';
 import { initUI, buildCatalog } from './ui-controller.js';
 import { initDebug } from './debug.js';
 import { CROP_MASTER } from './master-data.js';
@@ -84,7 +80,7 @@ function init() {
       triggerWorkAnimation();
     },
     onHarvest: (cropId, points) => {
-      triggerWorkAnimation();
+      triggerHarvestAnimation();
       showHarvestEffect(points);
       showHarvestParticles(cropId);
       

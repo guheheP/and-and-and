@@ -618,33 +618,62 @@ export function showHarvestParticles(scene, cropId, CROP_HEX) {
   if (!scene) return;
   const color = CROP_HEX[cropId] || 0xffd700;
 
-  for (let i = 0; i < 10; i++) {
-    const size = 0.12 + Math.random() * 0.12;
-    const particle = box(size, size, size, color);
-    particle.position.set(
-      (Math.random() - 0.5) * 2.5,
-      1.0 + Math.random() * 1.5,
-      0.5 + (Math.random() - 0.5) * 1
-    );
-    scene.add(particle);
+  // 1. 大きな収穫物の飛び跳ね演出
+  const bigCrop = box(0.6, 0.6, 0.6, color);
+  bigCrop.position.set(0, 0.5, 0.5); // 畑の中央付近から
+  scene.add(bigCrop);
 
-    const vy = 2 + Math.random() * 3;
-    const vx = (Math.random() - 0.5) * 4;
-    const start = Date.now();
+  const start = Date.now();
+  const popDuration = 0.3; // 0.3秒で飛び跳ねる
 
-    (function tick() {
-      const t = (Date.now() - start) / 1000;
-      if (t > 0.7) {
-        scene.remove(particle);
-        particle.geometry.dispose();
-        particle.material.dispose();
-        return;
+  (function animatePop() {
+    const t = (Date.now() - start) / 1000;
+    if (t > popDuration) {
+      scene.remove(bigCrop);
+      if (bigCrop.geometry) bigCrop.geometry.dispose();
+      if (bigCrop.material) bigCrop.material.dispose();
+
+      // 2. 弾けるパーティクル演出
+      for (let i = 0; i < 20; i++) {
+        const size = 0.15 + Math.random() * 0.15;
+        const pColor = Math.random() > 0.8 ? 0xffea00 : color;
+        const particle = box(size, size, size, pColor);
+        particle.position.copy(bigCrop.position);
+        scene.add(particle);
+
+        const vx = (Math.random() - 0.5) * 8;
+        const vy = 3 + Math.random() * 5;
+        const vz = (Math.random() - 0.5) * 8;
+        const pStart = Date.now();
+
+        (function tickParticle() {
+          const pt = (Date.now() - pStart) / 1000;
+          if (pt > 0.6) {
+            scene.remove(particle);
+            particle.geometry.dispose();
+            particle.material.dispose();
+            return;
+          }
+          particle.position.x += vx * 0.016;
+          particle.position.y += (vy - pt * 15) * 0.016; // 15=仮想重力
+          particle.position.z += vz * 0.016;
+          
+          particle.rotation.x += 0.1;
+          particle.rotation.y += 0.1;
+
+          particle.material.opacity = 1 - pt / 0.6;
+          particle.material.transparent = true;
+          requestAnimationFrame(tickParticle);
+        })();
       }
-      particle.position.x += vx * 0.016;
-      particle.position.y += (vy - t * 9) * 0.016;
-      particle.material.opacity = 1 - t / 0.7;
-      particle.material.transparent = true;
-      requestAnimationFrame(tick);
-    })();
-  }
+      return;
+    }
+    
+    // サインカーブで上向きの弧を描く
+    const progress = t / popDuration;
+    bigCrop.position.y = 0.5 + Math.sin(progress * Math.PI) * 2.5; 
+    bigCrop.rotation.x += 0.2;
+    bigCrop.rotation.y += 0.2;
+    requestAnimationFrame(animatePop);
+  })();
 }

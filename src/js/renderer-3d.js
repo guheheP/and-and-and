@@ -407,6 +407,51 @@ export function triggerWorkAnimation() {
   }, 150);
 }
 
+// 収穫時の専用アニメーション（屈んでから伸び上がる）
+export function triggerHarvestAnimation() {
+  if (!farmerGroup) return;
+
+  if (_armResetTimer) {
+    clearTimeout(_armResetTimer);
+    _armResetTimer = null;
+  }
+
+  const bodyGroup = farmerGroup; 
+  const armL = farmerGroup.children[4];
+  const armR = farmerGroup.children[5];
+
+  // 1: 屈む
+  bodyGroup.position.y = -0.2;
+  bodyGroup.rotation.x = -0.2;
+  if (armL && armR) {
+    armL.rotation.x = -1.2;
+    armR.rotation.x = -1.2;
+  }
+
+  // 2: 伸び上がって喜ぶ
+  setTimeout(() => {
+    if (!farmerGroup || farmerGroup !== bodyGroup) return;
+    bodyGroup.position.y = 0.2; // 少しジャンプ
+    bodyGroup.rotation.x = 0;
+    if (armL && armR) {
+      armL.rotation.x = -2.5; // バンザイ
+      armR.rotation.x = -2.5;
+    }
+
+    // 3: 元に戻る
+    _armResetTimer = setTimeout(() => {
+      if (!farmerGroup || farmerGroup !== bodyGroup) return;
+      bodyGroup.position.y = 0;
+      bodyGroup.rotation.x = 0;
+      if (armL && armR) {
+        armL.rotation.x = 0;
+        armR.rotation.x = 0;
+      }
+      _armResetTimer = null;
+    }, 300);
+  }, 150);
+}
+
 // ═══════════════════════════════════════════
 //  Event Visuals (delegate to events module)
 // ═══════════════════════════════════════════
