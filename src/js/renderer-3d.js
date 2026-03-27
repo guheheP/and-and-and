@@ -417,13 +417,12 @@ export function triggerHarvestAnimation() {
     _armResetTimer = null;
   }
 
-  const bodyGroup = farmerGroup.getObjectByName('body') || farmerGroup; 
   const armL = farmerGroup.getObjectByName('armL');
   const armR = farmerGroup.getObjectByName('armR');
 
-  // 1: 屈む
-  bodyGroup.position.y = -0.2;
-  bodyGroup.rotation.x = -0.2;
+  // 1: 屈む（farmerGroup 全体を動かす）
+  farmerGroup.position.y = -0.2;
+  farmerGroup.rotation.x = -0.2;
   if (armL && armR) {
     armL.rotation.x = -1.2;
     armR.rotation.x = -1.2;
@@ -431,9 +430,9 @@ export function triggerHarvestAnimation() {
 
   // 2: 伸び上がって喜ぶ
   setTimeout(() => {
-    if (!farmerGroup || farmerGroup !== bodyGroup) return;
-    bodyGroup.position.y = 0.2; // 少しジャンプ
-    bodyGroup.rotation.x = 0;
+    if (!farmerGroup) return;
+    farmerGroup.position.y = 0.2; // 少しジャンプ
+    farmerGroup.rotation.x = 0;
     if (armL && armR) {
       armL.rotation.x = -2.5; // バンザイ
       armR.rotation.x = -2.5;
@@ -441,9 +440,9 @@ export function triggerHarvestAnimation() {
 
     // 3: 元に戻る
     _armResetTimer = setTimeout(() => {
-      if (!farmerGroup || farmerGroup !== bodyGroup) return;
-      bodyGroup.position.y = 0;
-      bodyGroup.rotation.x = 0;
+      if (!farmerGroup) return;
+      farmerGroup.position.y = 0;
+      farmerGroup.rotation.x = 0;
       if (armL && armR) {
         armL.rotation.x = 0;
         armR.rotation.x = 0;
