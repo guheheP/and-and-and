@@ -385,6 +385,7 @@ export function initUI(state) {
 
   if (btnConfirmYes) {
     btnConfirmYes.addEventListener('click', () => {
+      window.skipSaveOnUnload = true;
       clearSave();
       location.reload();
     });
