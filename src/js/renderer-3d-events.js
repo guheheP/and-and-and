@@ -49,7 +49,7 @@ export function build3DClock(scene, CONFIG) {
   });
   clockMesh = new THREE.Mesh(geo, mat);
 
-  clockMesh.position.set(CONFIG.cameraLookAt.x, 6.5, -3);
+  clockMesh.position.set(CONFIG.cameraLookAt.x, 4.5, -3);
   clockMesh.lookAt(CONFIG.cameraPos.x, CONFIG.cameraPos.y, CONFIG.cameraPos.z);
 
   const savedClockMode = localStorage.getItem('idle-farm-clock-visible');

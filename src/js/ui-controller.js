@@ -164,7 +164,7 @@ export function initUI(state) {
   // ============================================
   //  時計トグル
   // ============================================
-  const btnClock = document.getElementById('btn-clock');
+  const btnClock = document.getElementById('btn-clock-toggle');
   const clockEl = document.getElementById('sky-clock');
   const saved = localStorage.getItem('idle-farm-clock-visible');
 
@@ -182,7 +182,7 @@ export function initUI(state) {
   // ============================================
   //  キャラ変更
   // ============================================
-  const btnChar = document.getElementById('btn-char');
+  const btnChar = document.getElementById('btn-character');
   if (btnChar) {
     btnChar.addEventListener('click', () => {
       cycleCharacter();
@@ -256,7 +256,7 @@ export function initUI(state) {
   // ============================================
   //  背景透過トグル
   // ============================================
-  const btnBg = document.getElementById('btn-bg');
+  const btnBg = document.getElementById('btn-bg-toggle');
   if (btnBg) {
     const savedBg = localStorage.getItem('idle-farm-bg-transparent');
     if (savedBg === 'true') {
@@ -273,7 +273,7 @@ export function initUI(state) {
   // ============================================
   //  3D モード切替
   // ============================================
-  const btn3D = document.getElementById('btn-3d');
+  const btn3D = document.getElementById('btn-3d-toggle');
   if (btn3D) {
     const mode = localStorage.getItem('idle-farm-render-mode') || '3d';
     btn3D.classList.toggle('is-active', mode === '3d');
