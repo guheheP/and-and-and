@@ -132,9 +132,67 @@ export function updateGachaCostDisplay() {
   if (btnNext) btnNext.style.visibility = hide ? 'hidden' : 'visible';
 }
 
-// ============================================
-//  キャラ変更
-// ============================================
+// ── ミニプレビュー用の状態 ──
+import * as THREE from 'three';
+import { rebuildFarmerModel } from './renderer-3d-models.js';
+
+let previewRenderer = null;
+let previewScene = null;
+let previewCamera = null;
+let previewGroup = null;
+let previewAnimId = null;
+
+function initPreview() {
+  const canvas = document.getElementById('char-preview-canvas');
+  if (!canvas) return;
+
+  if (previewRenderer) return; // 既に初期化済み
+
+  previewRenderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  previewRenderer.setSize(canvas.width, canvas.height);
+  previewRenderer.setPixelRatio(1);
+
+  previewScene = new THREE.Scene();
+
+  previewCamera = new THREE.PerspectiveCamera(35, canvas.width / canvas.height, 0.1, 100);
+  previewCamera.position.set(0, 2.5, 10);
+  previewCamera.lookAt(0, 2.0, 0);
+
+  // ライティング
+  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+  previewScene.add(ambient);
+  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+  dir.position.set(3, 5, 4);
+  previewScene.add(dir);
+
+  // キャラグループ
+  previewGroup = new THREE.Group();
+  previewScene.add(previewGroup);
+}
+
+function updatePreviewModel(config) {
+  if (!previewGroup) return;
+  rebuildFarmerModel(previewGroup, config);
+}
+
+function startPreviewLoop() {
+  if (previewAnimId) return;
+  function loop() {
+    previewAnimId = requestAnimationFrame(loop);
+    if (previewGroup) {
+      previewGroup.rotation.y += 0.012;
+    }
+    previewRenderer.render(previewScene, previewCamera);
+  }
+  loop();
+}
+
+function stopPreviewLoop() {
+  if (previewAnimId) {
+    cancelAnimationFrame(previewAnimId);
+    previewAnimId = null;
+  }
+}
 
 export function buildCharacterCustomizer() {
   if (!_gameState) return;
@@ -142,6 +200,9 @@ export function buildCharacterCustomizer() {
   const hatSelect = document.getElementById('char-hat-select');
   const accSelect = document.getElementById('char-acc-select');
   if (!baseSelect || !hatSelect || !accSelect) return;
+
+  // プレビュー初期化
+  initPreview();
 
   // 初期化：ベースの選択肢を生成
   if (baseSelect.options.length === 0) {
@@ -174,13 +235,15 @@ export function buildCharacterCustomizer() {
     if (!unlocked && accSelect.value === opt.value) accSelect.value = 'none';
   });
 
-  // 値が変わった時のライブプレビュー更新
+  // プレビュー＆メインシーン両方を更新
   const updatePreview = () => {
-    updateCharacter({
+    const cfg = {
       base: baseSelect.value,
       hat: hatSelect.value === 'none' ? undefined : hatSelect.value,
       accessory: accSelect.value === 'none' ? undefined : accSelect.value
-    });
+    };
+    updateCharacter(cfg);
+    updatePreviewModel(cfg);
   };
 
   baseSelect.onchange = updatePreview;
@@ -189,6 +252,12 @@ export function buildCharacterCustomizer() {
   
   // モーダルを開いた瞬間の状態反映
   updatePreview();
+  if (previewGroup) previewGroup.rotation.y = 0;
+  startPreviewLoop();
+}
+
+export function stopCharacterPreview() {
+  stopPreviewLoop();
 }
 
 export function saveCharacterCustomizer(gameStateObj) {

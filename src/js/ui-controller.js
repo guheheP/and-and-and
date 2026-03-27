@@ -10,7 +10,7 @@ import {
   setGameState,
   cycleGachaQty, getCurrentGachaQty,
   showGachaResult, showGachaBatchResult, updateGachaCostDisplay,
-  buildCharacterCustomizer, saveCharacterCustomizer,
+  buildCharacterCustomizer, saveCharacterCustomizer, stopCharacterPreview,
   buildCatalog, buildEventLog, buildPrestigeShop,
 } from './ui-modals.js';
 
@@ -229,6 +229,7 @@ export function initUI(state) {
     btnCharClose.addEventListener('click', () => {
       if (characterModal) characterModal.hidden = true;
       restoreSize();
+      stopCharacterPreview();
       // 元の見た目にリセット
       updateCharacter(gameState.characterConfig || { base: gameState.currentCharId });
     });
@@ -239,6 +240,7 @@ export function initUI(state) {
       saveCharacterCustomizer(gameState);
       if (characterModal) characterModal.hidden = true;
       restoreSize();
+      stopCharacterPreview();
     });
   }
 
