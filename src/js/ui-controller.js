@@ -43,13 +43,22 @@ const MODAL_SIZE = { w: 240, h: 400 };
 window.idleFarmScale = parseInt(localStorage.getItem('idle-farm-scale')) || 1;
 
 function resizeForModal() {
+  // モーダルは常に等倍表示（2倍ズーム時でも通常サイズ）
+  document.querySelectorAll('.modal').forEach(m => {
+    m.style.zoom = 1 / (window.idleFarmScale || 1);
+  });
   if (window.electronAPI?.resize) {
+    // モーダル用の高さは常に等倍基準
     const s = window.idleFarmScale;
     window.electronAPI.resize(MODAL_SIZE.w * s, MODAL_SIZE.h * s);
   }
 }
 
 function restoreSize() {
+  // モーダルのズームをリセット
+  document.querySelectorAll('.modal').forEach(m => {
+    m.style.zoom = '';
+  });
   if (window.electronAPI?.resize) {
     const s = window.idleFarmScale;
     window.electronAPI.resize(NORMAL_SIZE.w * s, NORMAL_SIZE.h * s);

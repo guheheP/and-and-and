@@ -56,6 +56,15 @@ export function build3DClock(scene, CONFIG) {
   clockMesh.visible = savedClockMode === 'true';
 
   scene.add(clockMesh);
+
+  // Canvas用フォントを明示的にロード要求（CSSリンクだけでは Canvas 描画時に利用できない場合がある）
+  if (document.fonts && document.fonts.load) {
+    document.fonts.load("200px 'VT323'").then(() => {
+      lastClockMinute = -1; // 強制再描画
+      renderClockTexture();
+    });
+  }
+  // フォールバック: まずデフォルトフォントで描画しておく
   renderClockTexture();
 }
 

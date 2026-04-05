@@ -119,10 +119,6 @@
         
         <div class="character-parts" style="display:flex; flex-direction:column; gap:8px;">
           <div>
-            <label style="font-size: 0.8rem; color: #aaa;">ベース:</label>
-            <select id="char-base-select" style="width:100%; background: #222; color: #fff; border: 1px solid #555; padding: 6px; border-radius: 4px;"></select>
-          </div>
-          <div>
             <label style="font-size: 0.8rem; color: #aaa;">帽子:</label>
             <select id="char-hat-select" style="width:100%; background: #222; color: #fff; border: 1px solid #555; padding: 6px; border-radius: 4px;">
               <option value="none">なし</option>
@@ -136,6 +132,10 @@
               <option value="none">なし</option>
               <option value="watering_can">ジョウロ</option>
             </select>
+          </div>
+          <div style="display:flex; gap:6px; margin-top: 4px;">
+            <button id="btn-char-randomize" class="btn btn--primary" style="flex:1; font-size: 0.8rem; padding: 6px;">🎲 ランダムカラー</button>
+            <button id="btn-char-reset-color" class="btn btn--ghost" style="flex:0.6; font-size: 0.8rem; padding: 6px;">↩ リセット</button>
           </div>
         </div>
         
@@ -213,7 +213,7 @@
         <div class="modal__title">ℹ バージョン情報</div>
         <div style="padding: 10px 0; border-top: 1px solid rgba(255, 255, 255, 0.1);">
           <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">No のーえん No Life</div>
-          <div style="font-size: 0.8rem; color: #a098b0; margin-bottom: 15px;">Version 0.3.1</div>
+          <div style="font-size: 0.8rem; color: #a098b0; margin-bottom: 15px;">Version 0.4.1</div>
           <div style="font-size: 0.7rem; color: #807890; line-height: 1.5;"></div>
         </div>
         <div class="modal__actions" style="flex-direction: column; gap: 10px;">

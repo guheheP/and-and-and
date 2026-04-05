@@ -8,6 +8,7 @@ import { PRESTIGE_CONFIG, PRESTIGE_UPGRADES, getUpgradeCost } from './prestige-d
 import { EVENT_MASTER } from './event-data.js';
 import { isPartUnlocked, ACHIEVEMENT_MASTER } from './achievement-system.js';
 import { updateCharacter } from './renderer-3d.js';
+import { getCropColor } from './renderer-common.js';
 
 // ============================================
 //  種購入（旧ガチャ）関連
@@ -134,13 +135,16 @@ export function updateGachaCostDisplay() {
 
 // ── ミニプレビュー用の状態 ──
 import * as THREE from 'three';
-import { rebuildFarmerModel } from './renderer-3d-models.js';
+import { rebuildFarmerModel, generateRandomColors, getDefaultColors } from './renderer-3d-models.js';
 
 let previewRenderer = null;
 let previewScene = null;
 let previewCamera = null;
 let previewGroup = null;
 let previewAnimId = null;
+
+/** カスタマイズ中のカラー状態 */
+let _currentColors = null;
 
 function initPreview() {
   const canvas = document.getElementById('char-preview-canvas');
@@ -196,29 +200,20 @@ function stopPreviewLoop() {
 
 export function buildCharacterCustomizer() {
   if (!_gameState) return;
-  const baseSelect = document.getElementById('char-base-select');
   const hatSelect = document.getElementById('char-hat-select');
   const accSelect = document.getElementById('char-acc-select');
-  if (!baseSelect || !hatSelect || !accSelect) return;
+  if (!hatSelect || !accSelect) return;
 
   // プレビュー初期化
   initPreview();
 
-  // 初期化：ベースの選択肢を生成
-  if (baseSelect.options.length === 0) {
-    for (const [id, charData] of Object.entries(CHARACTER_MASTER)) {
-      const opt = document.createElement('option');
-      opt.value = id;
-      opt.textContent = charData.name;
-      baseSelect.appendChild(opt);
-    }
-  }
-
   // 現在の設定を反映
-  const config = _gameState.characterConfig || { base: _gameState.currentCharId };
-  baseSelect.value = config.base || 'man';
+  const config = _gameState.characterConfig || {};
   hatSelect.value = config.hat || 'none';
   accSelect.value = config.accessory || 'none';
+
+  // カスタムカラーを復元
+  _currentColors = config.colors || null;
 
   // 未解放パーツをロック表示
   Array.from(hatSelect.options).forEach(opt => {
@@ -238,18 +233,36 @@ export function buildCharacterCustomizer() {
   // プレビュー＆メインシーン両方を更新
   const updatePreview = () => {
     const cfg = {
-      base: baseSelect.value,
+      base: 'man',
       hat: hatSelect.value === 'none' ? undefined : hatSelect.value,
-      accessory: accSelect.value === 'none' ? undefined : accSelect.value
+      accessory: accSelect.value === 'none' ? undefined : accSelect.value,
+      colors: _currentColors || undefined,
     };
     updateCharacter(cfg);
     updatePreviewModel(cfg);
   };
 
-  baseSelect.onchange = updatePreview;
   hatSelect.onchange = updatePreview;
   accSelect.onchange = updatePreview;
-  
+
+  // ランダムカラーボタン
+  const btnRandomize = document.getElementById('btn-char-randomize');
+  if (btnRandomize) {
+    btnRandomize.onclick = () => {
+      _currentColors = generateRandomColors();
+      updatePreview();
+    };
+  }
+
+  // カラーリセットボタン
+  const btnResetColor = document.getElementById('btn-char-reset-color');
+  if (btnResetColor) {
+    btnResetColor.onclick = () => {
+      _currentColors = null;
+      updatePreview();
+    };
+  }
+
   // モーダルを開いた瞬間の状態反映
   updatePreview();
   if (previewGroup) previewGroup.rotation.y = 0;
@@ -261,17 +274,17 @@ export function stopCharacterPreview() {
 }
 
 export function saveCharacterCustomizer(gameStateObj) {
-  const baseSelect = document.getElementById('char-base-select');
   const hatSelect = document.getElementById('char-hat-select');
   const accSelect = document.getElementById('char-acc-select');
-  if (!baseSelect || !hatSelect || !accSelect) return;
+  if (!hatSelect || !accSelect) return;
 
   gameStateObj.characterConfig = {
-    base: baseSelect.value,
+    base: 'man',
     hat: hatSelect.value === 'none' ? undefined : hatSelect.value,
-    accessory: accSelect.value === 'none' ? undefined : accSelect.value
+    accessory: accSelect.value === 'none' ? undefined : accSelect.value,
+    colors: _currentColors || undefined,
   };
-  gameStateObj.currentCharId = baseSelect.value; // 後方互換
+  gameStateObj.currentCharId = 'man'; // 後方互換
   saveState(gameStateObj);
   updateCharacter(gameStateObj.characterConfig);
 }
@@ -318,7 +331,10 @@ export function buildCatalog() {
   const unlockedIds = getUnlockedCropIds();
 
   for (const [cropId, crop] of Object.entries(CROP_MASTER)) {
-    const isUnlocked = unlockedIds.includes(cropId);
+    const isLevelUnlocked = unlockedIds.includes(cropId);
+    // イベント限定作物は種を所持していれば解放済みとみなす
+    const hasSeeds = (_gameState.seedsInventory[cropId] || 0) > 0;
+    const isUnlocked = isLevelUnlocked || (crop.isEventOnly && hasSeeds);
     const cropLevel = getCropLevel(_gameState, cropId);
     const { current: expInLevel, required: expRequired } = getCropLevelProgress(_gameState, cropId);
     const seedCount = _gameState.seedsInventory[cropId] || 0;
@@ -326,6 +342,7 @@ export function buildCatalog() {
 
     const isInf = isCropInfinite(_gameState, cropId);
     const isSelected = _gameState.selectedCropId === cropId;
+    const fruitColor = getCropColor(cropId);
 
     const item = document.createElement('div');
     item.className = `catalog-item${isUnlocked ? '' : ' catalog-item--locked'}${isSelected ? ' is-selected' : ''}`;
@@ -337,8 +354,8 @@ export function buildCatalog() {
     }
 
     item.innerHTML = `
-      <div class="catalog-item__icon-wrapper ${crop.cssClass}">
-        <div class="catalog-fruit"></div>
+      <div class="catalog-item__icon-wrapper">
+        <div class="catalog-fruit" style="--fruit-bg: ${fruitColor};"></div>
       </div>
       <div class="catalog-item__info">
         <div class="catalog-item__name">${isUnlocked ? crop.name : '???'}</div>

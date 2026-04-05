@@ -6,18 +6,18 @@ import { CHARACTER_MASTER } from './master-data.js';
 
 // ─── Character colors ───
 export const CHAR_COLORS = {
-  'farmer--man': { skin: 0xf5c6a0, body: 0x4477bb, hair: 0x4a3520, pants: 0x445566 },
-  'farmer--woman': { skin: 0xf5c6a0, body: 0xcc4477, hair: 0x6a4530, pants: 0x445566 },
-  'farmer--grandpa': { skin: 0xe0b890, body: 0x667744, hair: 0xcccccc, pants: 0x556644 },
-  'farmer--grandma': { skin: 0xe0b890, body: 0x885566, hair: 0xcccccc, pants: 0x665544 },
-  'farmer--girl': { skin: 0xf5c6a0, body: 0xff88aa, hair: 0xffcc44, pants: 0x445566 },
-  'farmer--boy': { skin: 0xf5c6a0, body: 0x44aa77, hair: 0x3a2010, pants: 0x445566 },
-  'farmer--dog': { skin: 0xc8a060, body: 0xc8a060, hair: 0x8a6030, pants: 0xc8a060 },
-  'farmer--cat': { skin: 0xe0b880, body: 0xe0b880, hair: 0x504030, pants: 0xe0b880 },
-  'farmer--robot': { skin: 0xaaaacc, body: 0x6688aa, hair: 0x889900, pants: 0x556688 },
-  'farmer--alien': { skin: 0x80cc80, body: 0x445588, hair: 0x40aa40, pants: 0x334466 },
-  'farmer--pumpkinhead': { skin: 0xe08020, body: 0x553322, hair: 0x2d8040, pants: 0x443322 },
-  'farmer--snowman': { skin: 0xffffff, body: 0xffffff, hair: 0xff6600, pants: 0xeeeeee },
+  'farmer--man': { skin: 0xf5c6a0, body: 0x4477bb, hair: 0x4a3520, pants: 0x445566, eyes: 0x222222 },
+  'farmer--woman': { skin: 0xf5c6a0, body: 0xcc4477, hair: 0x6a4530, pants: 0x445566, eyes: 0x222222 },
+  'farmer--grandpa': { skin: 0xe0b890, body: 0x667744, hair: 0xcccccc, pants: 0x556644, eyes: 0x222222 },
+  'farmer--grandma': { skin: 0xe0b890, body: 0x885566, hair: 0xcccccc, pants: 0x665544, eyes: 0x222222 },
+  'farmer--girl': { skin: 0xf5c6a0, body: 0xff88aa, hair: 0xffcc44, pants: 0x445566, eyes: 0x222222 },
+  'farmer--boy': { skin: 0xf5c6a0, body: 0x44aa77, hair: 0x3a2010, pants: 0x445566, eyes: 0x222222 },
+  'farmer--dog': { skin: 0xc8a060, body: 0xc8a060, hair: 0x8a6030, pants: 0xc8a060, eyes: 0x222222 },
+  'farmer--cat': { skin: 0xe0b880, body: 0xe0b880, hair: 0x504030, pants: 0xe0b880, eyes: 0x222222 },
+  'farmer--robot': { skin: 0xaaaacc, body: 0x6688aa, hair: 0x889900, pants: 0x556688, eyes: 0x222222 },
+  'farmer--alien': { skin: 0x80cc80, body: 0x445588, hair: 0x40aa40, pants: 0x334466, eyes: 0x222222 },
+  'farmer--pumpkinhead': { skin: 0xe08020, body: 0x553322, hair: 0x2d8040, pants: 0x443322, eyes: 0x222222 },
+  'farmer--snowman': { skin: 0xffffff, body: 0xffffff, hair: 0xff6600, pants: 0xeeeeee, eyes: 0x222222 },
 };
 
 // ─ Helpers ─
@@ -37,6 +37,81 @@ function cylinder(rTop, rBot, h, color) {
   const geo = new THREE.CylinderGeometry(rTop, rBot, h, 6);
   const mat = new THREE.MeshLambertMaterial({ color });
   return new THREE.Mesh(geo, mat);
+}
+
+// ─── HSL → Hex 変換ヘルパー ───
+function hslToHex(h, s, l) {
+  s /= 100;
+  l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n) => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * Math.max(0, color));
+  };
+  return (f(0) << 16) | (f(8) << 8) | f(4);
+}
+
+/**
+ * ランダムな配色を生成
+ * @returns {{ skin: number, body: number, hair: number, pants: number }}
+ */
+export function generateRandomColors() {
+  // 肌色: 暖色系
+  const skinHue = 15 + Math.random() * 25;
+  const skinSat = 40 + Math.random() * 35;
+  const skinLight = 65 + Math.random() * 20;
+
+  // 服: 自由な色
+  const bodyHue = Math.random() * 360;
+  const bodySat = 40 + Math.random() * 45;
+  const bodyLight = 30 + Math.random() * 35;
+
+  // 髪: ナチュラル or ファンカラー
+  const hairType = Math.random();
+  let hairHue, hairSat, hairLight;
+  if (hairType < 0.4) {
+    hairHue = 20 + Math.random() * 20;
+    hairSat = 25 + Math.random() * 40;
+    hairLight = 12 + Math.random() * 25;
+  } else if (hairType < 0.6) {
+    hairHue = 38 + Math.random() * 15;
+    hairSat = 60 + Math.random() * 30;
+    hairLight = 60 + Math.random() * 20;
+  } else {
+    hairHue = Math.random() * 360;
+    hairSat = 50 + Math.random() * 40;
+    hairLight = 35 + Math.random() * 35;
+  }
+
+  // パンツ
+  const pantsHue = Math.random() * 360;
+  const pantsSat = 15 + Math.random() * 40;
+  const pantsLight = 25 + Math.random() * 25;
+
+  // 目: 自由な色
+  const eyeHue = Math.random() * 360;
+  const eyeSat = 30 + Math.random() * 60;
+  const eyeLight = 15 + Math.random() * 35;
+
+  return {
+    skin: hslToHex(skinHue, skinSat, skinLight),
+    body: hslToHex(bodyHue, bodySat, bodyLight),
+    hair: hslToHex(hairHue, hairSat, hairLight),
+    pants: hslToHex(pantsHue, pantsSat, pantsLight),
+    eyes: hslToHex(eyeHue, eyeSat, eyeLight),
+  };
+}
+
+/**
+ * ベースIDに対応するデフォルト配色を返す
+ * @param {string} baseId
+ * @returns {{ skin: number, body: number, hair: number, pants: number }}
+ */
+export function getDefaultColors(baseId) {
+  const charMaster = CHARACTER_MASTER[baseId];
+  const cssClass = charMaster ? charMaster.cssClass : `farmer--${baseId}`;
+  return CHAR_COLORS[cssClass] || CHAR_COLORS['farmer--man'];
 }
 
 /**
@@ -67,8 +142,11 @@ export function rebuildFarmerModel(farmerGroup, charConfig) {
   if (cssClass === 'farmer--cat') return buildCatModel(farmerGroup);
   if (cssClass === 'farmer--snowman') return buildSnowmanModel(farmerGroup);
 
-  // 人間系
-  const colors = CHAR_COLORS[cssClass] || CHAR_COLORS['farmer--man'];
+  // 人間系 — カスタムカラーがあればデフォルトに上書き適用
+  const defaultColors = CHAR_COLORS[cssClass] || CHAR_COLORS['farmer--man'];
+  const colors = (typeof charConfig === 'object' && charConfig.colors)
+    ? { ...defaultColors, ...charConfig.colors }
+    : defaultColors;
   buildHumanoidModel(farmerGroup, colors, typeof charConfig === 'object' ? charConfig : {});
 }
 
@@ -84,7 +162,7 @@ function buildHumanoidModel(farmerGroup, c, config = {}) {
   farmerGroup.add(hair);
 
   const eyeGeo = new THREE.BoxGeometry(0.12, 0.12, 0.05);
-  const eyeMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+  const eyeMat = new THREE.MeshLambertMaterial({ color: c.eyes || 0x222222 });
   const eL = new THREE.Mesh(eyeGeo, eyeMat);
   eL.position.set(-0.22, 3.15, 0.48);
   farmerGroup.add(eL);
@@ -122,16 +200,16 @@ function buildHumanoidModel(farmerGroup, c, config = {}) {
 
   // ─── アクセサリ等の後付けパーツ ───
   if (config.hat === 'straw_hat') {
-    const brim = cylinder(0.8, 0.8, 0.05, 0xe0c080);
-    brim.position.set(0, 3.6, 0);
-    const top = cylinder(0.4, 0.45, 0.4, 0xe0c080);
-    top.position.set(0, 3.8, 0);
+    const brim = cylinder(1.2, 1.2, 0.08, 0xe0c080);
+    brim.position.set(0, 3.72, 0);
+    const top = cylinder(0.55, 0.6, 0.55, 0xe0c080);
+    top.position.set(0, 4.0, 0);
     farmerGroup.add(brim, top);
   } else if (config.hat === 'cap') {
-    const capTop = box(0.92, 0.3, 0.92, 0xff0000);
-    capTop.position.set(0, 3.65, 0);
-    const brim = box(0.92, 0.05, 0.5, 0xff0000);
-    brim.position.set(0, 3.5, 0.4);
+    const capTop = box(1.1, 0.45, 1.1, 0xff0000);
+    capTop.position.set(0, 3.75, 0);
+    const brim = box(1.1, 0.08, 0.65, 0xff0000);
+    brim.position.set(0, 3.55, 0.5);
     farmerGroup.add(capTop, brim);
   }
 
