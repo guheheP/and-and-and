@@ -191,7 +191,6 @@ function harvestCrop(state) {
   // 各種倍率
   const prestigeMult = getUpgradeEffect('basePoints', getUpgradeLevel(state, 'basePoints'));
   const playerPointMult = getPointMultiplier(state.level);
-  const eventGrowMult = getGrowthMultiplier(); // TODO: 必要時適用
   const boostMult = consumePointBoost();
   const cropLevelMult = getCropLevelMultiplier(getCropLevel(state, cropId));
 
@@ -219,6 +218,9 @@ function harvestCrop(state) {
   if (leveledUp && callbacks.onLevelUp) {
     callbacks.onLevelUp(newLevel);
   }
+
+  // 収穫回数を記録（実績判定用）
+  state.harvestCount = (state.harvestCount || 0) + 1;
 
   // 畑をリセット
   state.fieldState.isPlanted = false;

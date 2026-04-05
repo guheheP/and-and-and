@@ -199,7 +199,9 @@ function applyEventEffect(state, event) {
     case 'giveItem': {
       // タンブルウィード or サンタ: 特定の種＋ポイント
       const { cropId, count, bonusPointsPerLevel } = event.effectValue;
-      addSeed(state, cropId, count);
+      if (cropId && count > 0) {
+        addSeed(state, cropId, count);
+      }
       if (bonusPointsPerLevel) {
         const bonus = state.level * bonusPointsPerLevel;
         addPoints(state, bonus);

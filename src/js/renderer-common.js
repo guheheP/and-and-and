@@ -123,6 +123,8 @@ export function getCropColor(cropId) {
     strawberry: '#ff4060',
     corn: '#f0d040',
     pumpkin: '#e08020',
+    eggplant: '#6b3fa0',
+    melon: '#80c060',
     watermelon: '#408040',
     golden_apple: '#ffd700',
     tumbleweed: '#a08850',

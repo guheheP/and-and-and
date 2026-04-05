@@ -57,7 +57,7 @@ export function initDebug(gameState) {
     } else {
       keyBuffer += e.key;
       if (keyBuffer.length > 20) keyBuffer = keyBuffer.slice(-20);
-      if (keyBuffer.endsWith('debug')) {
+      if (keyBuffer.endsWith('opendebug')) {
         openDebugModal();
         keyBuffer = '';
       }

@@ -3,7 +3,7 @@
 const SAVE_KEY = 'idle-farm-save';
 
 import { PRESTIGE_CONFIG, PRESTIGE_UPGRADES, getUpgradeCost, getUpgradeEffect } from './prestige-data.js';
-import { CROP_MASTER } from './master-data.js';
+import { CROP_MASTER, LEVEL_UNLOCK_CROPS } from './master-data.js';
 
 /**
  * 初期ゲーム状態を生成
@@ -16,6 +16,7 @@ export function createInitialState() {
     playerExp: 0,
     totalEarnedExp: 0,
     level: 1,
+    harvestCount: 0,
     seedsInventory: {},
     cropExp: {},
     currentCharId: 'man',
@@ -66,7 +67,7 @@ export function loadState() {
 
     // 初期値とマージ（バージョン間のフィールド欠損を防止）
     const initial = createInitialState();
-    return {
+    const merged = {
       ...initial,
       ...saved,
       fieldState: {
@@ -86,6 +87,23 @@ export function loadState() {
         ...(saved.prestigeUpgrades || {}),
       },
     };
+
+    // selectedCropId の整合性チェック（未解放作物が選択されていたらリセット）
+    if (merged.selectedCropId) {
+      const unlockedIds = [];
+      for (const [lvl, ids] of Object.entries(LEVEL_UNLOCK_CROPS)) {
+        if (merged.level >= Number(lvl)) unlockedIds.push(...ids);
+      }
+      if (!unlockedIds.includes(merged.selectedCropId)) {
+        merged.selectedCropId = null;
+      }
+    }
+
+    // seedsInventory から null キーを除去（過去の不具合データ対応）
+    delete merged.seedsInventory['null'];
+    delete merged.seedsInventory[null];
+
+    return merged;
   } catch (e) {
     console.error('ロード失敗:', e);
     return createInitialState();

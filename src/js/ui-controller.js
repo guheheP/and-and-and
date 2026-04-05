@@ -25,6 +25,8 @@ const CROP_COLORS = {
   strawberry: '#ff4060',
   corn: '#f0d040',
   pumpkin: '#e08020',
+  eggplant: '#6b3fa0',
+  melon: '#80c060',
   watermelon: '#408040',
   golden_apple: '#ffd700',
   tumbleweed: '#a08850',
@@ -324,18 +326,45 @@ export function initUI(state) {
     });
   }
 
+  const prestigeConfirmModal = document.getElementById('prestige-confirm-modal');
+  const prestigeConfirmEarn = document.getElementById('prestige-confirm-earn');
+  const btnPrestigeConfirmYes = document.getElementById('btn-prestige-confirm-yes');
+  const btnPrestigeConfirmNo = document.getElementById('btn-prestige-confirm-no');
+
   if (btnPrestigeExec) {
     btnPrestigeExec.addEventListener('click', () => {
       if (!gameState || gameState.level < PRESTIGE_CONFIG.minLevel) return;
-      if (!confirm('プレステージで全データをリセットし報酬を得ますか？')) return;
+
+      // 確認モーダルに獲得通貨を表示して開く
+      const earn = PRESTIGE_CONFIG.getCurrency(gameState);
+      if (prestigeConfirmEarn) prestigeConfirmEarn.textContent = earn;
+      if (prestigeModal) prestigeModal.hidden = true;
+      if (prestigeConfirmModal) prestigeConfirmModal.hidden = false;
+    });
+  }
+
+  if (btnPrestigeConfirmYes) {
+    btnPrestigeConfirmYes.addEventListener('click', () => {
+      if (prestigeConfirmModal) prestigeConfirmModal.hidden = true;
 
       executePrestige(gameState);
       
       const char = CHARACTER_MASTER[gameState.currentCharId];
-      if (char) updateCharacter(gameState.currentCharId);
+      if (char) updateCharacter(gameState.characterConfig || gameState.currentCharId);
 
       buildPrestigeShop();
       updateHUD(gameState);
+
+      // プレステージショップを再表示
+      if (prestigeModal) prestigeModal.hidden = false;
+    });
+  }
+
+  if (btnPrestigeConfirmNo) {
+    btnPrestigeConfirmNo.addEventListener('click', () => {
+      if (prestigeConfirmModal) prestigeConfirmModal.hidden = true;
+      // プレステージショップに戻す
+      if (prestigeModal) prestigeModal.hidden = false;
     });
   }
 

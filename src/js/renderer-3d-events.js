@@ -86,12 +86,19 @@ function renderClockTexture() {
   clockTexture.needsUpdate = true;
 }
 
+let lastClockCheckMs = 0;
+
 export function update3DClock() {
   if (!clockMesh) return;
 
-  const visible = localStorage.getItem('idle-farm-clock-visible') === 'true';
-  clockMesh.visible = visible;
-  if (!visible) return;
+  // localStorage アクセスを毎秒1回に制限（パフォーマンス改善）
+  const nowMs = Date.now();
+  if (nowMs - lastClockCheckMs > 1000) {
+    lastClockCheckMs = nowMs;
+    const visible = localStorage.getItem('idle-farm-clock-visible') === 'true';
+    clockMesh.visible = visible;
+  }
+  if (!clockMesh.visible) return;
 
   const now = new Date();
   const currentMinute = now.getHours() * 60 + now.getMinutes();
@@ -192,7 +199,10 @@ export function stopAllEventVisuals({ scene, weatherGroup, activeAnimators, CONF
     const anim = activeAnimators[i];
     if (anim.type === 'weather') {
       anim.fadeOut = true;
-    } else if (anim.type !== 'crossing' && anim.type !== 'poop' && anim.type !== 'thunder') {
+    } else if (anim.type === 'thunder') {
+      // 雷アニメーターもイベント終了時に削除
+      activeAnimators.splice(i, 1);
+    } else if (anim.type !== 'crossing' && anim.type !== 'poop') {
       if (anim.mesh) anim.mesh.removeFromParent();
       activeAnimators.splice(i, 1);
     }

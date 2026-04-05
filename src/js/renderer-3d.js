@@ -238,8 +238,8 @@ function animate() {
     });
   }
 
-  // キャラクターの呼吸アニメーション
-  if (farmerGroup) {
+  // キャラクターの呼吸アニメーション（収穫アニメーション中はスキップ）
+  if (farmerGroup && !farmerGroup.userData.animLock) {
     farmerGroup.userData.breathOffset = Math.sin(t * 0.002) * 0.04;
     farmerGroup.position.y = farmerGroup.userData.breathOffset;
   }
@@ -357,7 +357,7 @@ function buildFarmer() {
   farmerGroup = new THREE.Group();
   farmerGroup.position.set(CONFIG.farmerPos.x, CONFIG.farmerPos.y, CONFIG.farmerPos.z);
   farmerGroup.rotation.y = CONFIG.farmerRotY;
-  farmerGroup.userData = { breathOffset: 0 };
+  farmerGroup.userData = { breathOffset: 0, animLock: false };
   scene.add(farmerGroup);
   rebuildFarmerModel(farmerGroup, 'farmer--man');
 }
@@ -389,6 +389,8 @@ export function updateCharacter(charIdOrConfig) {
 
 export function updateField(fieldState) {
   if (!fieldState.isPlanted || !fieldState.cropId) {
+    if (cropGroup) cropGroup.visible = false;
+    currentCropId = null;
     return;
   }
 
@@ -437,6 +439,9 @@ export function triggerHarvestAnimation() {
     _armResetTimer = null;
   }
 
+  // 呼吸アニメーションをロック
+  farmerGroup.userData.animLock = true;
+
   const armL = farmerGroup.getObjectByName('armL');
   const armR = farmerGroup.getObjectByName('armR');
 
@@ -467,6 +472,8 @@ export function triggerHarvestAnimation() {
         armL.rotation.x = 0;
         armR.rotation.x = 0;
       }
+      // 呼吸アニメーションのロックを解除
+      farmerGroup.userData.animLock = false;
       _armResetTimer = null;
     }, 300);
   }, 150);
