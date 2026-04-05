@@ -27,6 +27,7 @@ export function createInitialState() {
       progress: 0,
     },
     selectedCropId: null, // 優先植え付けのターゲット
+    colorPresets: [null, null, null, null, null], // カラープリセット5枠
     // プレステージ
     prestigeCount: 0,
     prestigeCurrency: 0,

@@ -57,10 +57,17 @@ function hslToHex(h, s, l) {
  * @returns {{ skin: number, body: number, hair: number, pants: number }}
  */
 export function generateRandomColors() {
-  // 肌色: 暖色系
-  const skinHue = 15 + Math.random() * 25;
-  const skinSat = 40 + Math.random() * 35;
-  const skinLight = 65 + Math.random() * 20;
+  // 肌色: 70%は暖色系、30%は外れ値（全色相）
+  let skinHue, skinSat, skinLight;
+  if (Math.random() < 0.3) {
+    skinHue = Math.random() * 360;
+    skinSat = 35 + Math.random() * 45;
+    skinLight = 55 + Math.random() * 30;
+  } else {
+    skinHue = 15 + Math.random() * 25;
+    skinSat = 40 + Math.random() * 35;
+    skinLight = 65 + Math.random() * 20;
+  }
 
   // 服: 自由な色
   const bodyHue = Math.random() * 360;
@@ -152,48 +159,48 @@ export function rebuildFarmerModel(farmerGroup, charConfig) {
 
 function buildHumanoidModel(farmerGroup, c, config = {}) {
   const head = box(0.9, 0.9, 0.9, c.skin);
-  head.position.set(0, 3.1, 0);
+  head.position.set(0, 2.65, 0);
   head.castShadow = true;
   head.name = 'head';
   farmerGroup.add(head);
 
   const hair = box(0.95, 0.25, 0.95, c.hair);
-  hair.position.set(0, 3.6, 0);
+  hair.position.set(0, 3.15, 0);
   farmerGroup.add(hair);
 
   const eyeGeo = new THREE.BoxGeometry(0.12, 0.12, 0.05);
   const eyeMat = new THREE.MeshLambertMaterial({ color: c.eyes || 0x222222 });
   const eL = new THREE.Mesh(eyeGeo, eyeMat);
-  eL.position.set(-0.22, 3.15, 0.48);
+  eL.position.set(-0.22, 2.7, 0.48);
   farmerGroup.add(eL);
   const eR = new THREE.Mesh(eyeGeo, eyeMat);
-  eR.position.set(0.22, 3.15, 0.48);
+  eR.position.set(0.22, 2.7, 0.48);
   farmerGroup.add(eR);
 
   const body = box(0.9, 1.3, 0.6, c.body);
-  body.position.set(0, 2.0, 0);
+  body.position.set(0, 1.55, 0);
   body.castShadow = true;
   body.name = 'body';
   farmerGroup.add(body);
 
   const armL = box(0.3, 1.1, 0.3, c.skin);
-  armL.position.set(-0.6, 2.0, 0);
+  armL.position.set(-0.6, 1.55, 0);
   armL.castShadow = true;
   armL.name = 'armL';
   farmerGroup.add(armL);
   const armR = box(0.3, 1.1, 0.3, c.skin);
-  armR.position.set(0.6, 2.0, 0);
+  armR.position.set(0.6, 1.55, 0);
   armR.castShadow = true;
   armR.name = 'armR';
   farmerGroup.add(armR);
 
   const legL = box(0.35, 0.9, 0.35, c.pants);
-  legL.position.set(-0.22, 0.7, 0);
+  legL.position.set(-0.22, 0.45, 0);
   legL.castShadow = true;
   legL.name = 'legL';
   farmerGroup.add(legL);
   const legR = box(0.35, 0.9, 0.35, c.pants);
-  legR.position.set(0.22, 0.7, 0);
+  legR.position.set(0.22, 0.45, 0);
   legR.castShadow = true;
   legR.name = 'legR';
   farmerGroup.add(legR);
@@ -201,15 +208,15 @@ function buildHumanoidModel(farmerGroup, c, config = {}) {
   // ─── アクセサリ等の後付けパーツ ───
   if (config.hat === 'straw_hat') {
     const brim = cylinder(1.2, 1.2, 0.08, 0xe0c080);
-    brim.position.set(0, 3.72, 0);
+    brim.position.set(0, 3.27, 0);
     const top = cylinder(0.55, 0.6, 0.55, 0xe0c080);
-    top.position.set(0, 4.0, 0);
+    top.position.set(0, 3.55, 0);
     farmerGroup.add(brim, top);
   } else if (config.hat === 'cap') {
     const capTop = box(1.1, 0.45, 1.1, 0xff0000);
-    capTop.position.set(0, 3.75, 0);
+    capTop.position.set(0, 3.3, 0);
     const brim = box(1.1, 0.08, 0.65, 0xff0000);
-    brim.position.set(0, 3.55, 0.5);
+    brim.position.set(0, 3.1, 0.5);
     farmerGroup.add(capTop, brim);
   }
 

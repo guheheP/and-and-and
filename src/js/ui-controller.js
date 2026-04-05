@@ -118,6 +118,8 @@ export function initUI(state) {
         gachaModal.hidden = false;
         resizeForModal();
       }
+      // 前回の結果をクリア
+      if (gachaResult) gachaResult.innerHTML = '';
       updateGachaCostDisplay();
     });
   }

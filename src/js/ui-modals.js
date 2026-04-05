@@ -263,6 +263,79 @@ export function buildCharacterCustomizer() {
     };
   }
 
+  // ─── プリセットスロット ───
+  let _presetSaveMode = false;
+  const modeLabel = document.getElementById('preset-mode-label');
+  const btnPresetSave = document.getElementById('btn-char-preset-save');
+  const presetSlots = document.querySelectorAll('.char-preset-slot');
+
+  // スロットの見た目を更新
+  function refreshPresetSlots() {
+    const presets = _gameState.colorPresets || [null, null, null, null, null];
+    presetSlots.forEach(btn => {
+      const idx = Number(btn.dataset.slot);
+      const data = presets[idx];
+      if (data) {
+        // body色を背景に表示
+        const hex = '#' + (data.body || 0x333333).toString(16).padStart(6, '0');
+        btn.style.background = hex;
+        btn.style.borderColor = '#aaa';
+        btn.style.color = '#fff';
+        btn.style.textShadow = '0 0 3px rgba(0,0,0,0.8)';
+      } else {
+        btn.style.background = '#333';
+        btn.style.borderColor = '#555';
+        btn.style.color = '#888';
+        btn.style.textShadow = '';
+      }
+    });
+  }
+
+  // 保存モードの表示切替
+  function setSaveMode(on) {
+    _presetSaveMode = on;
+    if (btnPresetSave) {
+      btnPresetSave.style.background = on ? '#554' : '';
+      btnPresetSave.style.borderColor = on ? '#aa8' : '';
+    }
+    if (modeLabel) {
+      modeLabel.textContent = on ? 'スロットを選んで保存...' : '';
+    }
+  }
+
+  if (btnPresetSave) {
+    btnPresetSave.onclick = () => {
+      setSaveMode(!_presetSaveMode);
+    };
+  }
+
+  presetSlots.forEach(btn => {
+    btn.onclick = () => {
+      const idx = Number(btn.dataset.slot);
+      if (!_gameState.colorPresets) _gameState.colorPresets = [null, null, null, null, null];
+
+      if (_presetSaveMode) {
+        // 保存: 現在のカラーをスロットに保存
+        if (_currentColors) {
+          _gameState.colorPresets[idx] = { ..._currentColors };
+          saveState(_gameState);
+          refreshPresetSlots();
+          setSaveMode(false);
+        }
+      } else {
+        // 読み込み: スロットのカラーを適用
+        const data = _gameState.colorPresets[idx];
+        if (data) {
+          _currentColors = { ...data };
+          updatePreview();
+        }
+      }
+    };
+  });
+
+  refreshPresetSlots();
+  setSaveMode(false);
+
   // モーダルを開いた瞬間の状態反映
   updatePreview();
   if (previewGroup) previewGroup.rotation.y = 0;
@@ -344,6 +417,27 @@ export function buildCatalog() {
     const isSelected = _gameState.selectedCropId === cropId;
     const fruitColor = getCropColor(cropId);
 
+    // 作物ごとの形状定義
+    const CROP_SHAPES = {
+      tomato:         'width:12px;height:12px;border-radius:50%',
+      potato:         'width:14px;height:10px;border-radius:40%',
+      carrot:         'width:6px;height:14px;border-radius:3px 3px 1px 1px',
+      strawberry:     'width:10px;height:12px;border-radius:2px 2px 50% 50%',
+      corn:           'width:7px;height:14px;border-radius:3px',
+      pumpkin:        'width:14px;height:11px;border-radius:50%',
+      eggplant:       'width:8px;height:14px;border-radius:50% 50% 3px 3px',
+      melon:          'width:13px;height:13px;border-radius:50%',
+      watermelon:     'width:14px;height:8px;border-radius:14px 14px 2px 2px',
+      golden_apple:   'width:11px;height:12px;border-radius:50%;box-shadow:0 0 4px rgba(255,215,0,0.7)',
+      tumbleweed:     'width:11px;height:11px;border-radius:50%;border:1px dashed rgba(255,255,255,0.3)',
+      christmas_tree: 'width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:14px solid',
+    };
+    const shapeBase = CROP_SHAPES[cropId] || 'width:12px;height:12px;border-radius:50%';
+    // christmas_tree は border-bottom-color で着色、それ以外は background
+    const fruitStyle = cropId === 'christmas_tree'
+      ? `${shapeBase} ${fruitColor};background:transparent`
+      : `${shapeBase};background:${fruitColor}`;
+
     const item = document.createElement('div');
     item.className = `catalog-item${isUnlocked ? '' : ' catalog-item--locked'}${isSelected ? ' is-selected' : ''}`;
     
@@ -355,7 +449,7 @@ export function buildCatalog() {
 
     item.innerHTML = `
       <div class="catalog-item__icon-wrapper">
-        <div class="catalog-fruit" style="--fruit-bg: ${fruitColor};"></div>
+        <div class="catalog-fruit" style="${fruitStyle}"></div>
       </div>
       <div class="catalog-item__info">
         <div class="catalog-item__name">${isUnlocked ? crop.name : '???'}</div>
