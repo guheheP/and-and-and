@@ -250,6 +250,7 @@ export function executePrestige(state) {
   const prestigeUpgrades = { ...(state.prestigeUpgrades || {}) };
   const currentCharId = state.currentCharId;
   const eventCounts = { ...(state.eventCounts || {}) };
+  const colorPresets = state.colorPresets ? state.colorPresets.map(p => p ? { ...p } : null) : [null, null, null, null, null];
 
   // ゲーム部分をリセット
   const fresh = createInitialState();
@@ -261,6 +262,7 @@ export function executePrestige(state) {
   state.prestigeUpgrades = prestigeUpgrades;
   state.currentCharId = currentCharId;
   state.eventCounts = eventCounts;
+  state.colorPresets = colorPresets;
   state.selectedCropId = null; // リセットで種が消えるためターゲットもリセット
 
   // リセットボーナス（startBonus）のポイント付与
