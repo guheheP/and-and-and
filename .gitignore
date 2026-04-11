@@ -26,7 +26,7 @@ venv/
 Thumbs.db
 .DS_Store
 
-# Build
+# Build output
 dist/
 build/
 *.egg-info/
@@ -36,6 +36,5 @@ coverage/
 .pytest_cache/
 .nyc_output/
 
-# AI tool generated (keep these out of version control)
-# Uncomment the following lines as needed:
-# .gemini/antigravity/    # Antigravity conversation data
+# AI tool data (conversation logs etc.)
+.gemini/antigravity/

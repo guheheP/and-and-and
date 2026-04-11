@@ -1,81 +1,105 @@
-# AI開発テンプレートプロジェクト
+# 🌱 No のーえん No Life
 
-AIコーディングアシスタント（Claude Code, Gemini/Antigravity, Cursor等）を使って効率的に開発するためのテンプレートプロジェクトです。
+放置系農園シミュレーションゲーム。畑に作物を植えて、育てて、収穫してポイントを稼ごう！
 
-## 🚀 使い方
+![Electron](https://img.shields.io/badge/Electron-33-47848F?logo=electron&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-1. このテンプレートを新しいプロジェクトにコピーする
-2. プロジェクト固有の設定（言語・フレームワーク等）を必要に応じて調整する
-3. AIツールで開発を開始する（`/start` ワークフローが自動的にルールを読み込みます）
+## ✨ 特徴
 
-## 📁 ファイル構成
+- **放置系ゲームプレイ** — 作物が自動で育ち、自動で収穫されます
+- **3D ボクセルキャラクター** — Three.js によるかわいいボクセル風の農夫キャラクター
+- **着せ替え＆カラーカスタマイズ** — 帽子・アクセサリの装着、ランダムカラー機能、5枠のプリセット保存
+- **豊富な作物** — トマト、じゃがいも、ニンジン、イチゴ、トウモロコシ、カボチャなど12種類
+- **イベントシステム** — ランダムに発生する天候・特殊イベント（雨、干ばつ、嵐、UFO など）
+- **プレステージ** — リセットして永続強化を獲得、さらなるやりこみ要素
+- **実績システム** — 条件達成で帽子やアクセサリをアンロック
+- **デバッグ・シミュレーター** — バランス検証用のシミュレーター付き
 
-```
-ProjectTemplate/
-├── CLAUDE.md                       # Claude Code 用ルール
-├── .gemini/
-│   └── GEMINI.md                   # Gemini (Antigravity) 用ルール
-├── .cursorrules                    # Cursor 用ルール
-├── .agents/
-│   └── workflows/
-│       ├── start.md                # 作業開始ワークフロー
-│       └── review.md              # コードレビューワークフロー
-├── docs/
-│   └── DEVELOPMENT_RULES.md       # 共通開発ルール（中核ドキュメント）
-├── .gitignore                     # Git除外設定
-├── .gitattributes                 # 改行コード制御
-└── README.md                      # このファイル
-```
+## 🚀 セットアップ
 
-## 📋 設計方針
+### 必要環境
 
-### 共通ルールの一元管理
+- [Node.js](https://nodejs.org/) v18 以上
+- npm
 
-`docs/DEVELOPMENT_RULES.md` に全AIツール共通の開発ルールを集約しています。
-各ツール固有の設定ファイル（`CLAUDE.md`, `GEMINI.md`, `.cursorrules`）からこのファイルを参照するため、ルール変更時は1箇所を修正するだけで全ツールに反映されます。
+### インストール
 
-### AImemory 統合
-
-全てのAIツール設定に `C:\Tools\AImemory\index.md` への参照を含めています。
-これにより、過去のプロジェクトで蓄積されたバグ・失敗事例・ベストプラクティスを常に活用できます。
-
-### ワークフロー
-
-`.agents/workflows/` にAIツール共通のワークフローを定義しています：
-
-| ワークフロー | コマンド | 内容 |
-|---|---|---|
-| 作業開始 | `/start` | AImemory確認 → ルール確認 → 要件把握 → 実装 |
-| レビュー | `/review` | 差分確認 → 品質チェック → テスト確認 |
-
-## ⚙️ カスタマイズ
-
-### プロジェクト固有のルールを追加する場合
-
-1. `docs/DEVELOPMENT_RULES.md` に共通ルールを追記
-2. 特定のAIツールにのみ適用するルールは、該当するツール設定ファイルに追記
-
-### ワークフローを追加する場合
-
-`.agents/workflows/` に新しい `.md` ファイルを作成してください。
-フロントマターに `description` を記載すると、AIツールがワークフローを自動認識します。
-
-```yaml
----
-description: ワークフローの説明
----
-# ワークフロー名
-## 手順
-1. ステップ1
-2. ステップ2
+```bash
+git clone https://github.com/guheheP/and-and-and.git
+cd and-and-and
+npm install
 ```
 
-## 📝 AImemory パスの変更
+### 開発モードで起動
 
-AImemory のインストール先がデフォルト（`C:\Tools\AImemory`）と異なる場合は、以下のファイル内のパスを書き換えてください：
+```bash
+npm run dev
+```
 
-- `CLAUDE.md`
-- `.gemini/GEMINI.md`
-- `.cursorrules`
-- `docs/DEVELOPMENT_RULES.md`
-- `.agents/workflows/start.md`
+### プロダクションビルド
+
+```bash
+npm run build        # 自動検出
+npm run build:win    # Windows向け
+npm run build:mac    # macOS向け
+```
+
+ビルド成果物は `dist/` ディレクトリに出力されます。
+
+## 📁 プロジェクト構成
+
+```
+├── main.js                    # Electron メインプロセス
+├── preload.js                 # プリロードスクリプト
+├── src/
+│   ├── index.html             # メインUI
+│   ├── simulator.html         # バランスシミュレーター
+│   ├── css/
+│   │   ├── main.css           # メインスタイル
+│   │   ├── modal.css          # モーダルUI
+│   │   ├── prestige.css       # プレステージUI
+│   │   ├── ui.css             # カタログ・ガチャUI
+│   │   └── weather.css        # 天候エフェクト
+│   └── js/
+│       ├── main.js            # アプリケーションエントリー
+│       ├── game-state.js      # セーブ/ロード・状態管理
+│       ├── game-loop.js       # ゲームループ・収穫ロジック
+│       ├── master-data.js     # 作物・キャラクターマスターデータ
+│       ├── event-data.js      # イベント定義
+│       ├── event-system.js    # イベント発生ロジック
+│       ├── gacha.js           # 種購入（ガチャ）
+│       ├── prestige-data.js   # プレステージ設定・アップグレード
+│       ├── progression.js     # レベルアップ処理
+│       ├── achievement-system.js  # 実績判定
+│       ├── renderer-3d.js     # Three.js メインレンダラー
+│       ├── renderer-3d-models.js  # キャラクターモデル・カラー
+│       ├── renderer-3d-crops.js   # 作物3Dモデル
+│       ├── renderer-3d-events.js  # イベントビジュアル・時計
+│       ├── renderer-common.js     # 共通ユーティリティ
+│       ├── ui-controller.js   # UIイベントハンドラ
+│       ├── ui-modals.js       # モーダル描画ロジック
+│       └── debug.js           # デバッグモード
+├── assets/                    # アイコン等のアセット
+├── docs/                      # 開発ドキュメント
+└── package.json
+```
+
+## 🎮 操作方法
+
+| 操作 | 内容 |
+|------|------|
+| 画面タップ/クリック | 畑の作物を収穫 |
+| ツールバーボタン | 各種メニューを開く |
+| 🔍 ボタン | 画面サイズ切替（1x / 2x） |
+
+## 🛠️ 技術スタック
+
+- **Electron** — デスクトップアプリケーションフレームワーク
+- **Three.js** — 3D レンダリング（CDN経由）
+- **Vanilla JS** — フレームワークなしのピュア JavaScript
+- **CSS** — カスタムプロパティによるテーマシステム
+
+## 📄 ライセンス
+
+[MIT License](LICENSE)
