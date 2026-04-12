@@ -199,6 +199,60 @@ export function startEventVisual(event, { scene, weatherGroup, activeAnimators, 
     case 'john': spawnJohnVisit3D(weatherGroup, activeAnimators); break;
     case 'dog_visit': spawnStaticAnimal3D('dog_visit', weatherGroup, activeAnimators); break;
     case 'cat_visit': spawnStaticAnimal3D('cat_visit', weatherGroup, activeAnimators); break;
+
+    // ── 季節イベント ──
+    case 'cherry_blossom':
+      spawnWeatherParticles('snow', 0xffaacc, 0.08, 300, 0, weatherGroup, activeAnimators);
+      break;
+    case 'hay_fever':
+      spawnWeatherParticles('snow', 0xdddd66, 0.04, 200, 0, weatherGroup, activeAnimators);
+      break;
+    case 'spring_breeze':
+      spawnWeatherParticles('snow', 0x88dd88, 0.12, 200, 0.3, weatherGroup, activeAnimators);
+      break;
+    case 'fireworks':
+      // 定期的に上方向への粒子で花火を表現
+      activeAnimators.push({
+        type: 'fireworks',
+        nextTime: Date.now() + 500,
+        update: (dt, t) => {
+          if (t > activeAnimators.find(a => a.type === 'fireworks')?.nextTime) {
+            spawnFirework3D(weatherGroup);
+            activeAnimators.find(a => a.type === 'fireworks').nextTime = t + 1500 + Math.random() * 2000;
+          }
+          return true;
+        }
+      });
+      break;
+    case 'heatwave':
+      // 熱気ゆらぎ: 暖色のパーティクルがゆっくり上昇
+      spawnWeatherParticles('snow', 0xff6633, 0.03, 150, 0, weatherGroup, activeAnimators);
+      break;
+    case 'shaved_ice':
+      spawnCrossingObject3D('stork', scene, activeAnimators); // 簡易: 横断で演出
+      break;
+    case 'autumn_leaves':
+      spawnWeatherParticles('snow', 0xdd6622, 0.06, 250, 0.15, weatherGroup, activeAnimators);
+      break;
+    case 'harvest_festival':
+      spawnWeatherParticles('snow', 0xffaa22, 0.05, 200, 0, weatherGroup, activeAnimators);
+      break;
+    case 'moon_viewing':
+      // 月を3Dで表示
+      spawnMoon3D(weatherGroup);
+      break;
+    case 'christmas_bonus':
+      spawnWeatherParticles('snow', 0xffffff, 0.1, 400, 0, weatherGroup, activeAnimators);
+      break;
+    case 'new_year':
+      spawnWeatherParticles('diamond', 0xffdd44, 0.08, 300, 0, weatherGroup, activeAnimators);
+      break;
+    case 'valentine':
+      spawnWeatherParticles('snow', 0xff6688, 0.06, 250, 0, weatherGroup, activeAnimators);
+      break;
+    case 'winter_aurora':
+      spawnAurora3D(weatherGroup, activeAnimators);
+      break;
   }
 }
 
@@ -208,8 +262,7 @@ export function stopAllEventVisuals({ scene, weatherGroup, activeAnimators, CONF
     const anim = activeAnimators[i];
     if (anim.type === 'weather') {
       anim.fadeOut = true;
-    } else if (anim.type === 'thunder') {
-      // 雷アニメーターもイベント終了時に削除
+    } else if (anim.type === 'thunder' || anim.type === 'fireworks' || anim.type === 'aurora') {
       activeAnimators.splice(i, 1);
     } else if (anim.type !== 'crossing' && anim.type !== 'poop') {
       if (anim.mesh) anim.mesh.removeFromParent();
@@ -790,4 +843,120 @@ export function showHarvestParticles(scene, cropId, CROP_HEX) {
     harvestAnimRunning = true;
     requestAnimationFrame(tickHarvestPool);
   }
+}
+
+// ═══════════════════════════════════════════
+//  季節イベント用3Dヘルパー
+// ═══════════════════════════════════════════
+
+function spawnFirework3D(weatherGroup) {
+  const colors = [0xff4444, 0x44ff44, 0x4444ff, 0xffff44, 0xff44ff, 0x44ffff];
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  const x = -5 + Math.random() * 10;
+  const z = -3 + Math.random() * 6;
+
+  // 花火の粒子を放射状に配置
+  const count = 30;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3);
+  const vel = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    pos[i * 3] = x;
+    pos[i * 3 + 1] = 6 + Math.random() * 2;
+    pos[i * 3 + 2] = z;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.random() * Math.PI;
+    const speed = 0.02 + Math.random() * 0.03;
+    vel[i * 3] = Math.sin(phi) * Math.cos(theta) * speed;
+    vel[i * 3 + 1] = Math.cos(phi) * speed;
+    vel[i * 3 + 2] = Math.sin(phi) * Math.sin(theta) * speed;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+
+  const mat = new THREE.PointsMaterial({
+    color, size: 6, transparent: true, opacity: 1.0, depthWrite: false
+  });
+  const points = new THREE.Points(geo, mat);
+  weatherGroup.add(points);
+
+  // アニメーション（1.5秒で消滅）
+  const startTime = Date.now();
+  const animate = () => {
+    const elapsed = (Date.now() - startTime) / 1000;
+    if (elapsed > 1.5) {
+      weatherGroup.remove(points);
+      geo.dispose();
+      mat.dispose();
+      return;
+    }
+    const positions = geo.attributes.position.array;
+    for (let i = 0; i < count; i++) {
+      positions[i * 3] += vel[i * 3];
+      positions[i * 3 + 1] += vel[i * 3 + 1] - elapsed * 0.005; // 重力
+      positions[i * 3 + 2] += vel[i * 3 + 2];
+    }
+    geo.attributes.position.needsUpdate = true;
+    mat.opacity = Math.max(0, 1.0 - elapsed / 1.5);
+    requestAnimationFrame(animate);
+  };
+  requestAnimationFrame(animate);
+}
+
+function spawnMoon3D(weatherGroup) {
+  const moonGeo = new THREE.SphereGeometry(1.5, 8, 8);
+  const moonMat = new THREE.MeshBasicMaterial({
+    color: 0xffeeaa,
+    transparent: true,
+    opacity: 0.9,
+  });
+  const moon = new THREE.Mesh(moonGeo, moonMat);
+  moon.position.set(5, 8, -10);
+  weatherGroup.add(moon);
+
+  // 月の光の輪
+  const glowGeo = new THREE.SphereGeometry(2.0, 8, 8);
+  const glowMat = new THREE.MeshBasicMaterial({
+    color: 0xffeecc,
+    transparent: true,
+    opacity: 0.2,
+  });
+  const glow = new THREE.Mesh(glowGeo, glowMat);
+  glow.position.copy(moon.position);
+  weatherGroup.add(glow);
+}
+
+function spawnAurora3D(weatherGroup, activeAnimators) {
+  // オーロラ: 半透明の帯を揺らす
+  const colors = [0x44ffaa, 0x44aaff, 0xaa44ff];
+  const bands = [];
+
+  for (let i = 0; i < 3; i++) {
+    const geo = new THREE.PlaneGeometry(20, 3, 10, 1);
+    const mat = new THREE.MeshBasicMaterial({
+      color: colors[i],
+      transparent: true,
+      opacity: 0.2,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const band = new THREE.Mesh(geo, mat);
+    band.position.set(0, 7 + i * 1.5, -10);
+    band.rotation.x = -0.3;
+    weatherGroup.add(band);
+    bands.push({ mesh: band, geo, offset: i * 2 });
+  }
+
+  activeAnimators.push({
+    type: 'aurora',
+    update: (dt, t) => {
+      bands.forEach(({ geo, offset }) => {
+        const pos = geo.attributes.position.array;
+        for (let j = 0; j < pos.length; j += 3) {
+          pos[j + 1] += Math.sin(t * 0.001 + pos[j] * 0.3 + offset) * 0.005;
+        }
+        geo.attributes.position.needsUpdate = true;
+      });
+      return true;
+    }
+  });
 }

@@ -3,6 +3,7 @@
 
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const { autoUpdater } = require('electron-updater');
 
 let mainWindow = null;
 
@@ -73,7 +74,51 @@ ipcMain.on('window-resize', (event, width, height) => {
   }
 });
 
-app.whenReady().then(createWindow);
+// ============================================
+//  自動アップデート
+// ============================================
+
+function setupAutoUpdater() {
+  // 開発時はスキップ
+  if (!app.isPackaged) return;
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on('update-available', (info) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('update-available', info.version);
+    }
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('update-downloaded', info.version);
+    }
+  });
+
+  autoUpdater.on('error', (err) => {
+    console.error('AutoUpdater error:', err.message);
+  });
+
+  // 起動後に更新チェック
+  autoUpdater.checkForUpdates().catch(() => {});
+}
+
+ipcMain.on('install-update', () => {
+  autoUpdater.quitAndInstall(false, true);
+});
+
+ipcMain.on('check-for-update', () => {
+  if (app.isPackaged) {
+    autoUpdater.checkForUpdates().catch(() => {});
+  }
+});
+
+app.whenReady().then(() => {
+  createWindow();
+  setupAutoUpdater();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

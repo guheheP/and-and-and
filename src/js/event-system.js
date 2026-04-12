@@ -105,11 +105,19 @@ function pickGenre() {
 
 /**
  * ジャンル内のイベントを重み付き抽選
+ * 季節ジャンルは現在の月でフィルタする
  * @param {string} genreId
  * @returns {Object|null}
  */
 function pickEventInGenre(genreId) {
-  const events = Object.values(EVENT_MASTER).filter(e => e.genre === genreId);
+  let events = Object.values(EVENT_MASTER).filter(e => e.genre === genreId);
+
+  // 季節ジャンル: 現在の月に該当するイベントのみ
+  if (genreId === 'seasonal') {
+    const currentMonth = new Date().getMonth() + 1; // 1-12
+    events = events.filter(e => e.months && e.months.includes(currentMonth));
+  }
+
   if (events.length === 0) return null;
 
   const totalWeight = events.reduce((sum, e) => sum + e.weight, 0);

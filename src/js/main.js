@@ -30,6 +30,11 @@ const ALL_EVENT_CLASSES = [
   'event--snow', 'event--thunder', 'event--typhoon', 'event--cumulonimbus',
   'event--tumbleweed', 'event--bird', 'event--stork',
   'event--santa', 'event--john', 'event--dog', 'event--cat',
+  // 季節イベント
+  'event--cherry-blossom', 'event--hay-fever', 'event--spring-breeze',
+  'event--fireworks', 'event--heatwave', 'event--shaved-ice',
+  'event--autumn-leaves', 'event--harvest-festival', 'event--moon-viewing',
+  'event--christmas-bonus', 'event--new-year', 'event--valentine', 'event--aurora',
 ];
 
 /**
@@ -100,6 +105,9 @@ function init() {
 
   // 7. Electron ハンドラ初期化
   initElectronHandlers(state);
+
+  // 8. 自動アップデートUI
+  initUpdateUI();
 
   // 8. ウィンドウを閉じる前にセーブ
   window.addEventListener('beforeunload', () => {
@@ -212,6 +220,56 @@ function applyEventEffect(state, event) {
       break;
     }
     // growthBoost と visual は自動で処理される（getGrowthMultiplier経由）
+  }
+}
+
+// ============================================
+//  自動アップデートUI
+// ============================================
+
+function initUpdateUI() {
+  if (!window.electronAPI) return;
+
+  const toast = document.getElementById('update-toast');
+  const toastText = document.getElementById('update-toast-text');
+  if (!toast || !toastText) return;
+
+  let downloadedVersion = null;
+
+  window.electronAPI.onUpdateAvailable((version) => {
+    toastText.textContent = `v${version} をダウンロード中...`;
+    toast.style.display = 'block';
+  });
+
+  window.electronAPI.onUpdateDownloaded((version) => {
+    downloadedVersion = version;
+    toastText.textContent = `v${version} 準備完了 — クリックで再起動`;
+    toast.style.display = 'block';
+  });
+
+  toast.addEventListener('click', () => {
+    if (downloadedVersion) {
+      window.electronAPI.installUpdate();
+    }
+  });
+
+  // バージョン情報モーダルの「更新を確認」ボタン
+  const btnCheckUpdate = document.getElementById('btn-check-update');
+  if (btnCheckUpdate) {
+    btnCheckUpdate.addEventListener('click', () => {
+      btnCheckUpdate.textContent = '確認中...';
+      btnCheckUpdate.disabled = true;
+      window.electronAPI.checkForUpdate();
+      setTimeout(() => {
+        if (!downloadedVersion && toast.style.display === 'none') {
+          btnCheckUpdate.textContent = '最新版です';
+        }
+        setTimeout(() => {
+          btnCheckUpdate.textContent = '更新を確認';
+          btnCheckUpdate.disabled = false;
+        }, 3000);
+      }, 5000);
+    });
   }
 }
 

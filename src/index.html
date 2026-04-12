@@ -57,6 +57,11 @@
           <span id="achievement-toast-desc"></span>
         </div>
 
+        <!-- アップデート通知 -->
+        <div id="update-toast" style="display:none; position:absolute; bottom:48px; left:0; right:0; background:rgba(30,80,40,0.92); border-top:1px solid #4a4; padding:4px 8px; color:#cfc; font-size:0.7rem; z-index:9100; text-align:center; cursor:pointer;">
+          <span id="update-toast-text">新バージョンあり</span>
+        </div>
+
         <!-- 非アクティブ時ステータス表示 -->
         <div id="blur-stats" class="blur-stats" hidden>
           <span class="stat stat--level">
@@ -254,6 +259,7 @@
           <div style="font-size: 0.7rem; color: #807890; line-height: 1.5;"></div>
         </div>
         <div class="modal__actions" style="flex-direction: column; gap: 10px;">
+          <button id="btn-check-update" class="btn btn--primary" style="width: 100%;">更新を確認</button>
           <button id="btn-open-reset" class="btn btn--danger" style="width: 100%;">セーブデータを削除</button>
           <button id="btn-version-close" class="btn btn--ghost" style="width: 100%;">閉じる</button>
         </div>

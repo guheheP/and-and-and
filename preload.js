@@ -10,4 +10,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   close: () => ipcRenderer.send('window-close'),
   resize: (width, height) => ipcRenderer.send('window-resize', width, height),
   isElectron: true,
+  // 自動アップデート
+  onUpdateAvailable: (callback) => ipcRenderer.on('update-available', (_, version) => callback(version)),
+  onUpdateDownloaded: (callback) => ipcRenderer.on('update-downloaded', (_, version) => callback(version)),
+  installUpdate: () => ipcRenderer.send('install-update'),
+  checkForUpdate: () => ipcRenderer.send('check-for-update'),
 });
