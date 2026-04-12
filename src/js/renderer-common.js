@@ -129,6 +129,22 @@ export function getCropColor(cropId) {
     golden_apple: '#ffd700',
     tumbleweed: '#a08850',
     christmas_tree: '#2d8040',
+    // v0.5 追加
+    onion: '#f0e0a0',
+    cabbage: '#80c060',
+    mushroom: '#c8a080',
+    radish: '#f0f0f0',
+    cherry: '#cc2244',
+    grape: '#6622aa',
+    bamboo: '#88aa44',
+    peach: '#ffaa88',
+    pineapple: '#e0b020',
+    lotus: '#e8d8c0',
+    truffle: '#3a2820',
+    dragon_fruit: '#ee3388',
+    crystal_flower: '#88ddff',
+    rainbow_melon: '#44cc88',
+    world_tree_seed: '#226622',
   };
   return colorMap[cropId] || '#ffd700';
 }

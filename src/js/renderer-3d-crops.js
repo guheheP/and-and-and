@@ -30,6 +30,15 @@ export const CROP_HEX = {
   watermelon: 0x408040, golden_apple: 0xffd700,
   tumbleweed: 0xedc97f, christmas_tree: 0x2d8040,
   eggplant: 0x4b0082, melon: 0x98fb98,
+  // v0.5 追加
+  onion: 0xf0e0a0, cabbage: 0x80c060,
+  mushroom: 0xc8a080, radish: 0xf0f0f0,
+  cherry: 0xcc2244, grape: 0x6622aa,
+  bamboo: 0x88aa44, peach: 0xffaa88,
+  pineapple: 0xe0b020, lotus: 0xe8d8c0,
+  truffle: 0x3a2820, dragon_fruit: 0xee3388,
+  crystal_flower: 0x88ddff, rainbow_melon: 0x44cc88,
+  world_tree_seed: 0x226622,
 };
 export const LEAF_HEX = {
   tomato: 0x2d8040, potato: 0x4a8e2c,
@@ -38,6 +47,15 @@ export const LEAF_HEX = {
   watermelon: 0x306030, golden_apple: 0x5a9e3c,
   tumbleweed: 0x807050, christmas_tree: 0x1a6030,
   eggplant: 0x2d8040, melon: 0x306030,
+  // v0.5 追加
+  onion: 0x4a8e2c, cabbage: 0x2d8040,
+  mushroom: 0x605040, radish: 0x2d8040,
+  cherry: 0x2d8040, grape: 0x3a6030,
+  bamboo: 0x5a7a2c, peach: 0x3a7a30,
+  pineapple: 0x2d6030, lotus: 0x2d6030,
+  truffle: 0x504030, dragon_fruit: 0x2d6040,
+  crystal_flower: 0x4488aa, rainbow_melon: 0x2d8040,
+  world_tree_seed: 0x1a4a1a,
 };
 
 // 実の出現位置（ツル上の4箇所）
@@ -156,10 +174,228 @@ function createFruitMesh(cropId, r, color) {
     case 'melon':
       core = sphere(r, color);
       core.scale.set(1.2, 1.2, 1.2);
-      cap = cylinder(r * 0.1, r * 0.1, r * 0.5, 0x8b5a2b); 
+      cap = cylinder(r * 0.1, r * 0.1, r * 0.5, 0x8b5a2b);
       cap.position.set(0, r * 1.3, 0);
       grp.add(core, cap);
       break;
+
+    // ── v0.5 追加作物 ──
+
+    case 'onion': {
+      // 丸い球体 + 上部の緑の芽
+      core = sphere(r, color);
+      core.scale.set(1.0, 1.2, 1.0);
+      const sprout = cylinder(r * 0.15, r * 0.1, r * 1.0, 0x4a8e2c);
+      sprout.position.set(0, r * 1.2, 0);
+      grp.add(core, sprout);
+      break;
+    }
+
+    case 'cabbage': {
+      // 重なった球体で表��
+      core = sphere(r, color);
+      core.scale.set(1.3, 0.9, 1.3);
+      const outerLeaf = sphere(r * 1.1, 0x60a040);
+      outerLeaf.scale.set(1.4, 0.6, 1.4);
+      outerLeaf.position.y = -r * 0.15;
+      grp.add(outerLeaf, core);
+      break;
+    }
+
+    case 'mushroom': {
+      // 傘 + 軸
+      const stem = cylinder(r * 0.3, r * 0.35, r * 1.2, 0xf0e8d0);
+      stem.position.y = -r * 0.3;
+      const capMush = cylinder(r * 1.0, r * 0.3, r * 0.8, color);
+      capMush.position.set(0, r * 0.5, 0);
+      grp.add(stem, capMush);
+      break;
+    }
+
+    case 'radish': {
+      // 長い白い根 + 葉
+      core = cylinder(r * 0.6, r * 0.2, r * 2.8, color);
+      core.position.y = -r * 0.5;
+      cap = box(r * 0.7, 0.1, r * 0.7, 0x2d8040);
+      cap.position.set(0, r * 0.9, 0);
+      grp.add(core, cap);
+      break;
+    }
+
+    case 'cherry': {
+      // 双子の実 + Y字の枝
+      const stem1 = cylinder(r * 0.06, r * 0.06, r * 1.2, 0x5a3216);
+      stem1.position.set(-r * 0.3, r * 0.6, 0);
+      stem1.rotation.z = 0.3;
+      const stem2 = cylinder(r * 0.06, r * 0.06, r * 1.2, 0x5a3216);
+      stem2.position.set(r * 0.3, r * 0.6, 0);
+      stem2.rotation.z = -0.3;
+      const ball1 = sphere(r * 0.7, color);
+      ball1.position.set(-r * 0.5, -r * 0.1, 0);
+      const ball2 = sphere(r * 0.7, color);
+      ball2.position.set(r * 0.5, -r * 0.1, 0);
+      grp.add(stem1, stem2, ball1, ball2);
+      break;
+    }
+
+    case 'grape': {
+      // 房状の球体群
+      const positions = [
+        [0, 0, 0], [-r*0.5, -r*0.4, 0], [r*0.5, -r*0.4, 0],
+        [-r*0.25, -r*0.8, 0], [r*0.25, -r*0.8, 0], [0, -r*1.2, 0],
+      ];
+      positions.forEach(([x, y, z]) => {
+        const g = sphere(r * 0.45, color);
+        g.position.set(x, y, z);
+        grp.add(g);
+      });
+      const grapeStem = cylinder(r * 0.08, r * 0.08, r * 0.8, 0x5a3216);
+      grapeStem.position.set(0, r * 0.6, 0);
+      grp.add(grapeStem);
+      break;
+    }
+
+    case 'bamboo': {
+      // 節のあるタケノコ
+      const seg1 = cylinder(r * 0.5, r * 0.7, r * 1.0, color);
+      seg1.position.y = -r * 0.5;
+      const seg2 = cylinder(r * 0.3, r * 0.5, r * 0.8, color);
+      seg2.position.y = r * 0.3;
+      const seg3 = cylinder(r * 0.1, r * 0.3, r * 0.6, 0x99bb55);
+      seg3.position.y = r * 0.9;
+      const ring1 = cylinder(r * 0.55, r * 0.55, r * 0.08, 0x667733);
+      ring1.position.y = 0;
+      grp.add(seg1, seg2, seg3, ring1);
+      break;
+    }
+
+    case 'peach': {
+      // 桃: 球体 + 溝線（中央のライン） + 葉
+      core = sphere(r, color);
+      core.scale.set(1.1, 1.0, 1.0);
+      const groove = box(r * 0.06, r * 1.6, r * 0.06, 0xdd8866);
+      groove.position.set(0, 0, r * 0.5);
+      const peachLeaf = box(r * 0.5, 0.06, r * 0.3, 0x3a7a30);
+      peachLeaf.position.set(0, r * 0.9, 0);
+      grp.add(core, groove, peachLeaf);
+      break;
+    }
+
+    case 'pineapple': {
+      // 円筒ボディ + 上部の葉の冠
+      core = cylinder(r * 0.7, r * 0.6, r * 2.0, color);
+      const crown1 = box(r * 0.2, r * 0.8, r * 0.08, 0x2d8040);
+      crown1.position.set(0, r * 1.4, 0);
+      crown1.rotation.z = 0.2;
+      const crown2 = box(r * 0.2, r * 0.7, r * 0.08, 0x2d8040);
+      crown2.position.set(r * 0.15, r * 1.3, 0);
+      crown2.rotation.z = -0.3;
+      const crown3 = box(r * 0.2, r * 0.6, r * 0.08, 0x3a9050);
+      crown3.position.set(-r * 0.15, r * 1.2, 0);
+      crown3.rotation.z = 0.4;
+      grp.add(core, crown1, crown2, crown3);
+      break;
+    }
+
+    case 'lotus': {
+      // 蓮根: 横倒しの円筒 + 断面の穴模様
+      core = cylinder(r * 0.8, r * 0.8, r * 2.2, color);
+      core.rotation.z = Math.PI / 2;
+      const endCap = cylinder(r * 0.75, r * 0.75, r * 0.05, 0xd0c0a0);
+      endCap.rotation.z = Math.PI / 2;
+      endCap.position.x = r * 1.1;
+      // 穴の表現（暗い丸）
+      const hole1 = cylinder(r * 0.15, r * 0.15, r * 0.08, 0x8a7a60);
+      hole1.rotation.z = Math.PI / 2;
+      hole1.position.set(r * 1.15, r * 0.2, 0);
+      const hole2 = cylinder(r * 0.15, r * 0.15, r * 0.08, 0x8a7a60);
+      hole2.rotation.z = Math.PI / 2;
+      hole2.position.set(r * 1.15, -r * 0.2, 0);
+      grp.add(core, endCap, hole1, hole2);
+      break;
+    }
+
+    case 'truffle': {
+      // 不整形な球体（ゴツゴツ感）
+      core = sphere(r, color);
+      core.scale.set(1.1, 0.9, 1.0);
+      const bump1 = sphere(r * 0.4, 0x4a3828);
+      bump1.position.set(r * 0.4, r * 0.3, r * 0.2);
+      const bump2 = sphere(r * 0.35, 0x4a3828);
+      bump2.position.set(-r * 0.3, -r * 0.2, r * 0.3);
+      grp.add(core, bump1, bump2);
+      break;
+    }
+
+    case 'dragon_fruit': {
+      // 楕円体 + 鱗状の突起
+      core = sphere(r, color);
+      core.scale.set(0.9, 1.3, 0.9);
+      const spike1 = box(r * 0.15, r * 0.5, r * 0.08, 0x44aa44);
+      spike1.position.set(r * 0.4, r * 0.3, 0);
+      spike1.rotation.z = -0.5;
+      const spike2 = box(r * 0.15, r * 0.5, r * 0.08, 0x44aa44);
+      spike2.position.set(-r * 0.4, 0, 0);
+      spike2.rotation.z = 0.5;
+      const spike3 = box(r * 0.15, r * 0.4, r * 0.08, 0x44aa44);
+      spike3.position.set(0, -r * 0.4, r * 0.3);
+      spike3.rotation.x = 0.5;
+      grp.add(core, spike1, spike2, spike3);
+      break;
+    }
+
+    case 'crystal_flower': {
+      // クリスタルの花弁（透明感のある多面体）
+      const center = sphere(r * 0.3, 0xffee88);
+      center.material.emissive = new THREE.Color(0x444400);
+      for (let i = 0; i < 5; i++) {
+        const petal = box(r * 0.5, r * 0.8, r * 0.08, color);
+        petal.material.transparent = true;
+        petal.material.opacity = 0.8;
+        const angle = (i / 5) * Math.PI * 2;
+        petal.position.set(Math.cos(angle) * r * 0.5, r * 0.2, Math.sin(angle) * r * 0.5);
+        petal.rotation.y = -angle;
+        petal.rotation.x = -0.3;
+        grp.add(petal);
+      }
+      grp.add(center);
+      break;
+    }
+
+    case 'rainbow_melon': {
+      // メロン型 + 虹色のストライプ
+      core = sphere(r, 0x44cc88);
+      core.scale.set(1.3, 1.1, 1.3);
+      const stripe1 = box(r * 0.1, r * 2.0, r * 0.1, 0xff4444);
+      stripe1.position.set(r * 0.5, 0, 0);
+      const stripe2 = box(r * 0.1, r * 2.0, r * 0.1, 0xffaa00);
+      stripe2.position.set(r * 0.25, 0, r * 0.4);
+      const stripe3 = box(r * 0.1, r * 2.0, r * 0.1, 0x4444ff);
+      stripe3.position.set(-r * 0.25, 0, r * 0.4);
+      const stripe4 = box(r * 0.1, r * 2.0, r * 0.1, 0xaa44ff);
+      stripe4.position.set(-r * 0.5, 0, 0);
+      cap = cylinder(r * 0.12, r * 0.12, r * 0.5, 0x5a3216);
+      cap.position.set(0, r * 1.2, 0);
+      grp.add(core, stripe1, stripe2, stripe3, stripe4, cap);
+      break;
+    }
+
+    case 'world_tree_seed': {
+      // 巨大な種: 卵型 + 発光する紋様
+      core = sphere(r, color);
+      core.scale.set(0.8, 1.4, 0.8);
+      const glow1 = box(r * 0.08, r * 1.0, r * 0.08, 0x88ff88);
+      glow1.material.emissive = new THREE.Color(0x226622);
+      glow1.position.set(0, 0, r * 0.4);
+      const glow2 = box(r * 0.08, r * 0.8, r * 0.08, 0x88ff88);
+      glow2.material.emissive = new THREE.Color(0x226622);
+      glow2.position.set(r * 0.3, 0, r * 0.2);
+      glow2.rotation.z = 0.4;
+      const sproutTop = box(r * 0.3, r * 0.5, r * 0.08, 0x44aa44);
+      sproutTop.position.set(0, r * 1.2, 0);
+      grp.add(core, glow1, glow2, sproutTop);
+      break;
+    }
 
     case 'tomato':
     case 'golden_apple':

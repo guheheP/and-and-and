@@ -1,7 +1,7 @@
 // game-loop.js — ゲームループ（Tick処理）
 
 import { CROP_MASTER } from './master-data.js';
-import { addPoints, addPlayerExp, consumeSeed, saveState, addCropExp, getCropLevel, getCropLevelMultiplier, getUpgradeLevel, isCropInfinite } from './game-state.js';
+import { addPoints, addPlayerExp, consumeSeed, saveState, addCropExp, getCropLevel, getCropLevelMultiplier, getUpgradeLevel, isCropInfinite, getActiveSlotCount } from './game-state.js';
 import { checkLevelUp, getPointMultiplier } from './progression.js';
 import { updateEventSystem, getGrowthMultiplier, consumePointBoost } from './event-system.js';
 import { checkAchievements } from './achievement-system.js';
@@ -63,24 +63,30 @@ function tick(state, currentTime) {
   // イベントシステム更新
   updateEventSystem(currentTime);
 
-  // 種植えフェーズ
-  if (!state.fieldState.isPlanted) {
-    plantCrop(state);
-  }
+  // 全スロットを処理
+  const slotCount = getActiveSlotCount(state);
+  for (let i = 0; i < slotCount; i++) {
+    const slot = state.fieldSlots[i];
 
-  // 成長フェーズ
-  if (state.fieldState.isPlanted) {
-    updateGrowth(state, currentTime);
-  }
+    // 種植えフェーズ
+    if (!slot.isPlanted) {
+      plantCrop(state, slot);
+    }
 
-  // 描画更新コールバック（収穫前に呼ぶ → 成長中の作物を描画）
-  if (callbacks.onFieldUpdate) {
-    callbacks.onFieldUpdate(state.fieldState);
-  }
+    // 成長フェーズ
+    if (slot.isPlanted) {
+      updateGrowth(state, slot, currentTime);
+    }
 
-  // 収穫フェーズ（描画後に実行）
-  if (state.fieldState.progress >= 1.0) {
-    harvestCrop(state);
+    // 描画更新コールバック
+    if (callbacks.onFieldUpdate) {
+      callbacks.onFieldUpdate(slot, i);
+    }
+
+    // 収穫フェーズ
+    if (slot.progress >= 1.0) {
+      harvestCrop(state, slot, i);
+    }
   }
 
   // 自動購入
@@ -108,8 +114,9 @@ function tick(state, currentTime) {
 /**
  * 種植えフェーズ
  * @param {GameState} state
+ * @param {Object} slot - 畑スロット
  */
-function plantCrop(state) {
+function plantCrop(state, slot) {
   let cropId = null;
 
   // 1. 優先指定の確認
@@ -146,10 +153,10 @@ function plantCrop(state) {
     consumeSeed(state, cropId);
   }
 
-  state.fieldState.isPlanted = true;
-  state.fieldState.cropId = cropId;
-  state.fieldState.plantedAt = Date.now();
-  state.fieldState.progress = 0;
+  slot.isPlanted = true;
+  slot.cropId = cropId;
+  slot.plantedAt = Date.now();
+  slot.progress = 0;
 
   if (callbacks.onPlant) {
     callbacks.onPlant(cropId);
@@ -159,28 +166,31 @@ function plantCrop(state) {
 /**
  * 成長フェーズ
  * @param {GameState} state
- * @param {number} currentTime - performance.now() の値（進捗計算にはDate.nowを使用）
+ * @param {Object} slot - 畑スロット
+ * @param {number} currentTime
  */
-function updateGrowth(state, currentTime) {
-  const crop = CROP_MASTER[state.fieldState.cropId];
+function updateGrowth(state, slot, currentTime) {
+  const crop = CROP_MASTER[slot.cropId];
   if (!crop) return;
 
-  const elapsed = Date.now() - state.fieldState.plantedAt;
+  const elapsed = Date.now() - slot.plantedAt;
   const growthMult = getGrowthMultiplier() * (window.DEBUG_SPEED_MULTIPLIER || 1);
   const prestigeGrowth = getUpgradeEffect('growthSpeed', getUpgradeLevel(state, 'growthSpeed'));
   const effectiveGrowTime = crop.growTimeMs * prestigeGrowth / growthMult;
-  state.fieldState.progress = Math.min(elapsed / effectiveGrowTime, 1.0);
+  slot.progress = Math.min(elapsed / effectiveGrowTime, 1.0);
 }
 
 /**
  * 収穫フェーズ
  * @param {GameState} state
+ * @param {Object} slot - 畑スロット
+ * @param {number} slotIndex
  */
-function harvestCrop(state) {
-  const crop = CROP_MASTER[state.fieldState.cropId];
+function harvestCrop(state, slot, slotIndex) {
+  const crop = CROP_MASTER[slot.cropId];
   if (!crop) return;
 
-  const cropId = state.fieldState.cropId;
+  const cropId = slot.cropId;
   const basePoint = crop.basePoint;
   const baseExp = crop.baseExp || basePoint;
 
@@ -223,8 +233,8 @@ function harvestCrop(state) {
   state.harvestCount = (state.harvestCount || 0) + 1;
 
   // 畑をリセット
-  state.fieldState.isPlanted = false;
-  state.fieldState.cropId = null;
-  state.fieldState.plantedAt = null;
-  state.fieldState.progress = 0;
+  slot.isPlanted = false;
+  slot.cropId = null;
+  slot.plantedAt = null;
+  slot.progress = 0;
 }

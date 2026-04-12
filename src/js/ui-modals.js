@@ -200,6 +200,7 @@ function stopPreviewLoop() {
 
 export function buildCharacterCustomizer() {
   if (!_gameState) return;
+  const baseSelect = document.getElementById('char-base-select');
   const hatSelect = document.getElementById('char-hat-select');
   const accSelect = document.getElementById('char-acc-select');
   if (!hatSelect || !accSelect) return;
@@ -209,11 +210,22 @@ export function buildCharacterCustomizer() {
 
   // 現在の設定を反映
   const config = _gameState.characterConfig || {};
+  if (baseSelect) baseSelect.value = config.base || _gameState.currentCharId || 'man';
   hatSelect.value = config.hat || 'none';
   accSelect.value = config.accessory || 'none';
 
   // カスタムカラーを復元
   _currentColors = config.colors || null;
+
+  // ベースキャラの未解放をロック表示
+  if (baseSelect) {
+    Array.from(baseSelect.options).forEach(opt => {
+      const unlocked = isPartUnlocked(_gameState, 'base', opt.value);
+      opt.disabled = !unlocked;
+      opt.text = unlocked ? opt.text.replace('🔒 ', '') : `🔒 ${opt.text.replace('🔒 ', '')}`;
+      if (!unlocked && baseSelect.value === opt.value) baseSelect.value = 'man';
+    });
+  }
 
   // 未解放パーツをロック表示
   Array.from(hatSelect.options).forEach(opt => {
@@ -232,8 +244,9 @@ export function buildCharacterCustomizer() {
 
   // プレビュー＆メインシーン両方を更新
   const updatePreview = () => {
+    const selectedBase = (baseSelect && baseSelect.value) || 'man';
     const cfg = {
-      base: 'man',
+      base: selectedBase,
       hat: hatSelect.value === 'none' ? undefined : hatSelect.value,
       accessory: accSelect.value === 'none' ? undefined : accSelect.value,
       colors: _currentColors || undefined,
@@ -242,6 +255,13 @@ export function buildCharacterCustomizer() {
     updatePreviewModel(cfg);
   };
 
+  if (baseSelect) {
+    baseSelect.onchange = () => {
+      // ベースキャラ変更時にデフォルトカラーをリセット
+      _currentColors = null;
+      updatePreview();
+    };
+  }
   hatSelect.onchange = updatePreview;
   accSelect.onchange = updatePreview;
 
@@ -347,17 +367,19 @@ export function stopCharacterPreview() {
 }
 
 export function saveCharacterCustomizer(gameStateObj) {
+  const baseSelect = document.getElementById('char-base-select');
   const hatSelect = document.getElementById('char-hat-select');
   const accSelect = document.getElementById('char-acc-select');
   if (!hatSelect || !accSelect) return;
 
+  const selectedBase = (baseSelect && baseSelect.value) || 'man';
   gameStateObj.characterConfig = {
-    base: 'man',
+    base: selectedBase,
     hat: hatSelect.value === 'none' ? undefined : hatSelect.value,
     accessory: accSelect.value === 'none' ? undefined : accSelect.value,
     colors: _currentColors || undefined,
   };
-  gameStateObj.currentCharId = 'man'; // 後方互換
+  gameStateObj.currentCharId = selectedBase;
   saveState(gameStateObj);
   updateCharacter(gameStateObj.characterConfig);
 }
@@ -537,6 +559,7 @@ export function buildPrestigeShop() {
 
     const row = document.createElement('div');
     row.className = `upgrade-row${isMaxed ? ' upgrade-row--maxed' : ''}`;
+    row.title = `${upgrade.name}\n${upgrade.description}`;
 
     row.innerHTML = `
       <div class="upgrade-info">

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /c/Users/fundb/Desktop/Project/idlegame01/src/js/*.js /c/Users/fundb/Desktop/Project/idlegame01/src/index.html)",
+      "Bash(npx electron:*)",
+      "Bash(wc -l /c/Users/fundb/Desktop/Project/idlegame01/src/js/*.js)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(taskkill //IM electron.exe //F)"
+    ]
+  }
+}

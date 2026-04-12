@@ -44,7 +44,7 @@ function init() {
 
   // 3. 初期描画
   updateCharacter(state.characterConfig || state.currentCharId);
-  updateField(state.fieldState);
+  updateField(state.fieldSlots[0]);
   updateHUD(state);
 
   // 4. UI初期化
@@ -66,10 +66,11 @@ function init() {
 
   // 6. ゲームループ開始（コールバック登録）
   startGameLoop(state, {
-    onFieldUpdate: (fieldState) => {
-      updateField(fieldState);
+    onFieldUpdate: (slot, slotIndex) => {
+      // スロット0のみ3D描画
+      if (slotIndex === 0) updateField(slot);
       updateHUD(state);
-      
+
       // カタログが開いていればリアルタイム反映
       const catalogModal = document.getElementById('catalog-modal');
       if (catalogModal && !catalogModal.hidden) {
@@ -83,7 +84,7 @@ function init() {
       triggerHarvestAnimation();
       showHarvestEffect(points);
       showHarvestParticles(cropId);
-      
+
       // カタログが開いていればリアルタイム反映
       const catalogModal = document.getElementById('catalog-modal');
       if (catalogModal && !catalogModal.hidden) {

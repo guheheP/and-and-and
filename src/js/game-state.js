@@ -9,6 +9,10 @@ import { CROP_MASTER, LEVEL_UNLOCK_CROPS } from './master-data.js';
  * 初期ゲーム状態を生成
  * @returns {GameState}
  */
+function createEmptyField() {
+  return { isPlanted: false, cropId: null, plantedAt: null, progress: 0 };
+}
+
 export function createInitialState() {
   return {
     points: 0,
@@ -19,13 +23,8 @@ export function createInitialState() {
     harvestCount: 0,
     seedsInventory: {},
     cropExp: {},
-    currentCharId: 'man',
-    fieldState: {
-      isPlanted: false,
-      cropId: null,
-      plantedAt: null,
-      progress: 0,
-    },
+    currentCharId: 'human',
+    fieldSlots: [createEmptyField()],
     selectedCropId: null, // 優先植え付けのターゲット
     colorPresets: [null, null, null, null, null], // カラープリセット5枠
     // プレステージ
@@ -34,6 +33,30 @@ export function createInitialState() {
     prestigeUpgrades: {},
     eventCounts: {},
   };
+}
+
+/**
+ * ��方互換: fieldState は fieldSlots[0] のエイリアス
+ * @param {GameState} state
+ */
+export function getFieldState(state) {
+  return state.fieldSlots[0];
+}
+
+/**
+ * 解放済みスロット数を取得
+ * @param {GameState} state
+ * @returns {number}
+ */
+export function getActiveSlotCount(state) {
+  let count = 1;
+  if (getUpgradeLevel(state, 'fieldSlot2') > 0) count = 2;
+  if (getUpgradeLevel(state, 'fieldSlot3') > 0) count = 3;
+  // fieldSlots配列が足りなければ拡張
+  while (state.fieldSlots.length < count) {
+    state.fieldSlots.push(createEmptyField());
+  }
+  return count;
 }
 
 /**
@@ -66,15 +89,30 @@ export function loadState() {
       saved.playerExp = saved.points;
     }
 
+    // fieldState → fieldSlots 移行
+    if (saved.fieldState && !saved.fieldSlots) {
+      saved.fieldSlots = [{ ...saved.fieldState }];
+      delete saved.fieldState;
+    }
+
+    // 旧人型キャラID → 統合 'human' に変換
+    const OLD_HUMAN_IDS = ['man', 'woman', 'boy', 'girl', 'grandpa', 'grandma'];
+    if (OLD_HUMAN_IDS.includes(saved.currentCharId)) {
+      saved.currentCharId = 'human';
+    }
+    if (saved.characterConfig && OLD_HUMAN_IDS.includes(saved.characterConfig.base)) {
+      saved.characterConfig.base = 'human';
+    }
+
     // 初期値とマージ（バージョン間のフィールド欠損を防止）
     const initial = createInitialState();
     const merged = {
       ...initial,
       ...saved,
-      fieldState: {
-        ...initial.fieldState,
-        ...(saved.fieldState || {}),
-      },
+      fieldSlots: (saved.fieldSlots || initial.fieldSlots).map((slot, i) => ({
+        ...createEmptyField(),
+        ...(slot || {}),
+      })),
       seedsInventory: {
         ...initial.seedsInventory,
         ...(saved.seedsInventory || {}),
@@ -249,8 +287,15 @@ export function executePrestige(state) {
   const prestigeCurrency = (state.prestigeCurrency || 0) + earned;
   const prestigeUpgrades = { ...(state.prestigeUpgrades || {}) };
   const currentCharId = state.currentCharId;
+  const characterConfig = state.characterConfig ? { ...state.characterConfig } : undefined;
   const eventCounts = { ...(state.eventCounts || {}) };
   const colorPresets = state.colorPresets ? state.colorPresets.map(p => p ? { ...p } : null) : [null, null, null, null, null];
+  const unlockedAchievements = [...(state.unlockedAchievements || [])];
+  const unlockedParts = state.unlockedParts ? {
+    hat: [...(state.unlockedParts.hat || [])],
+    accessory: [...(state.unlockedParts.accessory || [])],
+    base: [...(state.unlockedParts.base || [])],
+  } : { hat: [], accessory: [], base: [] };
 
   // ゲーム部分をリセット
   const fresh = createInitialState();
@@ -261,8 +306,11 @@ export function executePrestige(state) {
   state.prestigeCurrency = prestigeCurrency;
   state.prestigeUpgrades = prestigeUpgrades;
   state.currentCharId = currentCharId;
+  if (characterConfig) state.characterConfig = characterConfig;
   state.eventCounts = eventCounts;
   state.colorPresets = colorPresets;
+  state.unlockedAchievements = unlockedAchievements;
+  state.unlockedParts = unlockedParts;
   state.selectedCropId = null; // リセットで種が消えるためターゲットもリセット
 
   // リセットボーナス（startBonus）のポイント付与

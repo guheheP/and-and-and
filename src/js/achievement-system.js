@@ -201,6 +201,62 @@ export const ACHIEVEMENT_MASTER = {
     rewardId: 'umbrella',
     rewardText: '傘',
   },
+
+  // ── キャラクター解放系 ──
+  char_dog: {
+    id: 'char_dog',
+    name: '忠犬農家',
+    desc: '犬の訪問イベントを5回目撃する',
+    condition: (state) => (state.eventCounts?.dog_visit || 0) >= 5,
+    rewardType: 'base',
+    rewardId: 'dog',
+    rewardText: 'キャラクター「犬」',
+  },
+  char_cat: {
+    id: 'char_cat',
+    name: '猫の恩返し',
+    desc: '猫の訪問イベントを5回目撃する',
+    condition: (state) => (state.eventCounts?.cat_visit || 0) >= 5,
+    rewardType: 'base',
+    rewardId: 'cat',
+    rewardText: 'キャラクター「猫」',
+  },
+  char_robot: {
+    id: 'char_robot',
+    name: '機械化農業',
+    desc: 'プレステージを10回実行する',
+    condition: (state) => (state.prestigeCount || 0) >= 10,
+    rewardType: 'base',
+    rewardId: 'robot',
+    rewardText: 'キャラクター「ロボット」',
+  },
+  char_alien: {
+    id: 'char_alien',
+    name: '宇宙農法',
+    desc: '累計獲得ポイントが1,000,000に到達する',
+    condition: (state) => (state.totalEarnedPoints || 0) >= 1000000,
+    rewardType: 'base',
+    rewardId: 'alien',
+    rewardText: 'キャラクター「エイリアン」',
+  },
+  char_pumpkinhead: {
+    id: 'char_pumpkinhead',
+    name: 'ハロウィンの夜',
+    desc: 'カボチャの作物レベルが50に到達する',
+    condition: (state) => getCropLevel(state, 'pumpkin') >= 50,
+    rewardType: 'base',
+    rewardId: 'pumpkinhead',
+    rewardText: 'キャラクター「カボチャ頭」',
+  },
+  char_snowman: {
+    id: 'char_snowman',
+    name: '冬の農夫',
+    desc: '雪イベントを10回目撃する',
+    condition: (state) => (state.eventCounts?.snow || 0) >= 10,
+    rewardType: 'base',
+    rewardId: 'snowman',
+    rewardText: 'キャラクター「雪だるま」',
+  },
 };
 
 let callbacks = {
@@ -246,10 +302,14 @@ export function checkAchievements(state) {
   }
 }
 
+// 初期から使用可能なベースキャラクター
+const DEFAULT_BASE_CHARS = ['human'];
+
 export function isPartUnlocked(state, type, id) {
-  // デフォルトパーツ（noneや基本キャラ）は常に解放
+  // デフォルトパーツ（none）は常に解放
   if (id === 'none') return true;
-  if (type === 'base') return true; // ベースキャラは初期から全開放（マスターデータに依存）
+  // 基本キャラ6体は初期から全開放
+  if (type === 'base' && DEFAULT_BASE_CHARS.includes(id)) return true;
 
   if (!state || !state.unlockedParts || !state.unlockedParts[type]) return false;
   return state.unlockedParts[type].includes(id);
