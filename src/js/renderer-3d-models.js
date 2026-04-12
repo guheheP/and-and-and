@@ -205,7 +205,7 @@ function buildHumanoidModel(farmerGroup, c, config = {}) {
   legR.name = 'legR';
   farmerGroup.add(legR);
 
-  // ─── アクセサリ等の後付けパーツ ───
+  // ─── 帽子パーツ ───
   if (config.hat === 'straw_hat') {
     const brim = cylinder(1.2, 1.2, 0.08, 0xe0c080);
     brim.position.set(0, 3.27, 0);
@@ -218,12 +218,119 @@ function buildHumanoidModel(farmerGroup, c, config = {}) {
     const brim = box(1.1, 0.08, 0.65, 0xff0000);
     brim.position.set(0, 3.1, 0.5);
     farmerGroup.add(capTop, brim);
+  } else if (config.hat === 'bandana') {
+    const band = box(1.0, 0.2, 1.0, 0x3366cc);
+    band.position.set(0, 3.18, 0);
+    const knot = box(0.2, 0.25, 0.3, 0x3366cc);
+    knot.position.set(0, 3.15, -0.55);
+    farmerGroup.add(band, knot);
+  } else if (config.hat === 'crown') {
+    const base = cylinder(0.55, 0.55, 0.2, 0xffd700);
+    base.position.set(0, 3.25, 0);
+    const gem = box(0.15, 0.3, 0.15, 0xff2222);
+    gem.position.set(0, 3.5, 0.45);
+    const spikeL = box(0.12, 0.25, 0.12, 0xffd700);
+    spikeL.position.set(-0.3, 3.48, 0.3);
+    const spikeR = box(0.12, 0.25, 0.12, 0xffd700);
+    spikeR.position.set(0.3, 3.48, 0.3);
+    farmerGroup.add(base, gem, spikeL, spikeR);
+  } else if (config.hat === 'headband') {
+    const band = box(1.0, 0.15, 1.0, 0xffffff);
+    band.position.set(0, 3.05, 0);
+    const mark = box(0.2, 0.2, 0.05, 0xff3333);
+    mark.position.set(0, 3.05, 0.5);
+    farmerGroup.add(band, mark);
+  } else if (config.hat === 'halo') {
+    const ring = cylinder(0.6, 0.6, 0.06, 0xffffaa);
+    ring.position.set(0, 3.55, 0);
+    ring.material.transparent = true;
+    ring.material.opacity = 0.85;
+    // 内側くり抜き風に薄い黒リングを重ねる
+    const inner = cylinder(0.4, 0.4, 0.08, 0x000000);
+    inner.position.set(0, 3.55, 0);
+    inner.material.transparent = true;
+    inner.material.opacity = 0.0;
+    farmerGroup.add(ring);
+  } else if (config.hat === 'wizard_hat') {
+    const brim = cylinder(0.9, 0.9, 0.06, 0x4422aa);
+    brim.position.set(0, 3.2, 0);
+    const cone = cylinder(0.05, 0.5, 1.0, 0x4422aa);
+    cone.position.set(0, 3.75, 0);
+    const star = box(0.15, 0.15, 0.05, 0xffdd00);
+    star.position.set(0.15, 3.6, 0.35);
+    farmerGroup.add(brim, cone, star);
+  } else if (config.hat === 'flower_crown') {
+    const vine = cylinder(0.55, 0.55, 0.12, 0x2d8040);
+    vine.position.set(0, 3.2, 0);
+    const colors = [0xff6688, 0xffcc44, 0xff88cc, 0x66ccff];
+    for (let i = 0; i < 4; i++) {
+      const flower = sphere(0.1, colors[i]);
+      const angle = (i / 4) * Math.PI * 2;
+      flower.position.set(Math.cos(angle) * 0.5, 3.3, Math.sin(angle) * 0.5);
+      farmerGroup.add(flower);
+    }
+    farmerGroup.add(vine);
+  } else if (config.hat === 'top_hat') {
+    const brim = cylinder(0.7, 0.7, 0.06, 0x111111);
+    brim.position.set(0, 3.2, 0);
+    const top = cylinder(0.4, 0.4, 0.8, 0x111111);
+    top.position.set(0, 3.65, 0);
+    const ribbon = cylinder(0.42, 0.42, 0.1, 0xcc2222);
+    ribbon.position.set(0, 3.3, 0);
+    farmerGroup.add(brim, top, ribbon);
   }
 
+  // ─── アクセサリパーツ ───
   if (config.accessory === 'watering_can') {
     const can = box(0.4, 0.4, 0.4, 0x88bbff);
     can.position.set(0, -0.5, 0.3);
     armR.add(can);
+  } else if (config.accessory === 'hoe') {
+    const handle = box(0.08, 1.2, 0.08, 0x8B6914);
+    handle.position.set(0, -0.2, 0.15);
+    handle.rotation.z = -0.3;
+    const blade = box(0.35, 0.08, 0.15, 0x888888);
+    blade.position.set(0.1, -0.8, 0.15);
+    armR.add(handle, blade);
+  } else if (config.accessory === 'basket') {
+    const base = cylinder(0.3, 0.25, 0.3, 0xc89050);
+    base.position.set(0, -0.4, 0.3);
+    armL.add(base);
+  } else if (config.accessory === 'scarf') {
+    const wrap = box(1.0, 0.25, 0.7, 0xcc3333);
+    wrap.position.set(0, 2.05, 0);
+    const tail = box(0.2, 0.5, 0.15, 0xcc3333);
+    tail.position.set(0.35, 1.8, 0.3);
+    farmerGroup.add(wrap, tail);
+  } else if (config.accessory === 'seed_bag') {
+    const bag = box(0.35, 0.4, 0.25, 0xddbb77);
+    bag.position.set(0, -0.4, 0.3);
+    armR.add(bag);
+  } else if (config.accessory === 'gold_medal') {
+    const ribbon = box(0.2, 0.25, 0.05, 0xff2222);
+    ribbon.position.set(0, 1.85, 0.32);
+    const medal = cylinder(0.15, 0.15, 0.04, 0xffd700);
+    medal.position.set(0, 1.6, 0.32);
+    medal.rotation.x = Math.PI / 2;
+    farmerGroup.add(ribbon, medal);
+  } else if (config.accessory === 'umbrella') {
+    const handle = box(0.06, 1.0, 0.06, 0x8B6914);
+    handle.position.set(0, 0.2, 0.15);
+    const canopy = cylinder(0.6, 0.0, 0.35, 0x3388cc);
+    canopy.position.set(0, 0.8, 0.15);
+    armR.add(handle, canopy);
+  } else if (config.accessory === 'wings') {
+    const wingL = box(0.05, 0.7, 0.5, 0xffffff);
+    wingL.position.set(-0.35, 1.8, -0.35);
+    wingL.rotation.y = 0.3;
+    wingL.material.transparent = true;
+    wingL.material.opacity = 0.75;
+    const wingR = box(0.05, 0.7, 0.5, 0xffffff);
+    wingR.position.set(0.35, 1.8, -0.35);
+    wingR.rotation.y = -0.3;
+    wingR.material.transparent = true;
+    wingR.material.opacity = 0.75;
+    farmerGroup.add(wingL, wingR);
   }
 }
 
