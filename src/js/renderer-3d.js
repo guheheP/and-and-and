@@ -268,6 +268,19 @@ function animate() {
   update3DClock();
 
   // アクティブアニメーターの更新
+  // 上限超過時は古いアニメーターを強制除去（パフォーマンス保護）
+  const MAX_ANIMATORS = 20;
+  while (activeAnimators.length > MAX_ANIMATORS) {
+    const old = activeAnimators.shift();
+    if (old && old.mesh) {
+      old.mesh.removeFromParent();
+      old.mesh.traverse(child => {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) child.material.dispose();
+      });
+    }
+  }
+
   const dt = 16;
   for (let i = activeAnimators.length - 1; i >= 0; i--) {
     const anim = activeAnimators[i];

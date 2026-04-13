@@ -143,10 +143,38 @@ export function buildClouds(cloudsGroup) {
 }
 
 // ═══════════════════════════════════════════
+//  Animation Throttle — 同時再生制限
+// ═══════════════════════════════════════════
+
+const MAX_WEATHER_ANIMATORS = 3;   // 同時天候パーティクル数
+const MAX_TOTAL_ANIMATORS = 20;    // 全アニメーター上限
+
+// 現在のアクティブ天候パーティクル数に応じてスポーン数をスケールする
+function getParticleScale(activeAnimators) {
+  const weatherCount = activeAnimators.filter(a => a.type === 'weather').length;
+  if (weatherCount >= MAX_WEATHER_ANIMATORS) return 0;
+  if (weatherCount >= 2) return 0.25;
+  if (weatherCount >= 1) return 0.5;
+  return 1.0;
+}
+
+// 天候アニメーターが上限を超えていたら古い方をフェードアウト
+function evictOldWeather(activeAnimators) {
+  const weathers = activeAnimators.filter(a => a.type === 'weather' && !a.fadeOut);
+  while (weathers.length >= MAX_WEATHER_ANIMATORS) {
+    const oldest = weathers.shift();
+    if (oldest) oldest.fadeOut = true;
+  }
+}
+
+// ═══════════════════════════════════════════
 //  Weather & Event Visuals
 // ═══════════════════════════════════════════
 
 export function startEventVisual(event, { scene, weatherGroup, activeAnimators, CONFIG, updateClearColor, renderer3d }) {
+  // 全アニメーター数が上限に達していたらビジュアルをスキップ
+  if (activeAnimators.length >= MAX_TOTAL_ANIMATORS) return;
+
   switch (event.id) {
     case 'rain': 
       spawnWeatherParticles('rain', 0xaaccff, 0.4, 300, 0, weatherGroup, activeAnimators); 
@@ -210,20 +238,26 @@ export function startEventVisual(event, { scene, weatherGroup, activeAnimators, 
     case 'spring_breeze':
       spawnWeatherParticles('snow', 0x88dd88, 0.12, 200, 0.3, weatherGroup, activeAnimators);
       break;
-    case 'fireworks':
+    case 'fireworks': {
       // 定期的に上方向への粒子で花火を表現
-      activeAnimators.push({
+      const fwAnim = {
         type: 'fireworks',
         nextTime: Date.now() + 500,
         update: (dt, t) => {
-          if (t > activeAnimators.find(a => a.type === 'fireworks')?.nextTime) {
+          if (t > fwAnim.nextTime) {
+            // アニメーター数が多いほどバースト間隔を延長
+            const interval = activeAnimators.length > 10
+              ? 3000 + Math.random() * 3000
+              : 1500 + Math.random() * 2000;
             spawnFirework3D(weatherGroup);
-            activeAnimators.find(a => a.type === 'fireworks').nextTime = t + 1500 + Math.random() * 2000;
+            fwAnim.nextTime = t + interval;
           }
           return true;
         }
-      });
+      };
+      activeAnimators.push(fwAnim);
       break;
+    }
     case 'heatwave':
       // 熱気ゆらぎ: 暖色のパーティクルがゆっくり上昇
       spawnWeatherParticles('snow', 0xff6633, 0.03, 150, 0, weatherGroup, activeAnimators);
@@ -304,6 +338,14 @@ function triggerThunderFlash(scene, CONFIG, updateClearColor, renderer3d) {
 }
 
 function spawnWeatherParticles(type, colorHex, speed, count, slantX, weatherGroup, activeAnimators) {
+  // 同時天候数が上限に達していたら古い方をフェードアウト
+  evictOldWeather(activeAnimators);
+
+  // パーティクル数を動的にスケール
+  const scale = getParticleScale(activeAnimators);
+  if (scale <= 0) return;
+  count = Math.max(30, Math.floor(count * scale));
+
   const geo = new THREE.BufferGeometry();
   const pos = new Float32Array(count * 3);
   for (let i = 0; i < count; i++) {
