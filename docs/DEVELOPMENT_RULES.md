@@ -122,6 +122,51 @@ project/
 - `feature/<name>` — 機能ブランチ
 - `fix/<name>` — バグ修正ブランチ
 
+### 4.3 リリース手順
+
+GitHub Releaseによる自動ビルド＆配布のフローです。`v*` タグのpushで GitHub Actions（`.github/workflows/release.yml`）が自動実行されます。
+
+#### 手順
+
+```bash
+# 1. バージョン番号を更新（3箇所）
+#    - package.json の "version"
+#    - src/index.html の "Version x.x.x" 表示テキスト
+
+# 2. 変更をコミット
+git add <変更ファイル>
+git commit -m "feat: vX.Y.Z <変更内容の要約>"
+
+# 3. タグを作成
+git tag vX.Y.Z
+
+# 4. プッシュ（コミット + タグ）
+git push origin main
+git push origin vX.Y.Z
+
+# 5. GitHub Actions のビルド完了を待つ（約2分）
+gh run list --limit 1
+
+# 6. draft リリースを公開（リリースノート付き）
+gh release edit vX.Y.Z --draft=false --notes "$(cat <<'EOF'
+## vX.Y.Z — タイトル
+
+### 新機能
+- ...
+
+### 修正
+- ...
+EOF
+)"
+```
+
+#### 注意事項
+
+- electron-builder が `--publish always` でビルドするため、`GH_TOKEN` シークレットが必要（リポジトリの Settings > Secrets に設定済み）
+- ビルド成果物は draft 状態で GitHub Release に自動アップロードされる。手順6で公開すると `electron-updater` がアップデートを検出可能になる
+- バージョン番号は [Semantic Versioning](https://semver.org/) に従う: `MAJOR.MINOR.PATCH`
+- `npm run dev`（`--dev` フラグ付き）で起動した場合のみデバッグモーダルが使用可能。パッケージ版では無効化される
+
 ---
 
 ## 5. エラーハンドリング
