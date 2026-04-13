@@ -33,7 +33,7 @@ export function getUpgradeCost(upgrade, currentLv) {
  */
 export function getUpgradeEffect(upgradeId, level) {
   if (level <= 0) {
-    if (['gachaMulti', 'gacha50', 'gacha100', 'autoGacha', 'fieldSlot2', 'fieldSlot3'].includes(upgradeId)) return 0;
+    if (['gachaMulti', 'gacha50', 'gacha100', 'autoGacha'].includes(upgradeId)) return 0;
     if (upgradeId === 'startBonus') return 0;
     return 1.0;
   }
@@ -84,10 +84,7 @@ export function getUpgradeEffect(upgradeId, level) {
     case 'startBonus':
       // プレステージ後の初期ポイント
       return level * 500;
-    case 'fieldSlot2':
-    case 'fieldSlot3':
-      // 畑スロット解放（0 or 1）
-      return level >= 1 ? 1 : 0;
+    // fieldSlot2/fieldSlot3 は超越システムに移動済み
     default:
       return 1.0;
   }
@@ -260,25 +257,5 @@ export const PRESTIGE_UPGRADES = {
     costScale: 2.0,
     effectLabel: (lv) => lv > 0 ? `初期 ${getUpgradeEffect('startBonus', lv)}pt` : '効果なし',
   },
-  // ── 畑拡張 ──
-  fieldSlot2: {
-    id: 'fieldSlot2',
-    name: '🌾 2つ目の畑',
-    description: '同時に2つの作物を栽培できるようになる',
-    category: 'bonus',
-    maxLv: 1,
-    baseCost: 50,
-    costScale: 1.0,
-    effectLabel: (lv) => lv > 0 ? '解放済み' : '未解放',
-  },
-  fieldSlot3: {
-    id: 'fieldSlot3',
-    name: '🌾 3つ目の畑',
-    description: '同時に3つの作物を栽培できるようになる',
-    category: 'bonus',
-    maxLv: 1,
-    baseCost: 500,
-    costScale: 1.0,
-    effectLabel: (lv) => lv > 0 ? '解放済み' : '未解放',
-  },
+  // 畑拡張は超越システムに移動済み
 };

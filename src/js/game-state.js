@@ -60,11 +60,14 @@ export function getFieldState(state) {
  * @returns {number}
  */
 export function getActiveSlotCount(state) {
+  // デバッグオーバーライド
+  if (window._debugFieldSlots) return window._debugFieldSlots;
+
   let count = 1;
-  if (getUpgradeLevel(state, 'fieldSlot2') > 0) count = 2;
-  if (getUpgradeLevel(state, 'fieldSlot3') > 0) count = 3;
-  // 超越: 4つ目の畑（2,3が解放済みの場合のみ）
-  if (count >= 3 && getTranscendLevel(state, 't_fourthField') > 0) count = 4;
+  // 畑拡張は超越アップグレード（旧プレステージからの互換もチェック）
+  if (getTranscendLevel(state, 't_fieldSlot2') > 0 || getUpgradeLevel(state, 'fieldSlot2') > 0) count = 2;
+  if (count >= 2 && (getTranscendLevel(state, 't_fieldSlot3') > 0 || getUpgradeLevel(state, 'fieldSlot3') > 0)) count = 3;
+  if (count >= 3 && getTranscendLevel(state, 't_fieldSlot4') > 0) count = 4;
   // fieldSlots配列が足りなければ拡張
   while (state.fieldSlots.length < count) {
     state.fieldSlots.push(createEmptyField());

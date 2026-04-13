@@ -26,6 +26,9 @@ let lastAutoGachaTime = 0;
 /** 自動転生後のレベル（無限ループ防止用） */
 let lastAutoPrestigeLevel = -1;
 
+/** 畑数の変化検知用 */
+let lastSlotCount = 0;
+
 /**
  * コールバック: 描画更新やイベント通知に使用
  * @type {{ onFieldUpdate: Function, onHarvest: Function, onLevelUp: Function, onPlant: Function }}
@@ -69,6 +72,11 @@ function tick(state, currentTime) {
 
   // 全スロットを処理
   const slotCount = getActiveSlotCount(state);
+  // 畑数変化を検知してコールバック
+  if (slotCount !== lastSlotCount) {
+    lastSlotCount = slotCount;
+    if (callbacks.onSlotCountChange) callbacks.onSlotCountChange(slotCount);
+  }
   for (let i = 0; i < slotCount; i++) {
     const slot = state.fieldSlots[i];
 
@@ -249,7 +257,7 @@ function harvestCrop(state, slot, slotIndex) {
 
   // 収穫コールバック
   if (callbacks.onHarvest) {
-    callbacks.onHarvest(cropId, gainedPoints);
+    callbacks.onHarvest(cropId, gainedPoints, slotIndex);
   }
 
   // レベルアップ判定

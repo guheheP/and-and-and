@@ -3,7 +3,10 @@
 
 const { contextBridge, ipcRenderer } = require('electron');
 
+const isDevMode = process.argv.includes('--dev');
+
 contextBridge.exposeInMainWorld('electronAPI', {
+  isDevMode,
   onWindowBlur: (callback) => ipcRenderer.on('window-blur', callback),
   onWindowFocus: (callback) => ipcRenderer.on('window-focus', callback),
   minimize: () => ipcRenderer.send('window-minimize'),

@@ -2,10 +2,16 @@
 
 import { EVENT_MASTER } from './event-data.js';
 import { forceTriggerEvent } from './event-system.js';
-import { addPlayerExp, addPoints, saveState } from './game-state.js';
+import { addPlayerExp, addPoints, saveState, getActiveSlotCount } from './game-state.js';
 import { updateHUD } from './renderer-common.js';
+import { rebuildFields } from './renderer-3d.js';
 
 export function initDebug(gameState) {
+  // リリース版（Electron パッケージ版で --dev なし）ではデバッグ無効
+  const isElectron = !!window.electronAPI;
+  const isDevMode = window.electronAPI?.isDevMode ?? false;
+  if (isElectron && !isDevMode) return;
+
   const debugModal = document.getElementById('debug-modal');
   if (!debugModal) return;
 
@@ -39,6 +45,19 @@ export function initDebug(gameState) {
     addPoints(gameState, 10000);
     updateHUD(gameState);
     saveState(gameState);
+  });
+
+  // 畑プレビュー（ゲームループも複数畑で動作させる）
+  [1, 2, 3, 4].forEach(n => {
+    document.getElementById(`btn-debug-field-${n}`)?.addEventListener('click', () => {
+      // fieldSlotsを必要数まで拡張
+      while (gameState.fieldSlots.length < n) {
+        gameState.fieldSlots.push({ isPlanted: false, cropId: null, plantedAt: null, progress: 0 });
+      }
+      // デバッグ用の強制スロット数を設定（getActiveSlotCountをオーバーライド）
+      window._debugFieldSlots = n;
+      rebuildFields(n);
+    });
   });
 
   // デバッグモーダル閉じる

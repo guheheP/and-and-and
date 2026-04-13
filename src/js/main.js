@@ -1,12 +1,13 @@
 // main.js — エントリーポイント（初期化・各モジュール結合）
 
-import { loadState, saveState, addSeed, addPoints } from './game-state.js';
+import { loadState, saveState, addSeed, addPoints, getActiveSlotCount } from './game-state.js';
 import { startGameLoop } from './game-loop.js';
 
 import {
   initRenderer,
   updateCharacter,
   updateField,
+  rebuildFields,
   updateHUD,
   showHarvestEffect,
   showHarvestParticles,
@@ -48,9 +49,13 @@ function init() {
   // 2. ゲーム状態のロード
   const state = loadState();
 
-  // 3. 初期描画
+  // 3. 初期描画（畑数に応じて3Dシーンを構築）
+  const slotCount = getActiveSlotCount(state);
+  rebuildFields(slotCount);
   updateCharacter(state.characterConfig || state.currentCharId);
-  updateField(state.fieldSlots[0]);
+  for (let i = 0; i < slotCount; i++) {
+    updateField(state.fieldSlots[i], i);
+  }
   updateHUD(state);
 
   // 4. UI初期化
@@ -73,17 +78,19 @@ function init() {
   // 6. ゲームループ開始（コールバック登録）
   startGameLoop(state, {
     onFieldUpdate: (slot, slotIndex) => {
-      // スロット0のみ3D描画
-      if (slotIndex === 0) updateField(slot);
+      updateField(slot, slotIndex);
       updateHUD(state);
+    },
+    onSlotCountChange: (newCount) => {
+      rebuildFields(newCount);
     },
     onPlant: (cropId) => {
       triggerWorkAnimation();
     },
-    onHarvest: (cropId, points) => {
+    onHarvest: (cropId, points, slotIndex) => {
       triggerHarvestAnimation();
       showHarvestEffect(points);
-      showHarvestParticles(cropId);
+      showHarvestParticles(cropId, slotIndex);
 
       // 図鑑が開いていればリアルタイム反映
       const encModal = document.getElementById('encyclopedia-modal');

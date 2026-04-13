@@ -36,7 +36,7 @@ export function getTranscendUpgradeCost(upgrade, currentLv) {
  */
 export function getTranscendEffect(upgradeId, level) {
   if (level <= 0) {
-    if (['t_fourthField', 't_autoPrestige'].includes(upgradeId)) return 0;
+    if (['t_fieldSlot2', 't_fieldSlot3', 't_fieldSlot4', 't_autoPrestige'].includes(upgradeId)) return 0;
     if (upgradeId === 't_startLevel') return 0;
     if (upgradeId === 't_goldenSeed') return 0;
     if (upgradeId === 't_prestigeKeep') return 0;
@@ -65,8 +65,10 @@ export function getTranscendEffect(upgradeId, level) {
     case 't_prestigeKeep':
       // 超越後に保持するプレステージアップグレード数
       return level;
-    case 't_fourthField':
-      // 4つ目の畑（0 or 1）
+    case 't_fieldSlot2':
+    case 't_fieldSlot3':
+    case 't_fieldSlot4':
+      // 畑スロット解放（0 or 1）
       return level >= 1 ? 1 : 0;
     case 't_autoPrestige':
       // 自動転生（0 or 1）
@@ -158,13 +160,33 @@ export const TRANSCEND_UPGRADES = {
   },
 
   // -- 解放カテゴリ --
-  t_fourthField: {
-    id: 't_fourthField',
+  t_fieldSlot2: {
+    id: 't_fieldSlot2',
+    name: '🌾 2つ目の畑',
+    description: '同時に2つの作物を栽培できるようになる',
+    category: 'unlock',
+    maxLv: 1,
+    baseCost: 3,
+    costScale: 1.0,
+    effectLabel: (lv) => lv >= 1 ? '解放済み' : '未解放',
+  },
+  t_fieldSlot3: {
+    id: 't_fieldSlot3',
+    name: '🌾 3つ目の畑',
+    description: '同時に3つの作物を栽培できるようになる',
+    category: 'unlock',
+    maxLv: 1,
+    baseCost: 10,
+    costScale: 1.0,
+    effectLabel: (lv) => lv >= 1 ? '解放済み' : '未解放',
+  },
+  t_fieldSlot4: {
+    id: 't_fieldSlot4',
     name: '🌾 4つ目の畑',
     description: '同時に4つの作物を栽培できるようになる',
     category: 'unlock',
     maxLv: 1,
-    baseCost: 15,
+    baseCost: 25,
     costScale: 1.0,
     effectLabel: (lv) => lv >= 1 ? '解放済み' : '未解放',
   },

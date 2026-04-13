@@ -811,7 +811,7 @@ function tickHarvestPool() {
   requestAnimationFrame(tickHarvestPool);
 }
 
-export function showHarvestParticles(scene, cropId, CROP_HEX) {
+export function showHarvestParticles(scene, cropId, CROP_HEX, offsetX = 0, offsetZ = 0) {
   if (!scene) return;
   const color = CROP_HEX[cropId] || 0xffd700;
 
@@ -826,7 +826,7 @@ export function showHarvestParticles(scene, cropId, CROP_HEX) {
   }
 
   const bigCrop = box(0.6, 0.6, 0.6, color);
-  bigCrop.position.set(0, 0.5, 0.5);
+  bigCrop.position.set(offsetX, 0.5, 0.5 + offsetZ);
   scene.add(bigCrop);
 
   harvestPool.push({

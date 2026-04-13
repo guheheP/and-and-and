@@ -55,13 +55,20 @@ const CONFIG = {
 
 // ─── State ───
 let scene, camera, renderer3d, animFrameId;
-let groundGroup, fieldGroup, cropGroup, farmerGroup;
+let groundGroup, farmerGroup;
 let weatherGroup, cloudsGroup;
 const activeAnimators = [];
+let currentCharId = null;
+
+// ── 複数畑対応 ──
+/** @type {{ fieldGroup: THREE.Group, cropGroup: THREE.Group, cropId: string|null, progress: number, smoothProgress: number }[]} */
+let fieldSlots = [];
+let currentSlotCount = 1;
+
+// 旧APIとの互換
 export let currentCropId = null;
 export let currentProgress = 0;
 let smoothProgress = 0;
-let currentCharId = null;
 
 // ── ズーム制御 ──
 let currentFrustum = CONFIG.frustum;
@@ -157,7 +164,7 @@ export function initRenderer() {
 
   // シーン構築
   buildGround();
-  buildField();
+  // 畑はmain.jsのrebuildFields()で構築される
   buildFarmer();
 
   // 天気グループ
@@ -221,21 +228,24 @@ function animate() {
   animFrameId = requestAnimationFrame(animate);
   const t = Date.now();
 
-  // 作物スムーズ成長＆揺れアニメーション
-  if (cropGroup && cropGroup.visible && cropGroup.userData.fruits) {
-    smoothProgress += (currentProgress - smoothProgress) * 0.15;
+  // 作物スムーズ成長＆揺れアニメーション（全スロット）
+  for (const slot of fieldSlots) {
+    const cg = slot.cropGroup;
+    if (cg && cg.visible && cg.userData.fruits) {
+      slot.smoothProgress += (slot.progress - slot.smoothProgress) * 0.15;
 
-    cropGroup.userData.fruits.forEach(fruitGroup => {
-      const appearAt = fruitGroup.userData.appearAt;
-      const scaleTarget = Math.max(0, Math.min(1, (smoothProgress - appearAt) * 3.3));
-      fruitGroup.scale.set(scaleTarget, scaleTarget, scaleTarget);
+      cg.userData.fruits.forEach(fruitGroup => {
+        const appearAt = fruitGroup.userData.appearAt;
+        const scaleTarget = Math.max(0, Math.min(1, (slot.smoothProgress - appearAt) * 3.3));
+        fruitGroup.scale.set(scaleTarget, scaleTarget, scaleTarget);
 
-      if (currentProgress >= 1.0) {
-        fruitGroup.position.y = fruitGroup.userData.baseY + Math.sin(t * 0.005) * 0.12;
-      } else {
-        fruitGroup.position.y = fruitGroup.userData.baseY;
-      }
-    });
+        if (slot.progress >= 1.0) {
+          fruitGroup.position.y = fruitGroup.userData.baseY + Math.sin(t * 0.005) * 0.12;
+        } else {
+          fruitGroup.position.y = fruitGroup.userData.baseY;
+        }
+      });
+    }
   }
 
   // キャラクターの呼吸アニメーション（収穫アニメーション中はスキップ）
@@ -307,14 +317,50 @@ function buildGround() {
 }
 
 // ═══════════════════════════════════════════
-//  Field
+//  Field（複数畑対応）
 // ═══════════════════════════════════════════
 
-function buildField() {
-  fieldGroup = new THREE.Group();
+/**
+ * 畑のレイアウト位置を計算（斜め配置）
+ * @param {number} slotIndex - スロット番号
+ * @param {number} totalSlots - 総スロット数
+ * @returns {{ x: number, z: number, scale: number }}
+ */
+function getFieldLayout(slotIndex, totalSlots) {
+  // 1畑の場合: 元の位置
+  if (totalSlots === 1) {
+    return { x: 0, z: 0, scale: 1.0 };
+  }
 
-  for (let x = CONFIG.fieldX[0]; x <= CONFIG.fieldX[1]; x++) {
-    for (let z = CONFIG.fieldZ[0]; z <= CONFIG.fieldZ[1]; z++) {
+  // 畑数ごとに個別レイアウト（scale縮小を加味した間隔調整）
+  const layouts = {
+    2: { stepX: 2.8, stepZ: -2.5, scale: 0.85 },
+    3: { stepX: 2.0, stepZ: -1.8, scale: 0.7 },
+    4: { stepX: 1.7, stepZ: -1.6, scale: 0.7 },
+  };
+  const cfg = layouts[totalSlots] || layouts[2];
+  const centerIdx = (totalSlots - 1) / 2;
+  const offset = slotIndex - centerIdx;
+
+  return {
+    x: offset * cfg.stepX,
+    z: offset * cfg.stepZ,
+    scale: cfg.scale,
+  };
+}
+
+/**
+ * 単一の畑セット（土壌+支柱+作物グループ）を構築
+ */
+function buildSingleField(scale) {
+  const fieldGroup = new THREE.Group();
+
+  const s = scale;
+  const fieldXRange = [Math.round(CONFIG.fieldX[0] * s), Math.round(CONFIG.fieldX[1] * s)];
+  const fieldZRange = [CONFIG.fieldZ[0], CONFIG.fieldZ[1]];
+
+  for (let x = fieldXRange[0]; x <= fieldXRange[1]; x++) {
+    for (let z = fieldZRange[0]; z <= fieldZRange[1]; z++) {
       const isDark = (x + z) % 2 === 0;
       const soil = box(V, 0.3, V, isDark ? COLORS.soilDark : COLORS.soil);
       soil.position.set(x * V, CONFIG.fieldY, z * V + CONFIG.fieldOffsetZ);
@@ -325,28 +371,88 @@ function buildField() {
   }
 
   // 支柱
+  const poleXScaled = CONFIG.poleX * s;
   const poleL = box(0.15, CONFIG.poleHeight, 0.15, COLORS.wood);
-  poleL.position.set(-CONFIG.poleX, CONFIG.poleHeight / 2, CONFIG.poleZ);
+  poleL.position.set(-poleXScaled, CONFIG.poleHeight / 2, CONFIG.poleZ);
   poleL.castShadow = true;
   fieldGroup.add(poleL);
 
   const poleR = box(0.15, CONFIG.poleHeight, 0.15, COLORS.wood);
-  poleR.position.set(CONFIG.poleX, CONFIG.poleHeight / 2, CONFIG.poleZ);
+  poleR.position.set(poleXScaled, CONFIG.poleHeight / 2, CONFIG.poleZ);
   poleR.castShadow = true;
   fieldGroup.add(poleR);
 
   // 横棒
-  const barWidth = (CONFIG.poleX * 2) + 0.15;
+  const barWidth = (poleXScaled * 2) + 0.15;
   const bar = box(barWidth, 0.1, 0.1, COLORS.wood);
   bar.position.set(0, CONFIG.barY, CONFIG.poleZ);
   bar.castShadow = true;
   fieldGroup.add(bar);
 
-  scene.add(fieldGroup);
-
-  cropGroup = new THREE.Group();
+  const cropGroup = new THREE.Group();
   cropGroup.visible = false;
-  scene.add(cropGroup);
+
+  return { fieldGroup, cropGroup };
+}
+
+/**
+ * 全畑を再構築
+ * @param {number} slotCount
+ */
+export function rebuildFields(slotCount) {
+  // 旧スロットを削除
+  for (const slot of fieldSlots) {
+    scene.remove(slot.fieldGroup);
+    scene.remove(slot.cropGroup);
+    slot.fieldGroup.traverse(c => {
+      if (c.geometry) c.geometry.dispose();
+      if (c.material) c.material.dispose();
+    });
+    slot.cropGroup.traverse(c => {
+      if (c.geometry) c.geometry.dispose();
+      if (c.material) c.material.dispose();
+    });
+  }
+  fieldSlots = [];
+
+  currentSlotCount = slotCount;
+
+  for (let i = 0; i < slotCount; i++) {
+    const layout = getFieldLayout(i, slotCount);
+    const { fieldGroup, cropGroup } = buildSingleField(layout.scale);
+
+    // 畑全体をスケール＆配置
+    fieldGroup.scale.setScalar(layout.scale);
+    fieldGroup.position.set(layout.x, 0, layout.z);
+    cropGroup.scale.setScalar(layout.scale);
+    cropGroup.position.set(layout.x, 0, layout.z);
+
+    scene.add(fieldGroup);
+    scene.add(cropGroup);
+
+    fieldSlots.push({
+      fieldGroup,
+      cropGroup,
+      cropId: null,
+      progress: 0,
+      smoothProgress: 0,
+    });
+  }
+
+  // キャラクター位置を畑数に応じて調整
+  if (farmerGroup) {
+    const layout0 = getFieldLayout(0, slotCount);
+    farmerGroup.position.set(
+      layout0.x + CONFIG.farmerPos.x * layout0.scale,
+      CONFIG.farmerPos.y,
+      layout0.z + CONFIG.farmerPos.z * layout0.scale
+    );
+  }
+}
+
+/** 初期畑構築（後方互換） */
+function buildField() {
+  rebuildFields(1);
 }
 
 // ═══════════════════════════════════════════
@@ -387,22 +493,36 @@ export function updateCharacter(charIdOrConfig) {
   rebuildFarmerModel(farmerGroup, config);
 }
 
-export function updateField(fieldState) {
+export function updateField(fieldState, slotIndex = 0) {
+  const slot = fieldSlots[slotIndex];
+  if (!slot) return;
+
   if (!fieldState.isPlanted || !fieldState.cropId) {
-    if (cropGroup) cropGroup.visible = false;
-    currentCropId = null;
+    slot.cropGroup.visible = false;
+    slot.cropId = null;
+    // スロット0の旧API互換
+    if (slotIndex === 0) currentCropId = null;
     return;
   }
 
-  const isNewPlant = fieldState.cropId !== currentCropId || fieldState.progress < currentProgress;
+  const isNewPlant = fieldState.cropId !== slot.cropId || fieldState.progress < slot.progress;
 
   if (isNewPlant) {
-    currentCropId = fieldState.cropId;
-    smoothProgress = fieldState.progress;
-    buildCrop(cropGroup, currentCropId, CONFIG);
+    slot.cropId = fieldState.cropId;
+    slot.smoothProgress = fieldState.progress;
+    // スケールされた畑用のCONFIG
+    const layout = getFieldLayout(slotIndex, currentSlotCount);
+    buildCrop(slot.cropGroup, slot.cropId, CONFIG);
   }
 
-  currentProgress = fieldState.progress;
+  slot.progress = fieldState.progress;
+
+  // スロット0の旧API互換
+  if (slotIndex === 0) {
+    currentCropId = slot.cropId;
+    currentProgress = slot.progress;
+    smoothProgress = slot.smoothProgress;
+  }
 }
 
 let _armResetTimer = null;
@@ -495,8 +615,9 @@ export function stopAllEventVisuals() {
   _stopAllEventVisuals(getEventContext());
 }
 
-export function showHarvestParticles(cropId) {
-  _showHarvestParticles(scene, cropId, CROP_HEX);
+export function showHarvestParticles(cropId, slotIndex = 0) {
+  const layout = getFieldLayout(slotIndex, currentSlotCount);
+  _showHarvestParticles(scene, cropId, CROP_HEX, layout.x, layout.z);
 }
 
 // 共通モジュールから re-export
