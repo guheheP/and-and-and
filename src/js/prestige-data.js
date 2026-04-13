@@ -79,8 +79,8 @@ export function getUpgradeEffect(upgradeId, level) {
       // ガチャ解放（0 or 1）
       return level >= 1 ? 1 : 0;
     case 'autoGacha':
-      // 5秒あたりの自動購入数: 2^(Lv-1)
-      return Math.pow(2, level - 1);
+      // 5秒あたりの自動購入数: 2^Lv（Lv1=2, Lv2=4, ..., Lv10=1024）
+      return Math.pow(2, level);
     case 'startBonus':
       // プレステージ後の初期ポイント
       return level * 500;
@@ -178,10 +178,10 @@ export const PRESTIGE_UPGRADES = {
     name: '🤖 自動購入',
     description: '5秒ごとに自動で種を購入',
     category: 'gacha',
-    maxLv: 8,
+    maxLv: 10,
     baseCost: 500,
     costScale: 2.2,
-    effectLabel: (lv) => lv > 0 ? `5秒ごとに${Math.pow(2, lv - 1)}個` : '効果なし',
+    effectLabel: (lv) => lv > 0 ? `5秒ごとに${Math.pow(2, lv)}個` : '効果なし',
   },
   gachaMulti: {
     id: 'gachaMulti',
