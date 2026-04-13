@@ -260,6 +260,7 @@ export function buildCharacterCustomizer() {
     baseSelect.onchange = () => {
       // ベースキャラ変更時にデフォルトカラーをリセット
       _currentColors = null;
+      updateNonHumanLock();
       updatePreview();
     };
   }
@@ -282,6 +283,24 @@ export function buildCharacterCustomizer() {
       _currentColors = null;
       updatePreview();
     };
+  }
+
+  // ── 人間以外のキャラクター選択時に帽子・アクセサリー・カラーをロック ──
+  const lockableControls = [hatSelect, accSelect, btnRandomize, btnResetColor];
+  function updateNonHumanLock() {
+    const isHuman = (baseSelect && baseSelect.value) === 'human';
+    hatSelect.disabled = !isHuman;
+    accSelect.disabled = !isHuman;
+    if (btnRandomize) btnRandomize.disabled = !isHuman;
+    if (btnResetColor) btnResetColor.disabled = !isHuman;
+    lockableControls.forEach(el => {
+      if (el) el.style.opacity = isHuman ? '' : '0.4';
+    });
+    if (!isHuman) {
+      hatSelect.value = 'none';
+      accSelect.value = 'none';
+      _currentColors = null;
+    }
   }
 
   // ─── プリセットスロット ───
@@ -358,6 +377,7 @@ export function buildCharacterCustomizer() {
   setSaveMode(false);
 
   // モーダルを開いた瞬間の状態反映
+  updateNonHumanLock();
   updatePreview();
   if (previewGroup) previewGroup.rotation.y = 0;
   startPreviewLoop();
@@ -374,11 +394,12 @@ export function saveCharacterCustomizer(gameStateObj) {
   if (!hatSelect || !accSelect) return;
 
   const selectedBase = (baseSelect && baseSelect.value) || 'man';
+  const isHuman = selectedBase === 'human';
   gameStateObj.characterConfig = {
     base: selectedBase,
-    hat: hatSelect.value === 'none' ? undefined : hatSelect.value,
-    accessory: accSelect.value === 'none' ? undefined : accSelect.value,
-    colors: _currentColors || undefined,
+    hat: isHuman && hatSelect.value !== 'none' ? hatSelect.value : undefined,
+    accessory: isHuman && accSelect.value !== 'none' ? accSelect.value : undefined,
+    colors: isHuman ? (_currentColors || undefined) : undefined,
   };
   gameStateObj.currentCharId = selectedBase;
   saveState(gameStateObj);
