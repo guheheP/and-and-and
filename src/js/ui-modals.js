@@ -2,9 +2,10 @@
 // 種購入結果、キャラ変更、作物カタログ、イベント図鑑、プレステージショップ
 
 import { CHARACTER_MASTER, CROP_MASTER, LEVEL_UNLOCK_CROPS } from './master-data.js';
-import { saveState, getCropLevel, getCropLevelMultiplier, getCropLevelProgress, purchaseUpgrade, getUpgradeLevel, isCropInfinite } from './game-state.js';
+import { saveState, getCropLevel, getCropLevelMultiplier, getCropLevelProgress, purchaseUpgrade, getUpgradeLevel, isCropInfinite, getTranscendLevel, purchaseTranscendUpgrade, canTranscend, getTranscendTitle } from './game-state.js';
 import { isGachaBatchUnlocked, getGachaCost } from './gacha.js';
 import { PRESTIGE_CONFIG, PRESTIGE_UPGRADES, getUpgradeCost } from './prestige-data.js';
+import { TRANSCEND_CONFIG, TRANSCEND_UPGRADES, getTranscendUpgradeCost, getTranscendEffect } from './transcend-data.js';
 import { EVENT_MASTER } from './event-data.js';
 import { isPartUnlocked, ACHIEVEMENT_MASTER } from './achievement-system.js';
 import { updateCharacter } from './renderer-3d.js';
@@ -385,7 +386,7 @@ export function saveCharacterCustomizer(gameStateObj) {
 }
 
 // ============================================
-//  作物カタログ
+//  作物カタログ（互換: 図鑑の作物タブへリダイレクト）
 // ============================================
 
 function getUnlockedCropIds() {
@@ -400,16 +401,59 @@ function getUnlockedCropIds() {
 }
 
 export function buildCatalog() {
-  const listEl = document.getElementById('catalog-list');
-  if (!listEl || !_gameState) return;
+  // 図鑑の作物タブを構築（互換用エイリアス）
+  buildEncyclopedia();
+}
 
-  if (!listEl.dataset.clickEventAttached) {
-    listEl.addEventListener('mousedown', (e) => {
-      const itemNode = e.target.closest('.catalog-item');
+// ============================================
+//  図鑑システム（統合版）
+// ============================================
+
+/** 現在のタブ */
+let _currentEncTab = 'crops';
+
+/** 図鑑タブ切替の初期化 */
+export function initEncyclopediaTabs() {
+  const tabs = document.querySelectorAll('.encyclopedia-tab');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      _currentEncTab = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('is-active', t === tab));
+      // パネル切替
+      document.querySelectorAll('.enc-tab-panel').forEach(p => p.classList.remove('is-active'));
+      const panel = document.getElementById(`enc-tab-${_currentEncTab}`);
+      if (panel) panel.classList.add('is-active');
+      buildEncyclopediaTab(_currentEncTab);
+    });
+  });
+}
+
+/** 図鑑モーダルを構築 */
+export function buildEncyclopedia() {
+  buildEncyclopediaTab(_currentEncTab);
+}
+
+/** 指定タブの図鑑を構築 */
+function buildEncyclopediaTab(tab) {
+  switch (tab) {
+    case 'crops': buildEncCrops(); break;
+    case 'characters': buildEncCharacters(); break;
+    case 'events': buildEncEvents(); break;
+    case 'completion': buildEncCompletion(); break;
+  }
+}
+
+/** 作物図鑑タブ */
+function buildEncCrops() {
+  const panel = document.getElementById('enc-tab-crops');
+  if (!panel || !_gameState) return;
+
+  if (!panel.dataset.clickEventAttached) {
+    panel.addEventListener('mousedown', (e) => {
+      const itemNode = e.target.closest('.enc-item');
       if (!itemNode) return;
-      
       const cropId = itemNode.dataset.cropId;
-      if (!cropId || itemNode.classList.contains('catalog-item--locked')) return;
+      if (!cropId || itemNode.classList.contains('enc-item--locked')) return;
 
       if (_gameState.selectedCropId === cropId) {
         _gameState.selectedCropId = null;
@@ -417,110 +461,271 @@ export function buildCatalog() {
         _gameState.selectedCropId = cropId;
       }
       saveState(_gameState);
-      buildCatalog();
+      buildEncCrops();
     });
-    listEl.dataset.clickEventAttached = 'true';
+    panel.dataset.clickEventAttached = 'true';
   }
 
-  listEl.innerHTML = '';
+  panel.innerHTML = '';
   const unlockedIds = getUnlockedCropIds();
 
   for (const [cropId, crop] of Object.entries(CROP_MASTER)) {
     const isLevelUnlocked = unlockedIds.includes(cropId);
-    // イベント限定作物は種を所持していれば解放済みとみなす
     const hasSeeds = (_gameState.seedsInventory[cropId] || 0) > 0;
-    const isUnlocked = isLevelUnlocked || (crop.isEventOnly && hasSeeds);
+    const hasCropExp = (_gameState.cropExp[cropId] || 0) > 0;
+    const isUnlocked = isLevelUnlocked || (crop.isEventOnly && (hasSeeds || hasCropExp));
     const cropLevel = getCropLevel(_gameState, cropId);
     const { current: expInLevel, required: expRequired } = getCropLevelProgress(_gameState, cropId);
     const seedCount = _gameState.seedsInventory[cropId] || 0;
-    const multiplier = getCropLevelMultiplier(cropLevel);
-
     const isInf = isCropInfinite(_gameState, cropId);
     const isSelected = _gameState.selectedCropId === cropId;
     const fruitColor = getCropColor(cropId);
+    const harvestCount = (_gameState.cropHarvestCounts && _gameState.cropHarvestCounts[cropId]) || 0;
+    const discoveredAt = _gameState.cropDiscoveredAt && _gameState.cropDiscoveredAt[cropId];
+    const discoveredStr = discoveredAt ? new Date(discoveredAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' }) : '';
 
-    // 作物ごとの形状定義
-    const CROP_SHAPES = {
-      tomato:         'width:12px;height:12px;border-radius:50%',
-      potato:         'width:14px;height:10px;border-radius:40%',
-      carrot:         'width:6px;height:14px;border-radius:3px 3px 1px 1px',
-      strawberry:     'width:10px;height:12px;border-radius:2px 2px 50% 50%',
-      corn:           'width:7px;height:14px;border-radius:3px',
-      pumpkin:        'width:14px;height:11px;border-radius:50%',
-      eggplant:       'width:8px;height:14px;border-radius:50% 50% 3px 3px',
-      melon:          'width:13px;height:13px;border-radius:50%',
-      watermelon:     'width:14px;height:8px;border-radius:14px 14px 2px 2px',
-      golden_apple:   'width:11px;height:12px;border-radius:50%;box-shadow:0 0 4px rgba(255,215,0,0.7)',
-      tumbleweed:     'width:11px;height:11px;border-radius:50%;border:1px dashed rgba(255,255,255,0.3)',
-      christmas_tree: 'width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:14px solid',
-    };
-    const shapeBase = CROP_SHAPES[cropId] || 'width:12px;height:12px;border-radius:50%';
-    // christmas_tree は border-bottom-color で着色、それ以外は background
-    const fruitStyle = cropId === 'christmas_tree'
-      ? `${shapeBase} ${fruitColor};background:transparent`
-      : `${shapeBase};background:${fruitColor}`;
+    const rarityStars = isUnlocked ? '★'.repeat(crop.rarity) : '';
 
     const item = document.createElement('div');
-    item.className = `catalog-item${isUnlocked ? '' : ' catalog-item--locked'}${isSelected ? ' is-selected' : ''}`;
-    
+    item.className = `enc-item${isUnlocked ? '' : ' enc-item--locked'}${isSelected ? ' is-selected' : ''}`;
     item.dataset.cropId = cropId;
-    
-    if (isUnlocked) {
-      item.style.cursor = 'pointer';
-    }
+    if (isUnlocked) item.style.cursor = 'pointer';
 
     item.innerHTML = `
-      <div class="catalog-item__icon-wrapper">
-        <div class="catalog-fruit" style="${fruitStyle}"></div>
+      <div class="enc-item__icon">
+        <div style="width:12px;height:12px;border-radius:50%;background:${isUnlocked ? fruitColor : '#555'};box-shadow:inset -2px -2px 0 rgba(0,0,0,0.15);"></div>
       </div>
-      <div class="catalog-item__info">
-        <div class="catalog-item__name">${isUnlocked ? crop.name : '???'}</div>
-        <div class="catalog-item__stats">
-          <span>Lv.${cropLevel}</span>
-          <span>x${multiplier.toFixed(2)}</span>
-        </div>
-        <div class="catalog-item__level-bar">
-          <div class="catalog-item__level-fill" style="width:${(expInLevel / expRequired) * 100}%"></div>
-        </div>
+      <div class="enc-item__info">
+        <div class="enc-item__name">${isUnlocked ? crop.name : '???'} <span style="font-size:8px;color:#a09080;">${rarityStars}</span></div>
+        <div class="enc-item__detail">Lv.${cropLevel} x${getCropLevelMultiplier(cropLevel).toFixed(2)}${discoveredStr ? ` | ${discoveredStr}` : ''}${harvestCount > 0 ? ` | ${harvestCount}回` : ''}</div>
+        <div class="catalog-item__level-bar"><div class="catalog-item__level-fill" style="width:${(expInLevel / expRequired) * 100}%"></div></div>
       </div>
-      <div class="catalog-item__seeds">${isUnlocked ? (isInf ? '∞' : `${seedCount}`) : '🔒'}</div>
+      <div class="enc-item__badge">${isUnlocked ? (isInf ? '∞' : `${seedCount}`) : '🔒'}</div>
     `;
-
-    listEl.appendChild(item);
+    panel.appendChild(item);
   }
 }
 
-// ============================================
-//  イベント図鑑
-// ============================================
+/** キャラクター図鑑タブ */
+function buildEncCharacters() {
+  const panel = document.getElementById('enc-tab-characters');
+  if (!panel || !_gameState) return;
+  panel.innerHTML = '';
 
-export function buildEventLog() {
-  const listEl = document.getElementById('log-list');
-  if (!listEl || !_gameState) return;
+  for (const [charId, char] of Object.entries(CHARACTER_MASTER)) {
+    const unlocked = isPartUnlocked(_gameState, 'base', charId);
+    // 解放条件テキスト
+    let conditionText = '初期キャラクター';
+    if (char.unlockAchievement) {
+      const ach = ACHIEVEMENT_MASTER[char.unlockAchievement];
+      conditionText = ach ? ach.desc : '???';
+    }
 
-  listEl.innerHTML = '';
-  
+    const item = document.createElement('div');
+    item.className = `enc-item${unlocked ? '' : ' enc-item--locked'}`;
+
+    const charEmoji = { human: '👤', dog: '🐕', cat: '🐈', robot: '🤖', alien: '👽', pumpkinhead: '🎃', snowman: '⛄' };
+
+    item.innerHTML = `
+      <div class="enc-item__icon">${unlocked ? (charEmoji[charId] || '👤') : '❓'}</div>
+      <div class="enc-item__info">
+        <div class="enc-item__name">${unlocked ? char.name : '???'}</div>
+        <div class="enc-item__detail">${unlocked ? '解放済み' : conditionText}</div>
+      </div>
+      <div class="enc-item__badge">${unlocked ? '✅' : '🔒'}</div>
+    `;
+    panel.appendChild(item);
+  }
+}
+
+/** イベント図鑑タブ */
+function buildEncEvents() {
+  const panel = document.getElementById('enc-tab-events');
+  if (!panel || !_gameState) return;
+  panel.innerHTML = '';
+
   for (const [id, eventData] of Object.entries(EVENT_MASTER)) {
     const count = (_gameState.eventCounts && _gameState.eventCounts[id]) || 0;
     const isUnlocked = count > 0;
 
-    const item = document.createElement('div');
-    item.className = `log-item${isUnlocked ? '' : ' log-item--locked'}`;
-    
     const nameParts = eventData.name.split(' ');
     const icon = isUnlocked ? (nameParts[0] || '✨') : '❓';
     const dispName = isUnlocked ? (nameParts.slice(1).join(' ') || eventData.name) : '未知の現象';
 
-    item.innerHTML = `
-      <div class="log-item__icon">${icon}</div>
-      <div class="log-item__info">
-        <div class="log-item__name">${dispName}</div>
-      </div>
-      <div class="log-item__count">${isUnlocked ? `遭遇: ${count}回` : '未遭遇'}</div>
-    `;
+    const seasonLabel = eventData.months ? `(${eventData.months.map(m => m + '月').join(',')})` : '';
 
-    listEl.appendChild(item);
+    const item = document.createElement('div');
+    item.className = `enc-item${isUnlocked ? '' : ' enc-item--locked'}`;
+
+    item.innerHTML = `
+      <div class="enc-item__icon">${icon}</div>
+      <div class="enc-item__info">
+        <div class="enc-item__name">${dispName}</div>
+        <div class="enc-item__detail">${eventData.genre === 'seasonal' ? seasonLabel : ''}</div>
+      </div>
+      <div class="enc-item__badge">${isUnlocked ? `${count}回` : '未遭遇'}</div>
+    `;
+    panel.appendChild(item);
   }
+}
+
+/** コンプリート率タブ */
+function buildEncCompletion() {
+  const panel = document.getElementById('enc-tab-completion');
+  if (!panel || !_gameState) return;
+  panel.innerHTML = '';
+
+  const container = document.createElement('div');
+  container.className = 'enc-completion';
+
+  // 作物コンプリート率
+  const totalCrops = Object.keys(CROP_MASTER).length;
+  let discoveredCrops = 0;
+  for (const cropId of Object.keys(CROP_MASTER)) {
+    const hasExp = (_gameState.cropExp[cropId] || 0) > 0;
+    const hasSeeds = (_gameState.seedsInventory[cropId] || 0) > 0;
+    const discovered = _gameState.cropDiscoveredAt && _gameState.cropDiscoveredAt[cropId];
+    if (hasExp || hasSeeds || discovered) discoveredCrops++;
+  }
+
+  // キャラコンプリート率
+  const totalChars = Object.keys(CHARACTER_MASTER).length;
+  let unlockedChars = 0;
+  for (const charId of Object.keys(CHARACTER_MASTER)) {
+    if (isPartUnlocked(_gameState, 'base', charId)) unlockedChars++;
+  }
+
+  // イベントコンプリート率
+  const totalEvents = Object.keys(EVENT_MASTER).length;
+  let seenEvents = 0;
+  for (const id of Object.keys(EVENT_MASTER)) {
+    if ((_gameState.eventCounts && _gameState.eventCounts[id]) > 0) seenEvents++;
+  }
+
+  // 実績コンプリート率
+  const totalAch = Object.keys(ACHIEVEMENT_MASTER).length;
+  const unlockedAch = (_gameState.unlockedAchievements || []).length;
+
+  // 全体
+  const totalAll = totalCrops + totalChars + totalEvents + totalAch;
+  const completedAll = discoveredCrops + unlockedChars + seenEvents + unlockedAch;
+
+  const sections = [
+    { label: '総合', count: completedAll, total: totalAll },
+    { label: '作物', count: discoveredCrops, total: totalCrops },
+    { label: 'キャラクター', count: unlockedChars, total: totalChars },
+    { label: 'イベント', count: seenEvents, total: totalEvents },
+    { label: '実績', count: unlockedAch, total: totalAch },
+  ];
+
+  for (const s of sections) {
+    const pct = s.total > 0 ? Math.floor((s.count / s.total) * 100) : 0;
+    const sec = document.createElement('div');
+    sec.className = 'enc-completion__section';
+    sec.innerHTML = `
+      <div class="enc-completion__label">${s.label}</div>
+      <div class="enc-completion__bar"><div class="enc-completion__fill" style="width:${pct}%"></div></div>
+      <div class="enc-completion__text">${s.count}/${s.total} (${pct}%)</div>
+    `;
+    container.appendChild(sec);
+  }
+
+  panel.appendChild(container);
+}
+
+// 旧APIとの互換用
+export function buildEventLog() {
+  // 旧イベント図鑑ボタンから呼ばれた場合、図鑑のイベントタブを開く
+  _currentEncTab = 'events';
+  const tabs = document.querySelectorAll('.encyclopedia-tab');
+  tabs.forEach(t => t.classList.toggle('is-active', t.dataset.tab === 'events'));
+  document.querySelectorAll('.enc-tab-panel').forEach(p => p.hidden = true);
+  const panel = document.getElementById('enc-tab-events');
+  if (panel) panel.hidden = false;
+  buildEncEvents();
+}
+
+// ============================================
+//  統計ダッシュボード
+// ============================================
+
+export function buildStats() {
+  const container = document.getElementById('stats-content');
+  if (!container || !_gameState) return;
+  container.innerHTML = '';
+
+  // -- 概要セクション --
+  const overviewSection = document.createElement('div');
+  overviewSection.className = 'stats-section';
+  const playTime = _gameState.totalPlayTime || 0;
+  const hours = Math.floor(playTime / 3600);
+  const mins = Math.floor((playTime % 3600) / 60);
+  const timeStr = hours > 0 ? `${hours}時間${mins}分` : `${mins}分`;
+
+  overviewSection.innerHTML = `
+    <div class="stats-section__title">概要</div>
+    <div class="stats-row"><span class="stats-row__label">プレイ時間</span><span class="stats-row__value">${timeStr}</span></div>
+    <div class="stats-row"><span class="stats-row__label">総収穫回数</span><span class="stats-row__value">${(_gameState.harvestCount || 0).toLocaleString()}</span></div>
+    <div class="stats-row"><span class="stats-row__label">累計ポイント</span><span class="stats-row__value">${(_gameState.totalEarnedPoints || 0).toLocaleString()}</span></div>
+    <div class="stats-row"><span class="stats-row__label">現在レベル</span><span class="stats-row__value">Lv.${_gameState.level}</span></div>
+    <div class="stats-row"><span class="stats-row__label">転生回数</span><span class="stats-row__value">${_gameState.prestigeCount || 0}回</span></div>
+  `;
+  container.appendChild(overviewSection);
+
+  // -- 作物収穫ランキング --
+  const cropSection = document.createElement('div');
+  cropSection.className = 'stats-section';
+  cropSection.innerHTML = '<div class="stats-section__title">収穫ランキング</div>';
+
+  const harvestCounts = _gameState.cropHarvestCounts || {};
+  const sorted = Object.entries(harvestCounts)
+    .filter(([id]) => CROP_MASTER[id])
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  if (sorted.length > 0) {
+    const maxCount = sorted[0][1];
+    const barColors = ['#f0c060', '#e0a040', '#c08030', '#a06020', '#806010'];
+    sorted.forEach(([cropId, count], idx) => {
+      const crop = CROP_MASTER[cropId];
+      const pct = maxCount > 0 ? Math.floor((count / maxCount) * 100) : 0;
+      const bar = document.createElement('div');
+      bar.className = 'stats-bar';
+      bar.innerHTML = `
+        <span class="stats-bar__label">${crop.name}</span>
+        <div class="stats-bar__track"><div class="stats-bar__fill" style="width:${pct}%;background:${barColors[idx] || '#806010'}"></div></div>
+        <span class="stats-bar__count">${count}</span>
+      `;
+      cropSection.appendChild(bar);
+    });
+  } else {
+    cropSection.innerHTML += '<div style="font-size:9px;color:#666;padding:4px;">まだデータがありません</div>';
+  }
+  container.appendChild(cropSection);
+
+  // -- プレステージ履歴 --
+  const histSection = document.createElement('div');
+  histSection.className = 'stats-section';
+  histSection.innerHTML = '<div class="stats-section__title">プレステージ履歴</div>';
+
+  const history = _gameState.prestigeHistory || [];
+  if (history.length > 0) {
+    // 最新10件を逆順で表示
+    const recent = history.slice(-10).reverse();
+    recent.forEach(entry => {
+      const item = document.createElement('div');
+      item.className = 'stats-history-item';
+      item.innerHTML = `
+        <span class="stats-history-item__num">#${entry.count}</span>
+        <span class="stats-history-item__detail">Lv.${entry.level}</span>
+        <span class="stats-history-item__currency">💎+${entry.currency}</span>
+      `;
+      histSection.appendChild(item);
+    });
+  } else {
+    histSection.innerHTML += '<div style="font-size:9px;color:#666;padding:4px;">まだ転生していません</div>';
+  }
+  container.appendChild(histSection);
 }
 
 // ============================================
@@ -551,10 +756,14 @@ export function buildPrestigeShop() {
   if (!shopEl) return;
   shopEl.innerHTML = '';
 
+  // 超越割引（game-state.js の purchaseUpgrade と同じ計算）
+  const discountMult = getTranscendEffect('t_prestigeDiscount', getTranscendLevel(_gameState, 't_prestigeDiscount'));
+
   for (const [id, upgrade] of Object.entries(PRESTIGE_UPGRADES)) {
     const currentLv = getUpgradeLevel(_gameState, id);
     const isMaxed = currentLv >= upgrade.maxLv;
-    const cost = isMaxed ? 0 : getUpgradeCost(upgrade, currentLv);
+    const baseCost = isMaxed ? 0 : getUpgradeCost(upgrade, currentLv);
+    const cost = Math.max(1, Math.floor(baseCost * discountMult));
     const canAfford = (_gameState.prestigeCurrency || 0) >= cost;
 
     const row = document.createElement('div');
@@ -581,6 +790,119 @@ export function buildPrestigeShop() {
         const result = purchaseUpgrade(_gameState, id);
         if (result.success) {
           buildPrestigeShop();
+        }
+      });
+    }
+
+    row.appendChild(btn);
+    shopEl.appendChild(row);
+  }
+}
+
+// ============================================
+//  超越ショップ
+// ============================================
+
+/** プレステージ/超越タブの初期化 */
+export function initPrestigeTabs() {
+  const tabs = document.querySelectorAll('.prestige-tab');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('is-active', t === tab));
+      document.getElementById('prestige-tab-prestige').classList.toggle('is-active', target === 'prestige');
+      document.getElementById('prestige-tab-transcend').classList.toggle('is-active', target === 'transcend');
+      if (target === 'transcend') buildTranscendShop();
+      if (target === 'prestige') buildPrestigeShop();
+    });
+  });
+}
+
+export function buildTranscendShop() {
+  if (!_gameState) return;
+
+  const currencyEl = document.getElementById('transcend-currency');
+  const countEl = document.getElementById('transcend-count');
+  const titleEl = document.getElementById('transcend-title');
+  if (currencyEl) currencyEl.textContent = _gameState.transcendCurrency || 0;
+  if (countEl) countEl.textContent = _gameState.transcendCount || 0;
+  if (titleEl) {
+    const title = getTranscendTitle(_gameState);
+    titleEl.textContent = title ? `[${title}]` : '';
+  }
+
+  // 超越実行ボタン
+  const btnExec = document.getElementById('btn-transcend-exec');
+  if (btnExec) {
+    const can = canTranscend(_gameState);
+    btnExec.disabled = !can;
+    if (can) {
+      const earn = TRANSCEND_CONFIG.getCurrency(_gameState);
+      btnExec.textContent = `超越実行 (🌟+${earn})`;
+    } else {
+      const pc = _gameState.prestigeCount || 0;
+      const lv = _gameState.level || 0;
+      const needs = [];
+      if (pc < TRANSCEND_CONFIG.minPrestigeCount) needs.push(`転生${TRANSCEND_CONFIG.minPrestigeCount}回`);
+      if (lv < TRANSCEND_CONFIG.minLevel) needs.push(`Lv.${TRANSCEND_CONFIG.minLevel}`);
+      btnExec.textContent = `${needs.join(' + ')}で解放`;
+    }
+  }
+
+  // 自動転生UI
+  const autoDiv = document.getElementById('transcend-auto-prestige');
+  const autoInput = document.getElementById('auto-prestige-level');
+  const hasAutoPrestige = getTranscendLevel(_gameState, 't_autoPrestige') > 0;
+  if (autoDiv) autoDiv.style.display = hasAutoPrestige ? 'block' : 'none';
+  if (autoInput && hasAutoPrestige) {
+    autoInput.value = _gameState.autoPrestigeLevel || 0;
+    autoInput.onchange = () => {
+      _gameState.autoPrestigeLevel = Math.max(0, Math.min(999, parseInt(autoInput.value) || 0));
+      saveState(_gameState);
+    };
+  }
+
+  // ショップリスト
+  const shopEl = document.getElementById('transcend-shop');
+  if (!shopEl) return;
+  shopEl.innerHTML = '';
+
+  // 超越未解放時は「???」表示
+  if ((_gameState.transcendCount || 0) === 0 && !canTranscend(_gameState)) {
+    shopEl.innerHTML = '<div style="text-align:center;color:#666;font-size:10px;padding:20px 0;">??? 条件未達成 ???</div>';
+    return;
+  }
+
+  for (const [id, upgrade] of Object.entries(TRANSCEND_UPGRADES)) {
+    const currentLv = getTranscendLevel(_gameState, id);
+    const isMaxed = currentLv >= upgrade.maxLv;
+    const cost = isMaxed ? 0 : getTranscendUpgradeCost(upgrade, currentLv);
+    const canAfford = (_gameState.transcendCurrency || 0) >= cost;
+
+    const row = document.createElement('div');
+    row.className = `upgrade-row${isMaxed ? ' upgrade-row--maxed' : ''}`;
+    row.title = `${upgrade.name}\n${upgrade.description}`;
+
+    row.innerHTML = `
+      <div class="upgrade-info">
+        <span class="upgrade-name">${upgrade.name}</span>
+        <span class="upgrade-effect">${upgrade.effectLabel(currentLv)}</span>
+      </div>
+      <span class="upgrade-level">Lv.${currentLv}/${upgrade.maxLv}</span>
+    `;
+
+    const btn = document.createElement('button');
+    btn.className = 'upgrade-buy';
+    if (isMaxed) {
+      btn.textContent = 'MAX';
+      btn.disabled = true;
+    } else {
+      btn.textContent = `🌟${cost}`;
+      btn.disabled = !canAfford;
+      btn.addEventListener('click', () => {
+        const result = purchaseTranscendUpgrade(_gameState, id);
+        if (result.success) {
+          buildTranscendShop();
         }
       });
     }

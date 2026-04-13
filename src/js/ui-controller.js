@@ -2,7 +2,8 @@
 
 import { rollGacha, rollGachaBatch, getGachaCost, isGachaBatchUnlocked } from './gacha.js';
 import { CHARACTER_MASTER, CROP_MASTER, LEVEL_UNLOCK_CROPS } from './master-data.js';
-import { saveState, getCropLevel, getCropLevelMultiplier, getCropLevelProgress, executePrestige, purchaseUpgrade, getUpgradeLevel, clearSave, isCropInfinite } from './game-state.js';
+import { saveState, getCropLevel, getCropLevelMultiplier, getCropLevelProgress, executePrestige, purchaseUpgrade, getUpgradeLevel, clearSave, isCropInfinite, canTranscend, executeTranscend } from './game-state.js';
+import { TRANSCEND_CONFIG } from './transcend-data.js';
 import { updateHUD } from './renderer-common.js';
 import { PRESTIGE_CONFIG, PRESTIGE_UPGRADES, getUpgradeCost, getUpgradeEffect } from './prestige-data.js';
 import { EVENT_MASTER } from './event-data.js';
@@ -11,8 +12,11 @@ import {
   cycleGachaQty, getCurrentGachaQty,
   showGachaResult, showGachaBatchResult, updateGachaCostDisplay,
   buildCharacterCustomizer, saveCharacterCustomizer, stopCharacterPreview,
-  buildCatalog, buildEventLog, buildPrestigeShop,
+  buildCatalog, buildPrestigeShop,
   buildAchievementList,
+  initEncyclopediaTabs, buildEncyclopedia,
+  buildStats,
+  initPrestigeTabs, buildTranscendShop,
 } from './ui-modals.js';
 
 import { updateCharacter } from './renderer-3d.js';
@@ -304,25 +308,27 @@ export function initUI(state) {
   }
 
   // ============================================
-  //  作物カタログ
+  //  図鑑（統合版）
   // ============================================
-  const btnCatalog = document.getElementById('btn-inventory');
-  const catalogModal = document.getElementById('catalog-modal');
-  const btnCatalogClose = document.getElementById('btn-catalog-close');
+  initEncyclopediaTabs();
 
-  if (btnCatalog) {
-    btnCatalog.addEventListener('click', () => {
-      if (catalogModal) {
-        catalogModal.hidden = false;
+  const btnEncyclopedia = document.getElementById('btn-encyclopedia');
+  const encyclopediaModal = document.getElementById('encyclopedia-modal');
+  const btnEncyclopediaClose = document.getElementById('btn-encyclopedia-close');
+
+  if (btnEncyclopedia) {
+    btnEncyclopedia.addEventListener('click', () => {
+      if (encyclopediaModal) {
+        encyclopediaModal.hidden = false;
         resizeForModal();
       }
-      buildCatalog();
+      buildEncyclopedia();
     });
   }
 
-  if (btnCatalogClose) {
-    btnCatalogClose.addEventListener('click', () => {
-      if (catalogModal) catalogModal.hidden = true;
+  if (btnEncyclopediaClose) {
+    btnEncyclopediaClose.addEventListener('click', () => {
+      if (encyclopediaModal) encyclopediaModal.hidden = true;
       restoreSize();
     });
   }
@@ -395,6 +401,52 @@ export function initUI(state) {
   }
 
   // ============================================
+  //  超越
+  // ============================================
+  initPrestigeTabs();
+
+  const btnTranscendExec = document.getElementById('btn-transcend-exec');
+  const transcendConfirmModal = document.getElementById('transcend-confirm-modal');
+  const transcendConfirmEarn = document.getElementById('transcend-confirm-earn');
+  const btnTranscendConfirmYes = document.getElementById('btn-transcend-confirm-yes');
+  const btnTranscendConfirmNo = document.getElementById('btn-transcend-confirm-no');
+
+  if (btnTranscendExec) {
+    btnTranscendExec.addEventListener('click', () => {
+      if (!gameState || !canTranscend(gameState)) return;
+
+      const earn = TRANSCEND_CONFIG.getCurrency(gameState);
+      if (transcendConfirmEarn) transcendConfirmEarn.textContent = earn;
+      if (prestigeModal) prestigeModal.hidden = true;
+      if (transcendConfirmModal) transcendConfirmModal.hidden = false;
+    });
+  }
+
+  if (btnTranscendConfirmYes) {
+    btnTranscendConfirmYes.addEventListener('click', () => {
+      if (transcendConfirmModal) transcendConfirmModal.hidden = true;
+
+      executeTranscend(gameState);
+
+      const char = CHARACTER_MASTER[gameState.currentCharId];
+      if (char) updateCharacter(gameState.characterConfig || gameState.currentCharId);
+
+      buildPrestigeShop();
+      buildTranscendShop();
+      updateHUD(gameState);
+
+      if (prestigeModal) prestigeModal.hidden = false;
+    });
+  }
+
+  if (btnTranscendConfirmNo) {
+    btnTranscendConfirmNo.addEventListener('click', () => {
+      if (transcendConfirmModal) transcendConfirmModal.hidden = true;
+      if (prestigeModal) prestigeModal.hidden = false;
+    });
+  }
+
+  // ============================================
   //  背景透過トグル
   // ============================================
   const btnBg = document.getElementById('btn-bg-toggle');
@@ -414,25 +466,25 @@ export function initUI(state) {
 
 
   // ============================================
-  //  イベント図鑑
+  //  統計ダッシュボード
   // ============================================
-  const btnLog = document.getElementById('btn-log');
-  const logModal = document.getElementById('log-modal');
-  const btnLogClose = document.getElementById('btn-log-close');
+  const btnStats = document.getElementById('btn-stats');
+  const statsModal = document.getElementById('stats-modal');
+  const btnStatsClose = document.getElementById('btn-stats-close');
 
-  if (btnLog) {
-    btnLog.addEventListener('click', () => {
-      if (logModal) {
-        logModal.hidden = false;
+  if (btnStats) {
+    btnStats.addEventListener('click', () => {
+      if (statsModal) {
+        statsModal.hidden = false;
         resizeForModal();
       }
-      buildEventLog();
+      buildStats();
     });
   }
 
-  if (btnLogClose) {
-    btnLogClose.addEventListener('click', () => {
-      if (logModal) logModal.hidden = true;
+  if (btnStatsClose) {
+    btnStatsClose.addEventListener('click', () => {
+      if (statsModal) statsModal.hidden = true;
       restoreSize();
     });
   }
@@ -487,5 +539,5 @@ export function initUI(state) {
   }
 }
 
-// buildCatalog を再エクスポート（game-loop.js等からの参照用）
-export { buildCatalog };
+// buildEncyclopedia を再エクスポート（外部参照用）
+export { buildEncyclopedia };

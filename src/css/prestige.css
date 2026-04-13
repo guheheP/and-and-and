@@ -138,6 +138,60 @@
   background: rgba(220, 60, 60, 0.3) !important;
 }
 
+/* プレステージ/超越タブ */
+.prestige-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.prestige-tab {
+  flex: 1;
+  padding: 4px 2px;
+  font-size: 9px;
+  font-family: inherit;
+  background: rgba(0,0,0,0.2);
+  color: #888;
+  border: 1px solid transparent;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.prestige-tab:hover {
+  color: #ccc;
+  background: rgba(255,255,255,0.05);
+}
+
+.prestige-tab.is-active {
+  color: #ffd700;
+  background: rgba(255,215,0,0.1);
+  border-color: rgba(255,215,0,0.3);
+  border-bottom-color: transparent;
+}
+
+.prestige-tab-panel {
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.prestige-tab-panel.is-active {
+  display: flex;
+}
+
+/* 超越ショップ用の購入ボタン色 */
+#transcend-shop .upgrade-buy {
+  background: rgba(192, 144, 255, 0.15);
+  border-color: rgba(192, 144, 255, 0.4);
+  color: #c090ff;
+}
+
+#transcend-shop .upgrade-buy:hover:not(:disabled) {
+  background: rgba(192, 144, 255, 0.3);
+}
+
 /* プレステージ実行確認 */
 .prestige-confirm {
   text-align: center;

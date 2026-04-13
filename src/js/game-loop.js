@@ -1,11 +1,12 @@
 // game-loop.js — ゲームループ（Tick処理）
 
 import { CROP_MASTER } from './master-data.js';
-import { addPoints, addPlayerExp, consumeSeed, saveState, addCropExp, getCropLevel, getCropLevelMultiplier, getUpgradeLevel, isCropInfinite, getActiveSlotCount } from './game-state.js';
+import { addPoints, addPlayerExp, consumeSeed, saveState, addCropExp, addCropHarvestCount, getCropLevel, getCropLevelMultiplier, getUpgradeLevel, getTranscendLevel, isCropInfinite, getActiveSlotCount, canTranscend, executePrestige } from './game-state.js';
 import { checkLevelUp, getPointMultiplier } from './progression.js';
 import { updateEventSystem, getGrowthMultiplier, consumePointBoost } from './event-system.js';
 import { checkAchievements } from './achievement-system.js';
 import { getUpgradeEffect } from './prestige-data.js';
+import { getTranscendEffect } from './transcend-data.js';
 import { rollGacha } from './gacha.js';
 
 /** @type {number|null} */
@@ -21,6 +22,9 @@ let lastSaveTime = 0;
 /** 自動購入タイマー (ms) */
 const AUTO_GACHA_INTERVAL = 5000;
 let lastAutoGachaTime = 0;
+
+/** 自動転生後のレベル（無限ループ防止用） */
+let lastAutoPrestigeLevel = -1;
 
 /**
  * コールバック: 描画更新やイベント通知に使用
@@ -102,7 +106,27 @@ function tick(state, currentTime) {
 
   // 実績チェックと自動セーブ
   if (currentTime - lastSaveTime > AUTO_SAVE_INTERVAL) {
+    // プレイ時間加算（10秒ごと）
+    if (state.totalPlayTime === undefined) state.totalPlayTime = 0;
+    state.totalPlayTime += AUTO_SAVE_INTERVAL / 1000;
+
     checkAchievements(state);
+
+    // 自動転生チェック
+    const autoPrestigeLv = getTranscendLevel(state, 't_autoPrestige');
+    const autoThreshold = state.autoPrestigeLevel || 0;
+    if (autoPrestigeLv > 0 && autoThreshold > 0 && state.level >= autoThreshold) {
+      // 無限ループ防止: 転生直後のレベルと同じなら実際にプレイで上がっていない
+      if (state.level >= 50 && state.level !== lastAutoPrestigeLevel) {
+        executePrestige(state);
+        lastAutoPrestigeLevel = state.level; // 転生後のレベルを記録
+        if (callbacks.onAutoPrestige) callbacks.onAutoPrestige();
+      }
+    } else {
+      // 閾値以下になったらリセット（次回の転生を許可）
+      lastAutoPrestigeLevel = -1;
+    }
+
     saveState(state);
     lastSaveTime = currentTime;
   }
@@ -176,7 +200,8 @@ function updateGrowth(state, slot, currentTime) {
   const elapsed = Date.now() - slot.plantedAt;
   const growthMult = getGrowthMultiplier() * (window.DEBUG_SPEED_MULTIPLIER || 1);
   const prestigeGrowth = getUpgradeEffect('growthSpeed', getUpgradeLevel(state, 'growthSpeed'));
-  const effectiveGrowTime = crop.growTimeMs * prestigeGrowth / growthMult;
+  const transcendGrowth = getTranscendEffect('t_growthBase', getTranscendLevel(state, 't_growthBase'));
+  const effectiveGrowTime = crop.growTimeMs * prestigeGrowth * transcendGrowth / growthMult;
   slot.progress = Math.min(elapsed / effectiveGrowTime, 1.0);
 }
 
@@ -204,13 +229,17 @@ function harvestCrop(state, slot, slotIndex) {
   const boostMult = consumePointBoost();
   const cropLevelMult = getCropLevelMultiplier(getCropLevel(state, cropId));
 
+  // 超越倍率
+  const transcendPtMult = getTranscendEffect('t_baseMultiplier', getTranscendLevel(state, 't_baseMultiplier'));
+  const transcendExpMult = getTranscendEffect('t_expMultiplier', getTranscendLevel(state, 't_expMultiplier'));
+
   // ポイント加算（プレイヤーLv倍率はポイント専用）
-  const gainedPoints = Math.floor(basePoint * playerPointMult * cropLevelMult * prestigeMult * boostMult * luckyMultiplier);
+  const gainedPoints = Math.floor(basePoint * playerPointMult * cropLevelMult * prestigeMult * boostMult * luckyMultiplier * transcendPtMult);
   addPoints(state, gainedPoints);
 
   // EXP加算（EXP専用プレステージ倍率を適用）
   const expPrestigeMult = getUpgradeEffect('expMultiplier', getUpgradeLevel(state, 'expMultiplier'));
-  const gainedExp = Math.floor(baseExp * cropLevelMult * expPrestigeMult * boostMult * luckyMultiplier);
+  const gainedExp = Math.floor(baseExp * cropLevelMult * expPrestigeMult * boostMult * luckyMultiplier * transcendExpMult);
   addPlayerExp(state, gainedExp);
 
   // 作物自体の経験値加算 (cropExpBoost適用)
@@ -231,6 +260,9 @@ function harvestCrop(state, slot, slotIndex) {
 
   // 収穫回数を記録（実績判定用）
   state.harvestCount = (state.harvestCount || 0) + 1;
+
+  // 作物別収穫回数を記録（図鑑用）
+  addCropHarvestCount(state, cropId);
 
   // 畑をリセット
   slot.isPlanted = false;

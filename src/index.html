@@ -76,7 +76,7 @@
       <div class="toolbar">
         <button id="btn-gacha" class="toolbar__btn toolbar__btn--main" data-tooltip="種を入手"><span
             class="gacha-icon"></span></button>
-        <button id="btn-inventory" class="toolbar__btn toolbar__btn--main" data-tooltip="作物一覧">📖</button>
+        <button id="btn-encyclopedia" class="toolbar__btn toolbar__btn--main" data-tooltip="図鑑">📖</button>
         <button id="btn-prestige" class="toolbar__btn toolbar__btn--main" data-tooltip="プレステージ">⭐</button>
 
         <button id="btn-menu" class="toolbar__btn toolbar__btn--sub" data-tooltip="メニュー">三</button>
@@ -87,18 +87,29 @@
           <button id="btn-achievements" class="toolbar__btn" data-tooltip="実績一覧">🏆</button>
           <button id="btn-bg-toggle" class="toolbar__btn toolbar__btn--toggle" data-tooltip="背景切替">🌤️</button>
           <button id="btn-clock-toggle" class="toolbar__btn" data-tooltip="時計切替">🕒</button>
-          <button id="btn-log" class="toolbar__btn" data-tooltip="イベント図鑑">📕</button>
+          <button id="btn-stats" class="toolbar__btn" data-tooltip="統計">📊</button>
         </div>
       </div>
     </div>
 
-    <!-- イベント図鑑モーダル -->
-    <div id="log-modal" class="modal" hidden>
-      <div class="modal__content modal__content--log">
-        <div class="modal__title">📕 イベント図鑑</div>
-        <div id="log-list" class="log-list"></div>
+    <!-- 図鑑モーダル（統合版） -->
+    <div id="encyclopedia-modal" class="modal" hidden>
+      <div class="modal__content modal__content--encyclopedia">
+        <div class="modal__title">📖 図鑑</div>
+        <div class="encyclopedia-tabs">
+          <button class="encyclopedia-tab is-active" data-tab="crops">作物</button>
+          <button class="encyclopedia-tab" data-tab="characters">キャラ</button>
+          <button class="encyclopedia-tab" data-tab="events">イベント</button>
+          <button class="encyclopedia-tab" data-tab="completion">達成</button>
+        </div>
+        <div id="encyclopedia-content" class="encyclopedia-content">
+          <div id="enc-tab-crops" class="enc-tab-panel is-active"></div>
+          <div id="enc-tab-characters" class="enc-tab-panel"></div>
+          <div id="enc-tab-events" class="enc-tab-panel"></div>
+          <div id="enc-tab-completion" class="enc-tab-panel"></div>
+        </div>
         <div class="modal__actions">
-          <button id="btn-log-close" class="btn btn--ghost">閉じる</button>
+          <button id="btn-encyclopedia-close" class="btn btn--ghost">閉じる</button>
         </div>
       </div>
     </div>
@@ -205,13 +216,14 @@
       </div>
     </div>
 
-    <!-- 作物カタログモーダル -->
-    <div id="catalog-modal" class="modal" hidden>
-      <div class="modal__content modal__content--catalog">
-        <div class="modal__title">📖 作物一覧</div>
-        <div id="catalog-list" class="catalog-list"></div>
+
+    <!-- 統計ダッシュボードモーダル -->
+    <div id="stats-modal" class="modal" hidden>
+      <div class="modal__content modal__content--stats">
+        <div class="modal__title">📊 統計</div>
+        <div id="stats-content" class="stats-content"></div>
         <div class="modal__actions">
-          <button id="btn-catalog-close" class="btn btn--ghost">閉じる</button>
+          <button id="btn-stats-close" class="btn btn--ghost">閉じる</button>
         </div>
       </div>
     </div>
@@ -220,13 +232,43 @@
     <div id="prestige-modal" class="modal" hidden>
       <div class="modal__content modal__content--prestige">
         <div class="modal__title">⭐ プレステージ</div>
-        <div class="prestige-info">
-          <span class="prestige-currency">💎 <span id="prestige-currency">0</span></span>
-          <span class="prestige-count">周回 <span id="prestige-count">0</span>回</span>
+        <div class="prestige-tabs">
+          <button class="prestige-tab is-active" data-tab="prestige">プレステージ</button>
+          <button class="prestige-tab" data-tab="transcend">超越</button>
         </div>
-        <div id="prestige-shop" class="prestige-shop"></div>
-        <div class="prestige-footer">
-          <button id="btn-prestige-exec" class="btn btn--danger">プレステージ実行</button>
+
+        <!-- プレステージタブ -->
+        <div id="prestige-tab-prestige" class="prestige-tab-panel is-active">
+          <div class="prestige-info">
+            <span class="prestige-currency">💎 <span id="prestige-currency">0</span></span>
+            <span class="prestige-count">周回 <span id="prestige-count">0</span>回</span>
+          </div>
+          <div id="prestige-shop" class="prestige-shop"></div>
+          <div class="prestige-footer">
+            <button id="btn-prestige-exec" class="btn btn--danger">プレステージ実行</button>
+          </div>
+        </div>
+
+        <!-- 超越タブ -->
+        <div id="prestige-tab-transcend" class="prestige-tab-panel">
+          <div class="prestige-info">
+            <span class="prestige-currency">🌟 <span id="transcend-currency">0</span></span>
+            <span class="prestige-count">超越 <span id="transcend-count">0</span>回 <span id="transcend-title"></span></span>
+          </div>
+          <div id="transcend-shop" class="prestige-shop"></div>
+          <div id="transcend-auto-prestige" style="display:none; padding:6px 0; border-top:1px solid rgba(255,255,255,0.1);">
+            <div style="font-size:9px; color:#a098b0; margin-bottom:3px;">自動転生レベル</div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <input id="auto-prestige-level" type="number" min="0" max="999" value="0" style="width:50px; background:#222; color:#fff; border:1px solid #555; padding:3px 6px; border-radius:3px; font-family:inherit; font-size:10px;">
+              <span style="font-size:8px; color:#666;">(0=無効)</span>
+            </div>
+          </div>
+          <div class="prestige-footer">
+            <button id="btn-transcend-exec" class="btn btn--danger" style="background:linear-gradient(135deg, #604080, #806040);">超越実行</button>
+          </div>
+        </div>
+
+        <div class="prestige-footer" style="border-top:1px solid rgba(255,255,255,0.1); margin-top:4px; padding-top:6px;">
           <button id="btn-prestige-close" class="btn btn--ghost">閉じる</button>
         </div>
       </div>
@@ -249,13 +291,29 @@
       </div>
     </div>
 
+    <!-- 超越確認モーダル -->
+    <div id="transcend-confirm-modal" class="modal" hidden>
+      <div class="modal__content">
+        <div class="modal__title">🌟 超越確認</div>
+        <div style="text-align: center; margin: 15px 0; line-height: 1.5; font-size: 11px;">
+          超越を実行しますか？<br><br>
+          <span style="color:#c090ff; font-size: 13px; font-weight: bold;">🌟 獲得通貨: +<span id="transcend-confirm-earn">0</span></span><br><br>
+          <span style="color:#ff8060; font-size:9px;">⚠️ レベル・ポイント・種・プレステージ通貨・<br>プレステージアップグレードが全てリセットされます<br>（超越強化・コスメ・実績は保持されます）</span>
+        </div>
+        <div class="modal__actions">
+          <button id="btn-transcend-confirm-yes" class="btn btn--primary" style="background:linear-gradient(135deg, #604080, #806040);">実行する</button>
+          <button id="btn-transcend-confirm-no" class="btn btn--ghost">キャンセル</button>
+        </div>
+      </div>
+    </div>
+
     <!-- バージョン＆設定モーダル -->
     <div id="version-modal" class="modal" hidden>
       <div class="modal__content">
         <div class="modal__title">ℹ バージョン情報</div>
         <div style="padding: 10px 0; border-top: 1px solid rgba(255, 255, 255, 0.1);">
           <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">No のーえん No Life</div>
-          <div style="font-size: 0.8rem; color: #a098b0; margin-bottom: 15px;">Version 0.4.3</div>
+          <div style="font-size: 0.8rem; color: #a098b0; margin-bottom: 15px;">Version 0.6.1</div>
           <div style="font-size: 0.7rem; color: #807890; line-height: 1.5;"></div>
         </div>
         <div class="modal__actions" style="flex-direction: column; gap: 10px;">

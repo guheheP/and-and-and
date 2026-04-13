@@ -16,7 +16,8 @@ import {
   startEventVisual,
   stopAllEventVisuals,
 } from './renderer-3d.js';
-import { initUI, buildCatalog } from './ui-controller.js';
+import { initUI } from './ui-controller.js';
+import { buildEncyclopedia } from './ui-modals.js';
 import { initDebug } from './debug.js';
 import { CROP_MASTER } from './master-data.js';
 import { getGachaPool } from './progression.js';
@@ -75,12 +76,6 @@ function init() {
       // スロット0のみ3D描画
       if (slotIndex === 0) updateField(slot);
       updateHUD(state);
-
-      // カタログが開いていればリアルタイム反映
-      const catalogModal = document.getElementById('catalog-modal');
-      if (catalogModal && !catalogModal.hidden) {
-        buildCatalog();
-      }
     },
     onPlant: (cropId) => {
       triggerWorkAnimation();
@@ -90,10 +85,10 @@ function init() {
       showHarvestEffect(points);
       showHarvestParticles(cropId);
 
-      // カタログが開いていればリアルタイム反映
-      const catalogModal = document.getElementById('catalog-modal');
-      if (catalogModal && !catalogModal.hidden) {
-        buildCatalog();
+      // 図鑑が開いていればリアルタイム反映
+      const encModal = document.getElementById('encyclopedia-modal');
+      if (encModal && !encModal.hidden) {
+        buildEncyclopedia();
       }
     },
     onLevelUp: (newLevel) => {

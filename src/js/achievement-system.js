@@ -257,6 +257,35 @@ export const ACHIEVEMENT_MASTER = {
     rewardId: 'snowman',
     rewardText: 'キャラクター「雪だるま」',
   },
+
+  // ── 超越系 ──
+  transcend_1: {
+    id: 'transcend_1',
+    name: '覚醒',
+    desc: '超越を1回実行する',
+    condition: (state) => (state.transcendCount || 0) >= 1,
+    rewardType: null,
+    rewardId: null,
+    rewardText: null,
+  },
+  transcend_5: {
+    id: 'transcend_5',
+    name: '超越者',
+    desc: '超越を5回実行する',
+    condition: (state) => (state.transcendCount || 0) >= 5,
+    rewardType: null,
+    rewardId: null,
+    rewardText: null,
+  },
+  transcend_10: {
+    id: 'transcend_10',
+    name: '世界の理',
+    desc: '超越を10回実行する',
+    condition: (state) => (state.transcendCount || 0) >= 10,
+    rewardType: null,
+    rewardId: null,
+    rewardText: null,
+  },
 };
 
 let callbacks = {

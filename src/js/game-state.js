@@ -3,6 +3,7 @@
 const SAVE_KEY = 'idle-farm-save';
 
 import { PRESTIGE_CONFIG, PRESTIGE_UPGRADES, getUpgradeCost, getUpgradeEffect } from './prestige-data.js';
+import { TRANSCEND_CONFIG, TRANSCEND_UPGRADES, getTranscendUpgradeCost, getTranscendEffect } from './transcend-data.js';
 import { CROP_MASTER, LEVEL_UNLOCK_CROPS } from './master-data.js';
 
 /**
@@ -23,6 +24,8 @@ export function createInitialState() {
     harvestCount: 0,
     seedsInventory: {},
     cropExp: {},
+    cropDiscoveredAt: {},    // { cropId: timestamp } 初回入手日時
+    cropHarvestCounts: {},   // { cropId: 累計収穫回数 }
     currentCharId: 'human',
     fieldSlots: [createEmptyField()],
     selectedCropId: null, // 優先植え付けのターゲット
@@ -32,6 +35,14 @@ export function createInitialState() {
     prestigeCurrency: 0,
     prestigeUpgrades: {},
     eventCounts: {},
+    // 統計
+    totalPlayTime: 0,          // 累計プレイ時間（秒）
+    prestigeHistory: [],       // [{ count, level, currency, timestamp }]
+    // 超越
+    transcendCount: 0,
+    transcendCurrency: 0,
+    transcendUpgrades: {},
+    autoPrestigeLevel: 0,      // 自動転生の閾値レベル（0=無効）
   };
 }
 
@@ -52,6 +63,8 @@ export function getActiveSlotCount(state) {
   let count = 1;
   if (getUpgradeLevel(state, 'fieldSlot2') > 0) count = 2;
   if (getUpgradeLevel(state, 'fieldSlot3') > 0) count = 3;
+  // 超越: 4つ目の畑（2,3が解放済みの場合のみ）
+  if (count >= 3 && getTranscendLevel(state, 't_fourthField') > 0) count = 4;
   // fieldSlots配列が足りなければ拡張
   while (state.fieldSlots.length < count) {
     state.fieldSlots.push(createEmptyField());
@@ -121,6 +134,19 @@ export function loadState() {
         ...initial.cropExp,
         ...(saved.cropExp || {}),
       },
+      cropDiscoveredAt: {
+        ...initial.cropDiscoveredAt,
+        ...(saved.cropDiscoveredAt || {}),
+      },
+      cropHarvestCounts: {
+        ...initial.cropHarvestCounts,
+        ...(saved.cropHarvestCounts || {}),
+      },
+      prestigeHistory: saved.prestigeHistory || initial.prestigeHistory,
+      transcendUpgrades: {
+        ...initial.transcendUpgrades,
+        ...(saved.transcendUpgrades || {}),
+      },
       prestigeUpgrades: {
         ...initial.prestigeUpgrades,
         ...(saved.prestigeUpgrades || {}),
@@ -189,6 +215,12 @@ export function addSeed(state, cropId, count = 1) {
     state.seedsInventory[cropId] = 0;
   }
   state.seedsInventory[cropId] += count;
+
+  // 初回発見日を記録
+  if (!state.cropDiscoveredAt) state.cropDiscoveredAt = {};
+  if (!state.cropDiscoveredAt[cropId]) {
+    state.cropDiscoveredAt[cropId] = Date.now();
+  }
 }
 
 /**
@@ -215,6 +247,26 @@ export function addCropExp(state, cropId) {
     state.cropExp[cropId] = 0;
   }
   state.cropExp[cropId] += 1;
+
+  // 作物別収穫回数（cropExpBoostで複数回呼ばれるため初回のみカウント）
+  // → harvestCrop側で1回だけ呼ぶように変更済み
+}
+
+/**
+ * 作物別の収穫回数を加算
+ * @param {GameState} state
+ * @param {string} cropId
+ */
+export function addCropHarvestCount(state, cropId) {
+  if (!state.cropHarvestCounts) state.cropHarvestCounts = {};
+  if (!state.cropHarvestCounts[cropId]) state.cropHarvestCounts[cropId] = 0;
+  state.cropHarvestCounts[cropId] += 1;
+
+  // 初回発見日（種なしで直接植えた作物用）
+  if (!state.cropDiscoveredAt) state.cropDiscoveredAt = {};
+  if (!state.cropDiscoveredAt[cropId]) {
+    state.cropDiscoveredAt[cropId] = Date.now();
+  }
 }
 
 /**
@@ -280,7 +332,10 @@ export function isCropInfinite(state, cropId) {
  * @returns {{ currency: number }} 獲得した通貨
  */
 export function executePrestige(state) {
-  const earned = PRESTIGE_CONFIG.getCurrency(state);
+  // 超越ボーナス: プレステージ通貨獲得量倍率
+  const transcendGainLv = getTranscendLevel(state, 't_prestigeGain');
+  const transcendGainMult = getTranscendEffect('t_prestigeGain', transcendGainLv);
+  const earned = Math.floor(PRESTIGE_CONFIG.getCurrency(state) * transcendGainMult);
 
   // プレステージ永続データを退避
   const prestigeCount = (state.prestigeCount || 0) + 1;
@@ -296,6 +351,23 @@ export function executePrestige(state) {
     accessory: [...(state.unlockedParts.accessory || [])],
     base: [...(state.unlockedParts.base || [])],
   } : { hat: [], accessory: [], base: [] };
+  const cropDiscoveredAt = { ...(state.cropDiscoveredAt || {}) };
+  const cropHarvestCounts = { ...(state.cropHarvestCounts || {}) };
+  const totalPlayTime = state.totalPlayTime || 0;
+  // 超越データは保持
+  const transcendCount = state.transcendCount || 0;
+  const transcendCurrency = state.transcendCurrency || 0;
+  const transcendUpgrades = { ...(state.transcendUpgrades || {}) };
+  const autoPrestigeLevel = state.autoPrestigeLevel || 0;
+  // プレステージ履歴に追加（最新20件に制限）
+  const prestigeHistory = [...(state.prestigeHistory || [])];
+  prestigeHistory.push({
+    count: (state.prestigeCount || 0) + 1,
+    level: state.level,
+    currency: earned,
+    timestamp: Date.now(),
+  });
+  if (prestigeHistory.length > 20) prestigeHistory.splice(0, prestigeHistory.length - 20);
 
   // ゲーム部分をリセット
   const fresh = createInitialState();
@@ -311,7 +383,21 @@ export function executePrestige(state) {
   state.colorPresets = colorPresets;
   state.unlockedAchievements = unlockedAchievements;
   state.unlockedParts = unlockedParts;
+  state.cropDiscoveredAt = cropDiscoveredAt;
+  state.cropHarvestCounts = cropHarvestCounts;
+  state.totalPlayTime = totalPlayTime;
+  state.prestigeHistory = prestigeHistory;
+  state.transcendCount = transcendCount;
+  state.transcendCurrency = transcendCurrency;
+  state.transcendUpgrades = transcendUpgrades;
+  state.autoPrestigeLevel = autoPrestigeLevel;
   state.selectedCropId = null; // リセットで種が消えるためターゲットもリセット
+
+  // 超越: 初期レベルボーナス
+  const startLevelLv = getTranscendLevel(state, 't_startLevel');
+  if (startLevelLv > 0) {
+    state.level = getTranscendEffect('t_startLevel', startLevelLv);
+  }
 
   // リセットボーナス（startBonus）のポイント付与
   const startBonusLv = prestigeUpgrades['startBonus'] || 0;
@@ -319,6 +405,21 @@ export function executePrestige(state) {
     const bonusPts = getUpgradeEffect('startBonus', startBonusLv);
     state.points += bonusPts;
     state.totalEarnedPoints += bonusPts;
+  }
+
+  // 超越: 黄金の種袋
+  const goldenSeedLv = getTranscendLevel(state, 't_goldenSeed');
+  if (goldenSeedLv > 0) {
+    const maxRarity = 1 + goldenSeedLv;
+    const seedCount = goldenSeedLv * 10;
+    const eligibleCrops = Object.values(CROP_MASTER).filter(c => !c.isEventOnly && c.rarity <= maxRarity);
+    for (let i = 0; i < seedCount; i++) {
+      if (eligibleCrops.length > 0) {
+        const crop = eligibleCrops[Math.floor(Math.random() * eligibleCrops.length)];
+        if (!state.seedsInventory[crop.id]) state.seedsInventory[crop.id] = 0;
+        state.seedsInventory[crop.id]++;
+      }
+    }
   }
 
   saveState(state);
@@ -340,7 +441,9 @@ export function purchaseUpgrade(state, upgradeId) {
     return { success: false, message: '最大レベルです' };
   }
 
-  const cost = getUpgradeCost(upgrade, currentLv);
+  const baseCost = getUpgradeCost(upgrade, currentLv);
+  const discountMult = getTranscendEffect('t_prestigeDiscount', getTranscendLevel(state, 't_prestigeDiscount'));
+  const cost = Math.max(1, Math.floor(baseCost * discountMult));
   if ((state.prestigeCurrency || 0) < cost) {
     return { success: false, message: `通貨不足（必要: ${cost}）` };
   }
@@ -361,4 +464,139 @@ export function purchaseUpgrade(state, upgradeId) {
  */
 export function getUpgradeLevel(state, upgradeId) {
   return (state.prestigeUpgrades && state.prestigeUpgrades[upgradeId]) || 0;
+}
+
+// ============================================
+//  超越
+// ============================================
+
+/**
+ * 超越レベルを取得
+ * @param {GameState} state
+ * @param {string} upgradeId
+ * @returns {number}
+ */
+export function getTranscendLevel(state, upgradeId) {
+  return (state.transcendUpgrades && state.transcendUpgrades[upgradeId]) || 0;
+}
+
+/**
+ * 超越が可能か判定
+ * @param {GameState} state
+ * @returns {boolean}
+ */
+export function canTranscend(state) {
+  return (state.prestigeCount || 0) >= TRANSCEND_CONFIG.minPrestigeCount
+    && state.level >= TRANSCEND_CONFIG.minLevel;
+}
+
+/**
+ * 超越を実行
+ * @param {GameState} state
+ * @returns {{ currency: number }}
+ */
+export function executeTranscend(state) {
+  const earned = TRANSCEND_CONFIG.getCurrency(state);
+
+  // 超越永続データを退避
+  const transcendCount = (state.transcendCount || 0) + 1;
+  const transcendCurrency = (state.transcendCurrency || 0) + earned;
+  const transcendUpgrades = { ...(state.transcendUpgrades || {}) };
+  const autoPrestigeLevel = state.autoPrestigeLevel || 0;
+
+  // 保持対象
+  const currentCharId = state.currentCharId;
+  const characterConfig = state.characterConfig ? { ...state.characterConfig } : undefined;
+  const colorPresets = state.colorPresets ? state.colorPresets.map(p => p ? { ...p } : null) : [null, null, null, null, null];
+  const unlockedAchievements = [...(state.unlockedAchievements || [])];
+  const unlockedParts = state.unlockedParts ? {
+    hat: [...(state.unlockedParts.hat || [])],
+    accessory: [...(state.unlockedParts.accessory || [])],
+    base: [...(state.unlockedParts.base || [])],
+  } : { hat: [], accessory: [], base: [] };
+  const cropDiscoveredAt = { ...(state.cropDiscoveredAt || {}) };
+  const cropHarvestCounts = { ...(state.cropHarvestCounts || {}) };
+  const totalPlayTime = state.totalPlayTime || 0;
+  const prestigeHistory = [...(state.prestigeHistory || [])];
+  const eventCounts = { ...(state.eventCounts || {}) };
+
+  // 不朽の遺産: プレステージアップグレードを一部保持
+  const keepCount = getTranscendEffect('t_prestigeKeep', getTranscendLevel(state, 't_prestigeKeep'));
+  let keptPrestigeUpgrades = {};
+  if (keepCount > 0) {
+    const entries = Object.entries(state.prestigeUpgrades || {})
+      .filter(([, lv]) => lv > 0)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, keepCount);
+    keptPrestigeUpgrades = Object.fromEntries(entries);
+  }
+
+  // 全リセット
+  const fresh = createInitialState();
+  Object.assign(state, fresh);
+
+  // 超越データ復元
+  state.transcendCount = transcendCount;
+  state.transcendCurrency = transcendCurrency;
+  state.transcendUpgrades = transcendUpgrades;
+  state.autoPrestigeLevel = autoPrestigeLevel;
+
+  // 保持データ復元
+  state.currentCharId = currentCharId;
+  if (characterConfig) state.characterConfig = characterConfig;
+  state.colorPresets = colorPresets;
+  state.unlockedAchievements = unlockedAchievements;
+  state.unlockedParts = unlockedParts;
+  state.cropDiscoveredAt = cropDiscoveredAt;
+  state.cropHarvestCounts = cropHarvestCounts;
+  state.totalPlayTime = totalPlayTime;
+  state.prestigeHistory = prestigeHistory;
+  state.eventCounts = eventCounts;
+
+  // 保持されたプレステージアップグレード
+  state.prestigeUpgrades = keptPrestigeUpgrades;
+
+  saveState(state);
+  return { currency: earned };
+}
+
+/**
+ * 超越アップグレードを購入
+ * @param {GameState} state
+ * @param {string} upgradeId
+ * @returns {{ success: boolean, message: string }}
+ */
+export function purchaseTranscendUpgrade(state, upgradeId) {
+  const upgrade = TRANSCEND_UPGRADES[upgradeId];
+  if (!upgrade) return { success: false, message: '不明な強化' };
+
+  const currentLv = getTranscendLevel(state, upgradeId);
+  if (currentLv >= upgrade.maxLv) {
+    return { success: false, message: '最大レベルです' };
+  }
+
+  const cost = getTranscendUpgradeCost(upgrade, currentLv);
+  if ((state.transcendCurrency || 0) < cost) {
+    return { success: false, message: `通貨不足（必要: ${cost}）` };
+  }
+
+  state.transcendCurrency -= cost;
+  if (!state.transcendUpgrades) state.transcendUpgrades = {};
+  state.transcendUpgrades[upgradeId] = currentLv + 1;
+
+  saveState(state);
+  return { success: true, message: `${upgrade.name} Lv.${currentLv + 1}` };
+}
+
+/**
+ * 超越の称号を取得
+ * @param {GameState} state
+ * @returns {string}
+ */
+export function getTranscendTitle(state) {
+  const count = state.transcendCount || 0;
+  if (count >= 10) return '世界の理';
+  if (count >= 5) return '超越者';
+  if (count >= 1) return '覚醒者';
+  return '';
 }
