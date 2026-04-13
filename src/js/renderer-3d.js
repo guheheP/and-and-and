@@ -125,7 +125,6 @@ export function initRenderer() {
   // レンダラー
   renderer3d = new THREE.WebGLRenderer({
     alpha: true,
-    premultipliedAlpha: false,
     antialias: true,
   });
   renderer3d.setSize(stage.clientWidth, stage.clientHeight);
