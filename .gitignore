@@ -38,3 +38,5 @@ coverage/
 
 # AI tool data (conversation logs etc.)
 .gemini/antigravity/
+.playwright-mcp/
+
