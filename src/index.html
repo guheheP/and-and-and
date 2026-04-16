@@ -135,8 +135,8 @@
         
         <div class="character-parts" style="display:flex; flex-direction:column; gap:8px;">
           <div>
-            <label style="font-size: 0.8rem; color: #aaa;">キャラクター:</label>
-            <select id="char-base-select" style="width:100%; background: #222; color: #fff; border: 1px solid #555; padding: 6px; border-radius: 4px;">
+            <label for="char-base-select">キャラクター</label>
+            <select id="char-base-select" class="retro-select">
               <option value="human">人間</option>
               <option value="dog">犬</option>
               <option value="cat">猫</option>
@@ -147,8 +147,8 @@
             </select>
           </div>
           <div>
-            <label style="font-size: 0.8rem; color: #aaa;">帽子:</label>
-            <select id="char-hat-select" style="width:100%; background: #222; color: #fff; border: 1px solid #555; padding: 6px; border-radius: 4px;">
+            <label for="char-hat-select">帽子</label>
+            <select id="char-hat-select" class="retro-select">
               <option value="none">なし</option>
               <option value="straw_hat">麦わら帽子</option>
               <option value="cap">赤いキャップ</option>
@@ -162,8 +162,8 @@
             </select>
           </div>
           <div style="margin-bottom: 8px;">
-            <label style="font-size: 0.8rem; color: #aaa;">アクセサリ:</label>
-            <select id="char-acc-select" style="width:100%; background: #222; color: #fff; border: 1px solid #555; padding: 6px; border-radius: 4px;">
+            <label for="char-acc-select">アクセサリ</label>
+            <select id="char-acc-select" class="retro-select">
               <option value="none">なし</option>
               <option value="watering_can">ジョウロ</option>
               <option value="hoe">クワ</option>
@@ -259,7 +259,7 @@
           <div id="transcend-auto-prestige" style="display:none; padding:6px 0; border-top:1px solid rgba(255,255,255,0.1);">
             <div style="font-size:9px; color:#a098b0; margin-bottom:3px;">自動転生レベル</div>
             <div style="display:flex; align-items:center; gap:6px;">
-              <input id="auto-prestige-level" type="number" min="0" max="999" value="0" style="width:50px; background:#222; color:#fff; border:1px solid #555; padding:3px 6px; border-radius:3px; font-family:inherit; font-size:10px;">
+              <input id="auto-prestige-level" type="number" min="0" max="999" value="0" class="retro-number" style="width:50px;">
               <span style="font-size:8px; color:#666;">(0=無効)</span>
             </div>
           </div>
@@ -313,7 +313,7 @@
         <div class="modal__title">ℹ バージョン情報</div>
         <div style="padding: 10px 0; border-top: 1px solid rgba(255, 255, 255, 0.1);">
           <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">No のーえん No Life</div>
-          <div style="font-size: 0.8rem; color: #a098b0; margin-bottom: 15px;">Version 0.6.8</div>
+          <div style="font-size: 0.8rem; color: #a098b0; margin-bottom: 15px;">Version 0.6.9</div>
           <div style="font-size: 0.7rem; color: #807890; line-height: 1.5;"></div>
         </div>
 
@@ -419,8 +419,7 @@
       <div class="modal__content">
         <div class="modal__title">🛠 デバッグモード</div>
         <div class="debug-actions" style="display:flex; flex-direction:column; gap:8px; padding-top: 10px;">
-          <select id="debug-event-select"
-            style="padding: 8px; font-family: inherit; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--c-border); border-radius: 4px;"></select>
+          <select id="debug-event-select" class="retro-select"></select>
           <button id="btn-debug-trigger-event" class="btn btn--primary">イベント強制発生</button>
           <button id="btn-debug-add-exp" class="btn btn--primary">経験値+1000</button>
           <button id="btn-debug-add-pt" class="btn btn--primary">ポイント+10000</button>
