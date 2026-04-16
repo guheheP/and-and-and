@@ -156,17 +156,135 @@
 }
 
 /* ── パフォーマンス設定（バージョンモーダル内） ── */
+.perf-settings {
+  padding: 8px 0 4px;
+  border-top: 1px solid var(--c-frame-border);
+  margin-top: 4px;
+  text-align: left;
+}
+
+.perf-settings__title {
+  font-size: 11px;
+  color: var(--c-accent);
+  font-weight: bold;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.perf-settings__section-label {
+  font-size: 9px;
+  color: var(--c-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 8px 0 4px;
+  padding-bottom: 2px;
+  border-bottom: 1px dashed rgba(180, 158, 124, 0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.perf-settings__hint {
+  font-size: 8px;
+  color: #8a7860;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: normal;
+}
+
+/* プリセットボタン群 */
+.perf-preset-group {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.perf-preset {
+  flex: 1;
+  font-family: var(--font-retro);
+  font-size: 10px;
+  padding: 5px 0;
+  background: transparent;
+  color: var(--c-text-dim);
+  border: 1px solid var(--c-frame-border);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.perf-preset:hover {
+  background: var(--c-btn-hover);
+  color: var(--c-text);
+}
+
 .perf-preset.is-active {
-  background: rgba(160, 140, 220, 0.25);
-  border-color: #c0a0ff;
-  color: #fff;
+  background: var(--c-accent);
+  color: var(--c-text-dark);
+  border-color: var(--c-accent);
+  font-weight: bold;
 }
 
-.perf-row input[type="range"] {
-  accent-color: #c0a0ff;
-  margin: 0 6px;
+/* スライダー項目 */
+.perf-field {
+  margin-bottom: 6px;
 }
 
-.perf-row input[type="checkbox"] {
-  accent-color: #c0a0ff;
+.perf-field__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: var(--c-text);
+  margin-bottom: 2px;
+}
+
+.perf-field__val {
+  color: var(--c-accent);
+  font-size: 10px;
+  font-weight: bold;
+  min-width: 36px;
+  text-align: right;
+}
+
+.perf-field__range {
+  width: 100%;
+  accent-color: var(--c-accent);
+  height: 4px;
+  cursor: pointer;
+}
+
+/* チェックボックス (トグル) */
+.perf-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 10px;
+  color: var(--c-text);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(180, 158, 124, 0.08);
+}
+
+.perf-toggle:last-of-type {
+  border-bottom: none;
+}
+
+.perf-toggle:hover {
+  color: var(--c-accent);
+}
+
+.perf-toggle input[type="checkbox"] {
+  accent-color: var(--c-accent);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+/* リセットボタン */
+.perf-reset-btn {
+  width: 100%;
+  font-size: 10px;
+  padding: 5px 0;
+  margin-top: 8px;
 }

@@ -313,66 +313,82 @@
         <div class="modal__title">ℹ バージョン情報</div>
         <div style="padding: 10px 0; border-top: 1px solid rgba(255, 255, 255, 0.1);">
           <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">No のーえん No Life</div>
-          <div style="font-size: 0.8rem; color: #a098b0; margin-bottom: 15px;">Version 0.6.7</div>
+          <div style="font-size: 0.8rem; color: #a098b0; margin-bottom: 15px;">Version 0.6.8</div>
           <div style="font-size: 0.7rem; color: #807890; line-height: 1.5;"></div>
         </div>
 
         <!-- パフォーマンス設定 -->
-        <div style="padding: 10px 0; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-          <div style="font-size: 0.85rem; font-weight: bold; margin-bottom: 8px; color: #d0c8e0;">⚙ パフォーマンス設定</div>
+        <div class="perf-settings">
+          <div class="perf-settings__title">⚙ 画質・パフォーマンス</div>
 
           <!-- プリセット -->
-          <div style="display: flex; gap: 4px; margin-bottom: 10px;">
-            <button id="btn-perf-low" class="btn btn--ghost perf-preset" style="flex: 1; font-size: 10px; padding: 4px 0;">低</button>
-            <button id="btn-perf-medium" class="btn btn--ghost perf-preset" style="flex: 1; font-size: 10px; padding: 4px 0;">中</button>
-            <button id="btn-perf-high" class="btn btn--ghost perf-preset" style="flex: 1; font-size: 10px; padding: 4px 0;">高</button>
+          <div class="perf-settings__section-label">プリセット</div>
+          <div class="perf-preset-group">
+            <button id="btn-perf-low" class="perf-preset">低</button>
+            <button id="btn-perf-medium" class="perf-preset">中</button>
+            <button id="btn-perf-high" class="perf-preset">高</button>
           </div>
 
-          <!-- 個別項目 -->
-          <div class="perf-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 10px;">
-            <label for="perf-particle-scale" style="flex: 1;">パーティクル量</label>
-            <input type="range" id="perf-particle-scale" min="0" max="100" step="5" style="flex: 1;">
-            <span id="perf-particle-scale-val" style="width: 32px; text-align: right; color: #a098b0;">100%</span>
+          <!-- エフェクト系スライダー -->
+          <div class="perf-settings__section-label">エフェクト</div>
+
+          <div class="perf-field">
+            <div class="perf-field__head">
+              <label for="perf-particle-scale">パーティクル量</label>
+              <span id="perf-particle-scale-val" class="perf-field__val">100%</span>
+            </div>
+            <input type="range" id="perf-particle-scale" min="0" max="100" step="5" class="perf-field__range">
           </div>
 
-          <div class="perf-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 10px;">
-            <label for="perf-max-animators" style="flex: 1;">同時エフェクト上限</label>
-            <input type="range" id="perf-max-animators" min="5" max="30" step="1" style="flex: 1;">
-            <span id="perf-max-animators-val" style="width: 32px; text-align: right; color: #a098b0;">20</span>
+          <div class="perf-field">
+            <div class="perf-field__head">
+              <label for="perf-max-animators">同時エフェクト上限</label>
+              <span id="perf-max-animators-val" class="perf-field__val">20</span>
+            </div>
+            <input type="range" id="perf-max-animators" min="5" max="30" step="1" class="perf-field__range">
           </div>
 
-          <div class="perf-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 10px;">
-            <label for="perf-shadows" style="flex: 1;">影</label>
+          <!-- トグル系 -->
+          <label class="perf-toggle">
+            <span>影</span>
             <input type="checkbox" id="perf-shadows">
-          </div>
+          </label>
 
-          <div class="perf-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 10px;">
-            <label for="perf-harvest-particles" style="flex: 1;">収穫パーティクル</label>
+          <label class="perf-toggle">
+            <span>収穫パーティクル</span>
             <input type="checkbox" id="perf-harvest-particles">
-          </div>
+          </label>
 
-          <div class="perf-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 10px;">
-            <label for="perf-breath" style="flex: 1;">キャラ呼吸</label>
+          <label class="perf-toggle">
+            <span>キャラ呼吸</span>
             <input type="checkbox" id="perf-breath">
+          </label>
+
+          <!-- 再起動後に反映 -->
+          <div class="perf-settings__section-label">
+            高度な設定
+            <span class="perf-settings__hint">※ 再起動後に反映</span>
           </div>
 
-          <div class="perf-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 10px;">
-            <label for="perf-antialias" style="flex: 1;">アンチエイリアス <span style="color:#665870;">(再起動後)</span></label>
+          <label class="perf-toggle">
+            <span>アンチエイリアス</span>
             <input type="checkbox" id="perf-antialias">
-          </div>
+          </label>
 
-          <div class="perf-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 10px;">
-            <label for="perf-pixel-ratio" style="flex: 1;">高解像度描画 <span style="color:#665870;">(再起動後)</span></label>
+          <label class="perf-toggle">
+            <span>高解像度描画</span>
             <input type="checkbox" id="perf-pixel-ratio">
+          </label>
+
+          <div class="perf-field">
+            <div class="perf-field__head">
+              <label for="perf-cloud-count">雲の数</label>
+              <span id="perf-cloud-count-val" class="perf-field__val">6</span>
+            </div>
+            <input type="range" id="perf-cloud-count" min="0" max="8" step="1" class="perf-field__range">
           </div>
 
-          <div class="perf-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 10px;">
-            <label for="perf-cloud-count" style="flex: 1;">雲の数 <span style="color:#665870;">(再起動後)</span></label>
-            <input type="range" id="perf-cloud-count" min="0" max="8" step="1" style="flex: 1;">
-            <span id="perf-cloud-count-val" style="width: 32px; text-align: right; color: #a098b0;">6</span>
-          </div>
-
-          <button id="btn-perf-reset" class="btn btn--ghost" style="width: 100%; font-size: 10px; padding: 4px 0; margin-top: 6px;">既定値に戻す</button>
+          <button id="btn-perf-reset" class="btn btn--ghost perf-reset-btn">既定値に戻す</button>
         </div>
 
         <div class="modal__actions" style="flex-direction: column; gap: 10px;">
