@@ -3,6 +3,7 @@
 
 import { CHARACTER_MASTER, CROP_MASTER, LEVEL_UNLOCK_CROPS } from './master-data.js';
 import { saveState, getCropLevel, getCropLevelMultiplier, getCropLevelProgress, purchaseUpgrade, getUpgradeLevel, isCropInfinite, getTranscendLevel, purchaseTranscendUpgrade, canTranscend, getTranscendTitle } from './game-state.js';
+import { getPerf, setPerf, applyPreset, resetPerf, DEFAULT_PERF } from './performance-settings.js';
 import { isGachaBatchUnlocked, getGachaCost } from './gacha.js';
 import { PRESTIGE_CONFIG, PRESTIGE_UPGRADES, getUpgradeCost } from './prestige-data.js';
 import { TRANSCEND_CONFIG, TRANSCEND_UPGRADES, getTranscendUpgradeCost, getTranscendEffect } from './transcend-data.js';
@@ -931,6 +932,110 @@ export function buildTranscendShop() {
     row.appendChild(btn);
     shopEl.appendChild(row);
   }
+}
+
+// ============================================
+//  パフォーマンス設定モーダル（バージョンモーダル内）
+// ============================================
+
+/** 設定値を gameState に書き戻して保存 */
+function persistPerf() {
+  if (!_gameState) return;
+  _gameState.performanceSettings = { ...getPerf() };
+  saveState(_gameState);
+}
+
+/** スライダー・チェックボックスの表示を現在値に同期 */
+function refreshPerfControls() {
+  const p = getPerf();
+  const set = (id, fn) => { const el = document.getElementById(id); if (el) fn(el); };
+
+  set('perf-particle-scale', el => { el.value = Math.round(p.particleScale * 100); });
+  set('perf-particle-scale-val', el => { el.textContent = Math.round(p.particleScale * 100) + '%'; });
+  set('perf-max-animators', el => { el.value = p.maxAnimators; });
+  set('perf-max-animators-val', el => { el.textContent = p.maxAnimators; });
+  set('perf-shadows', el => { el.checked = !!p.shadowsEnabled; });
+  set('perf-harvest-particles', el => { el.checked = !!p.harvestParticlesEnabled; });
+  set('perf-breath', el => { el.checked = !!p.characterBreathEnabled; });
+  set('perf-antialias', el => { el.checked = !!p.antialias; });
+  set('perf-pixel-ratio', el => { el.checked = p.pixelRatioCap > 1; });
+  set('perf-cloud-count', el => { el.value = p.cloudCount; });
+  set('perf-cloud-count-val', el => { el.textContent = p.cloudCount; });
+
+  // プリセットボタンのアクティブ表示
+  ['low', 'medium', 'high'].forEach(tier => {
+    const btn = document.getElementById('btn-perf-' + tier);
+    if (btn) btn.classList.toggle('is-active', p.qualityTier === tier);
+  });
+}
+
+/** バージョンモーダル内のパフォーマンス設定UIをセットアップ（1回だけ呼べばOK） */
+export function buildPerformanceSettings() {
+  const container = document.getElementById('version-modal');
+  if (!container || container.dataset.perfBound === 'true') {
+    refreshPerfControls();
+    return;
+  }
+  container.dataset.perfBound = 'true';
+
+  const onPatch = (patch) => {
+    setPerf(patch);
+    persistPerf();
+    refreshPerfControls();
+  };
+
+  // プリセット
+  document.getElementById('btn-perf-low')?.addEventListener('click', () => {
+    applyPreset('low');
+    persistPerf();
+    refreshPerfControls();
+  });
+  document.getElementById('btn-perf-medium')?.addEventListener('click', () => {
+    applyPreset('medium');
+    persistPerf();
+    refreshPerfControls();
+  });
+  document.getElementById('btn-perf-high')?.addEventListener('click', () => {
+    applyPreset('high');
+    persistPerf();
+    refreshPerfControls();
+  });
+
+  // 個別項目
+  document.getElementById('perf-particle-scale')?.addEventListener('input', (e) => {
+    const v = Number(e.target.value) / 100;
+    onPatch({ particleScale: v, qualityTier: 'custom' });
+  });
+  document.getElementById('perf-max-animators')?.addEventListener('input', (e) => {
+    onPatch({ maxAnimators: Number(e.target.value), qualityTier: 'custom' });
+  });
+  document.getElementById('perf-shadows')?.addEventListener('change', (e) => {
+    onPatch({ shadowsEnabled: e.target.checked, qualityTier: 'custom' });
+  });
+  document.getElementById('perf-harvest-particles')?.addEventListener('change', (e) => {
+    onPatch({ harvestParticlesEnabled: e.target.checked, qualityTier: 'custom' });
+  });
+  document.getElementById('perf-breath')?.addEventListener('change', (e) => {
+    onPatch({ characterBreathEnabled: e.target.checked, qualityTier: 'custom' });
+  });
+  document.getElementById('perf-antialias')?.addEventListener('change', (e) => {
+    onPatch({ antialias: e.target.checked, qualityTier: 'custom' });
+  });
+  document.getElementById('perf-pixel-ratio')?.addEventListener('change', (e) => {
+    onPatch({ pixelRatioCap: e.target.checked ? 2 : 1, qualityTier: 'custom' });
+  });
+  document.getElementById('perf-cloud-count')?.addEventListener('input', (e) => {
+    onPatch({ cloudCount: Number(e.target.value), qualityTier: 'custom' });
+  });
+
+  // リセット
+  document.getElementById('btn-perf-reset')?.addEventListener('click', () => {
+    resetPerf();
+    persistPerf();
+    refreshPerfControls();
+  });
+
+  refreshPerfControls();
 }
 
 // ============================================

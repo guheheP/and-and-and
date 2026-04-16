@@ -2,12 +2,33 @@
 // 天気パーティクル、横断オブジェクト、訪問動物、3D時計、雲の構築
 
 import * as THREE from 'three';
+import { getPerf } from './performance-settings.js';
 
 // ─ Helpers ─
 function box(w, h, d, color) {
   const geo = new THREE.BoxGeometry(w, h, d);
   const mat = new THREE.MeshLambertMaterial({ color });
   return new THREE.Mesh(geo, mat);
+}
+
+/**
+ * Three.js オブジェクトを親から外し、配下の geometry / material を一括 dispose する。
+ * removeFromParent の前に行うと traverse 範囲が空になるので、removeFromParent → traverse の順。
+ * @param {THREE.Object3D} obj
+ */
+export function disposeObject3D(obj) {
+  if (!obj) return;
+  if (obj.parent) obj.parent.remove(obj);
+  obj.traverse(child => {
+    if (child.geometry) child.geometry.dispose();
+    if (child.material) {
+      if (Array.isArray(child.material)) {
+        child.material.forEach(m => m.dispose && m.dispose());
+      } else {
+        child.material.dispose();
+      }
+    }
+  });
 }
 
 function cloudBox(w, h, d, color, opacity = 0.8) {
@@ -122,7 +143,8 @@ export function update3DClock() {
 // ═══════════════════════════════════════════
 
 export function buildClouds(cloudsGroup) {
-  for (let i = 0; i < 6; i++) {
+  const cloudCount = Math.max(0, Math.min(8, getPerf().cloudCount));
+  for (let i = 0; i < cloudCount; i++) {
     const cloud = new THREE.Group();
 
     const baseW = 3 + Math.random() * 2;
@@ -146,13 +168,14 @@ export function buildClouds(cloudsGroup) {
 //  Animation Throttle — 同時再生制限
 // ═══════════════════════════════════════════
 
-const MAX_WEATHER_ANIMATORS = 3;   // 同時天候パーティクル数
-const MAX_TOTAL_ANIMATORS = 20;    // 全アニメーター上限
+function getMaxWeatherAnimators() { return getPerf().maxWeatherAnimators; }
+function getMaxTotalAnimators() { return getPerf().maxAnimators; }
 
 // 現在のアクティブ天候パーティクル数に応じてスポーン数をスケールする
 function getParticleScale(activeAnimators) {
   const weatherCount = activeAnimators.filter(a => a.type === 'weather').length;
-  if (weatherCount >= MAX_WEATHER_ANIMATORS) return 0;
+  const maxWeather = getMaxWeatherAnimators();
+  if (weatherCount >= maxWeather) return 0;
   if (weatherCount >= 2) return 0.25;
   if (weatherCount >= 1) return 0.5;
   return 1.0;
@@ -161,7 +184,8 @@ function getParticleScale(activeAnimators) {
 // 天候アニメーターが上限を超えていたら古い方をフェードアウト
 function evictOldWeather(activeAnimators) {
   const weathers = activeAnimators.filter(a => a.type === 'weather' && !a.fadeOut);
-  while (weathers.length >= MAX_WEATHER_ANIMATORS) {
+  const maxWeather = getMaxWeatherAnimators();
+  while (weathers.length >= maxWeather) {
     const oldest = weathers.shift();
     if (oldest) oldest.fadeOut = true;
   }
@@ -173,7 +197,7 @@ function evictOldWeather(activeAnimators) {
 
 export function startEventVisual(event, { scene, weatherGroup, activeAnimators, CONFIG, updateClearColor, renderer3d }) {
   // 全アニメーター数が上限に達していたらビジュアルをスキップ
-  if (activeAnimators.length >= MAX_TOTAL_ANIMATORS) return;
+  if (activeAnimators.length >= getMaxTotalAnimators()) return;
 
   switch (event.id) {
     case 'rain': 
@@ -299,7 +323,8 @@ export function stopAllEventVisuals({ scene, weatherGroup, activeAnimators, CONF
     } else if (anim.type === 'thunder' || anim.type === 'fireworks' || anim.type === 'aurora') {
       activeAnimators.splice(i, 1);
     } else if (anim.type !== 'crossing' && anim.type !== 'poop') {
-      if (anim.mesh) anim.mesh.removeFromParent();
+      // mesh を dispose ヘルパーで一括解放（geometry/material のリーク防止）
+      if (anim.mesh) disposeObject3D(anim.mesh);
       activeAnimators.splice(i, 1);
     }
   }
@@ -308,9 +333,7 @@ export function stopAllEventVisuals({ scene, weatherGroup, activeAnimators, CONF
   for (let i = weatherGroup.children.length - 1; i >= 0; i--) {
     const c = weatherGroup.children[i];
     if (!c.isPoints) {
-      c.removeFromParent();
-      if (c.geometry) c.geometry.dispose();
-      if (c.material) c.material.dispose();
+      disposeObject3D(c);
     }
   }
 
@@ -341,10 +364,11 @@ function spawnWeatherParticles(type, colorHex, speed, count, slantX, weatherGrou
   // 同時天候数が上限に達していたら古い方をフェードアウト
   evictOldWeather(activeAnimators);
 
-  // パーティクル数を動的にスケール
+  // パーティクル数を動的にスケール（ユーザー設定の particleScale も掛ける）
   const scale = getParticleScale(activeAnimators);
-  if (scale <= 0) return;
-  count = Math.max(30, Math.floor(count * scale));
+  const userScale = Math.max(0, Math.min(1, getPerf().particleScale));
+  if (scale <= 0 || userScale <= 0) return;
+  count = Math.max(10, Math.floor(count * scale * userScale));
 
   const geo = new THREE.BufferGeometry();
   const pos = new Float32Array(count * 3);
@@ -494,22 +518,20 @@ function spawnCrossingObject3D(type, scene, activeAnimators) {
 
   if (type === 'bird') {
     setTimeout(() => {
-      if (grp.parent) {
-        const poop = box(0.2, 0.2, 0.2, 0xffffff);
-        poop.position.copy(grp.position);
-        scene.add(poop);
-        activeAnimators.push({
-          type: 'poop',
-          mesh: poop,
-          update: (dt) => {
-            poop.position.y -= 0.1;
-            if (poop.position.y < 0) {
-              return false;
-            }
-            return true;
-          }
-        });
-      }
+      // 親鳥がイベント停止で除去されていたら poop も生成しない
+      if (!grp.parent) return;
+      const poop = box(0.2, 0.2, 0.2, 0xffffff);
+      poop.position.copy(grp.position);
+      scene.add(poop);
+      activeAnimators.push({
+        type: 'poop',
+        mesh: poop,
+        update: (dt) => {
+          poop.position.y -= 0.1;
+          // 地面に落ちたら終了（animate() 側で dispose される）
+          return poop.position.y >= 0;
+        }
+      });
     }, 1500 + Math.random() * 1000);
   }
 }
@@ -855,6 +877,7 @@ function tickHarvestPool() {
 
 export function showHarvestParticles(scene, cropId, CROP_HEX, offsetX = 0, offsetZ = 0) {
   if (!scene) return;
+  if (!getPerf().harvestParticlesEnabled) return;
   const color = CROP_HEX[cropId] || 0xffd700;
 
   // 古いパーティクルが溜まりすぎている場合、古いものを強制削除

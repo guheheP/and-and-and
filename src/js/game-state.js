@@ -5,6 +5,7 @@ const SAVE_KEY = 'idle-farm-save';
 import { PRESTIGE_CONFIG, PRESTIGE_UPGRADES, getUpgradeCost, getUpgradeEffect } from './prestige-data.js';
 import { TRANSCEND_CONFIG, TRANSCEND_UPGRADES, getTranscendUpgradeCost, getTranscendEffect } from './transcend-data.js';
 import { CROP_MASTER, LEVEL_UNLOCK_CROPS } from './master-data.js';
+import { DEFAULT_PERF } from './performance-settings.js';
 
 /**
  * 初期ゲーム状態を生成
@@ -43,6 +44,8 @@ export function createInitialState() {
     transcendCurrency: 0,
     transcendUpgrades: {},
     autoPrestigeLevel: 0,      // 自動転生の閾値レベル（0=無効）
+    // パフォーマンス設定
+    performanceSettings: { ...DEFAULT_PERF },
   };
 }
 
@@ -153,6 +156,10 @@ export function loadState() {
       prestigeUpgrades: {
         ...initial.prestigeUpgrades,
         ...(saved.prestigeUpgrades || {}),
+      },
+      performanceSettings: {
+        ...initial.performanceSettings,
+        ...(saved.performanceSettings || {}),
       },
     };
 

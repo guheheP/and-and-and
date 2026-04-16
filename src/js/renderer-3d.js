@@ -12,7 +12,9 @@ import {
   startEventVisual as _startEventVisual,
   stopAllEventVisuals as _stopAllEventVisuals,
   showHarvestParticles as _showHarvestParticles,
+  disposeObject3D,
 } from './renderer-3d-events.js';
+import { getPerf, subscribePerf } from './performance-settings.js';
 
 // ═══════════════════════════════════════════
 //  調整用パラメータ（ここを編集してください）
@@ -122,15 +124,21 @@ export function initRenderer() {
   camera.position.set(CONFIG.cameraPos.x, CONFIG.cameraPos.y, CONFIG.cameraPos.z);
   camera.lookAt(CONFIG.cameraLookAt.x, CONFIG.cameraLookAt.y, CONFIG.cameraLookAt.z);
 
-  // レンダラー
+  // レンダラー（パフォーマンス設定を適用）
+  const perf = getPerf();
   renderer3d = new THREE.WebGLRenderer({
     alpha: true,
-    antialias: true,
+    antialias: perf.antialias,
   });
   renderer3d.setSize(stage.clientWidth, stage.clientHeight);
-  renderer3d.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer3d.shadowMap.enabled = true;
+  renderer3d.setPixelRatio(Math.min(window.devicePixelRatio, perf.pixelRatioCap));
+  renderer3d.shadowMap.enabled = perf.shadowsEnabled;
   renderer3d.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  // 影のオン/オフは実行中にも切り替え可能
+  subscribePerf((p) => {
+    if (renderer3d) renderer3d.shadowMap.enabled = p.shadowsEnabled;
+  });
 
   updateClearColor();
 
@@ -247,10 +255,15 @@ function animate() {
     }
   }
 
-  // キャラクターの呼吸アニメーション（収穫アニメーション中はスキップ）
+  // キャラクターの呼吸アニメーション（収穫アニメーション中・呼吸オフ時はスキップ）
   if (farmerGroup && !farmerGroup.userData.animLock) {
-    farmerGroup.userData.breathOffset = Math.sin(t * 0.002) * 0.04;
-    farmerGroup.position.y = farmerGroup.userData.breathOffset;
+    if (getPerf().characterBreathEnabled) {
+      farmerGroup.userData.breathOffset = Math.sin(t * 0.002) * 0.04;
+      farmerGroup.position.y = farmerGroup.userData.breathOffset;
+    } else if (farmerGroup.position.y !== 0) {
+      farmerGroup.userData.breathOffset = 0;
+      farmerGroup.position.y = 0;
+    }
   }
 
   // 雲のアニメーション
@@ -269,30 +282,17 @@ function animate() {
 
   // アクティブアニメーターの更新
   // 上限超過時は古いアニメーターを強制除去（パフォーマンス保護）
-  const MAX_ANIMATORS = 20;
+  const MAX_ANIMATORS = getPerf().maxAnimators;
   while (activeAnimators.length > MAX_ANIMATORS) {
     const old = activeAnimators.shift();
-    if (old && old.mesh) {
-      old.mesh.removeFromParent();
-      old.mesh.traverse(child => {
-        if (child.geometry) child.geometry.dispose();
-        if (child.material) child.material.dispose();
-      });
-    }
+    if (old && old.mesh) disposeObject3D(old.mesh);
   }
 
   const dt = 16;
   for (let i = activeAnimators.length - 1; i >= 0; i--) {
     const anim = activeAnimators[i];
     if (!anim.update(dt, t)) {
-      if (anim.mesh) {
-        anim.mesh.removeFromParent();
-        // ジオメトリとマテリアルを解放
-        anim.mesh.traverse(child => {
-          if (child.geometry) child.geometry.dispose();
-          if (child.material) child.material.dispose();
-        });
-      }
+      if (anim.mesh) disposeObject3D(anim.mesh);
       activeAnimators.splice(i, 1);
     }
   }
@@ -414,16 +414,8 @@ function buildSingleField(scale) {
 export function rebuildFields(slotCount) {
   // 旧スロットを削除
   for (const slot of fieldSlots) {
-    scene.remove(slot.fieldGroup);
-    scene.remove(slot.cropGroup);
-    slot.fieldGroup.traverse(c => {
-      if (c.geometry) c.geometry.dispose();
-      if (c.material) c.material.dispose();
-    });
-    slot.cropGroup.traverse(c => {
-      if (c.geometry) c.geometry.dispose();
-      if (c.material) c.material.dispose();
-    });
+    disposeObject3D(slot.fieldGroup);
+    disposeObject3D(slot.cropGroup);
   }
   fieldSlots = [];
 

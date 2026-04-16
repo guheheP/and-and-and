@@ -1,6 +1,7 @@
 // main.js — エントリーポイント（初期化・各モジュール結合）
 
 import { loadState, saveState, addSeed, addPoints, getActiveSlotCount } from './game-state.js';
+import { initPerfSettings } from './performance-settings.js';
 import { startGameLoop } from './game-loop.js';
 
 import {
@@ -43,11 +44,12 @@ const ALL_EVENT_CLASSES = [
  * アプリケーション初期化
  */
 function init() {
-  // 1. レンダラー初期化（DOM要素キャッシュ）
-  initRenderer();
-
-  // 2. ゲーム状態のロード
+  // 1. ゲーム状態のロード（レンダラー初期化前にパフォーマンス設定を確定させる）
   const state = loadState();
+  initPerfSettings(state.performanceSettings);
+
+  // 2. レンダラー初期化（DOM要素キャッシュ）— perf設定を参照して WebGLRenderer を構築
+  initRenderer();
 
   // 3. 初期描画（畑数に応じて3Dシーンを構築）
   const slotCount = getActiveSlotCount(state);

@@ -154,3 +154,19 @@
   min-width: 40px;
   text-align: center;
 }
+
+/* ── パフォーマンス設定（バージョンモーダル内） ── */
+.perf-preset.is-active {
+  background: rgba(160, 140, 220, 0.25);
+  border-color: #c0a0ff;
+  color: #fff;
+}
+
+.perf-row input[type="range"] {
+  accent-color: #c0a0ff;
+  margin: 0 6px;
+}
+
+.perf-row input[type="checkbox"] {
+  accent-color: #c0a0ff;
+}

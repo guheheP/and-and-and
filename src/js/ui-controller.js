@@ -17,6 +17,7 @@ import {
   initEncyclopediaTabs, buildEncyclopedia,
   buildStats,
   initPrestigeTabs, buildTranscendShop,
+  buildPerformanceSettings,
 } from './ui-modals.js';
 
 import { updateCharacter } from './renderer-3d.js';
@@ -506,6 +507,7 @@ export function initUI(state) {
         versionModal.hidden = false;
         resizeForModal();
       }
+      buildPerformanceSettings();
     });
   }
 
